@@ -1,0 +1,30 @@
+.sidebar {
+  width: 220px;
+  background: #2c3e50;
+  color: #fff;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.sidebar .profile-pic {
+  width: 100px;
+  height: 100px;
+  background: #ccc;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+}
+
+.sidebar button {
+  display: block;
+  width: 100%;
+  margin: 10px 0;
+  padding: 10px;
+  background: #34495e;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.sidebar button:hover {
+  background: #1abc9c;
+}
