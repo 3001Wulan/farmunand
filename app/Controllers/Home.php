@@ -6,6 +6,6 @@ class Home extends BaseController
 {
     public function index(): string
     {
-        return view('Pembeli/manajemenakunuser');
+        return view('auth/login');
     }
 }
