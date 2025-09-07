@@ -1,0 +1,24 @@
+<?php
+
+namespace App\Models;
+
+use CodeIgniter\Model;
+
+class UserModel extends Model
+{
+    protected $table            = 'users';   // nama tabel
+    protected $primaryKey       = 'id';      // primary key
+
+    protected $useAutoIncrement = true;
+
+    // kolom yang boleh diisi
+    protected $allowedFields    = ['username', 'email', 'password', 'role'];
+
+    // timestamps otomatis
+    protected $useTimestamps = true;
+    protected $createdField  = 'created_at';
+    protected $updatedField  = 'updated_at';
+
+    // optional: proteksi data
+    protected $returnType     = 'array';
+}
