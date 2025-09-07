@@ -1,0 +1,57 @@
+/* Tombol tambah alamat */
+.add-btn {
+    background: #1abc9c;
+    color: #fff;
+    padding: 8px 15px;
+    border: none;
+    margin-bottom: 20px;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+  .add-btn:hover {
+    background: #16a085;
+  }
+  
+  /* Kartu alamat */
+  .address-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+  }
+  
+  .address-info {
+    flex: 1;
+    margin-left: 10px;
+  }
+  
+  .address-info p {
+    margin: 3px 0;
+  }
+  
+  .utama {
+    display: inline-block;
+    background: #1abc9c;
+    color: #fff;
+    padding: 3px 8px;
+    font-size: 12px;
+    border-radius: 5px;
+    margin-top: 5px;
+  }
+  
+  /* Tombol ubah */
+  .edit-btn {
+    background: #34495e;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+  .edit-btn:hover {
+    background: #1abc9c;
+  }
+  
