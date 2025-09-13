@@ -21,4 +21,8 @@ class UserModel extends Model
 
     // optional: proteksi data
     protected $returnType     = 'array';
+     public function getTotalUser()
+    {
+        return $this->countAllResults();
+    }
 }

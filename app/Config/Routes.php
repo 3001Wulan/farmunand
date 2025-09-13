@@ -16,3 +16,7 @@ $routes->post('/auth/doRegister', 'Auth::doRegister');
 
 // LOGOUT
 $routes->get('/logout', 'Auth::logout');
+
+$routes->get('/dashboard', 'Dashboard::index');
+
+
