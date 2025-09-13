@@ -18,5 +18,6 @@ $routes->post('/auth/doRegister', 'Auth::doRegister');
 $routes->get('/logout', 'Auth::logout');
 
 $routes->get('/dashboard', 'Dashboard::index');
+$routes->get('/MengelolaRiwayatPesanan', 'MengelolaRiwayatPesanan::index');
 
 
