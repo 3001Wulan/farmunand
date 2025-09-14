@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laporan Penjualan</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #f8f9fa;
+}
+
+/* Sidebar fixed */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 100vh;
+  background: #198754;
+  padding: 20px;
+  color: white;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.sidebar .profile {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: white;
+  margin: 0 auto 20px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #198754;
+  font-size: 18px;
+}
+
+.sidebar a {
+  display: block;
+  padding: 10px;
+  margin: 10px 0;
+  background: white;
+  color: #198754;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.sidebar a:hover,
+.sidebar a.active {
+  background: #145c32;
+  color: white;
+}
+
+/* Content margin kiri sesuai sidebar */
+.content {
+  margin-left: 240px;
+  padding: 30px;
+}
+
+/* Tabel laporan */
+.table thead {
+  background: #198754;
+  color: white;
+}
+
+.status-success { color: #198754; font-weight: bold; }
+.status-pending { color: #ffc107; font-weight: bold; }
+.status-cancel  { color: #dc3545; font-weight: bold; }
+</style>
+</head>
+<body>
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="profile">Admin</div>
+  <a href="#">Dashboard</a>
+  <a href="#">Produk</a>
+  <a href="#">Pesanan</a>
+  <a href="#" class="active">Laporan</a>
+</div>
+
+<!-- Content -->
+<div class="content">
+  <h3 class="mb-4 text-success">Laporan Penjualan</h3>
+
+  <!-- Filter -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <form class="row g-3" onsubmit="return false;">
+        <div class="col-md-4">
+          <label for="startDate" class="form-label">Dari Tanggal</label>
+          <input type="date" id="startDate" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label for="endDate" class="form-label">Sampai Tanggal</label>
+          <input type="date" id="endDate" class="form-control">
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <button type="button" id="filterBtn" class="btn btn-success w-100">Filter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabel Laporan -->
+  <div class="card">
+    <div class="card-body">
+      <table class="table table-bordered align-middle">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Nama Pembeli</th>
+            <th>Produk</th>
+            <th>Tanggal</th>
+            <th>Total</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="laporanTable">
+          <tr>
+            <td>1</td>
+            <td>Heni Yunida</td>
+            <td>Daging Sapi Premium</td>
+            <td>20-10-2025</td>
+            <td>Rp 250.000</td>
+            <td class="status-success">Sukses</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Budi Santoso</td>
+            <td>Daging Ayam Segar</td>
+            <td>21-10-2025</td>
+            <td>Rp 150.000</td>
+            <td class="status-pending">Pending</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Siti Aisyah</td>
+            <td>Telur Organik</td>
+            <td>22-10-2025</td>
+            <td>Rp 50.000</td>
+            <td class="status-cancel">Dibatalkan</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Script Filter -->
+<script>
+document.getElementById("filterBtn").addEventListener("click", function() {
+  const startDate = document.getElementById("startDate").value;
+  const endDate = document.getElementById("endDate").value;
+
+  const rows = document.querySelectorAll("#laporanTable tr");
+
+  rows.forEach(row => {
+    const tanggalText = row.cells[3].textContent.trim(); // kolom tanggal (dd-mm-yyyy)
+    const parts = tanggalText.split("-");
+    const formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // ubah ke yyyy-mm-dd
+    const rowDate = new Date(formattedDate);
+
+    let show = true;
+    if (startDate && rowDate < new Date(startDate)) show = false;
+    if (endDate && rowDate > new Date(endDate)) show = false;
+
+    row.style.display = show ? "" : "none";
+  });
+});
+</script>
+</body>
+</html>
