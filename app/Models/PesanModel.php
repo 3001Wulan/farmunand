@@ -9,7 +9,6 @@ class PesanModel extends Model
     protected $table      = 'pemesanan';
     protected $primaryKey = 'id';
     protected $allowedFields = [
-        'tanggal',
         'nama',
         'produk',
         'quantity',
@@ -18,15 +17,27 @@ class PesanModel extends Model
         'status'
     ];
 
-    // Sudah ada
+    // Hitung jumlah pesanan belum dibaca
     public function getPesanMasuk()
     {
         return $this->where('status', 'belum_dibaca')->countAllResults();
     }
 
-    // Tambahan -> untuk riwayat pesanan
+    // Ambil semua pesanan
     public function getAllPesanan()
     {
-        return $this->orderBy('tanggal', 'DESC')->findAll();
+        return $this->findAll(); // tanpa orderBy tanggal
+    }
+
+    // Ambil detail pesanan by id
+    public function getPesananById($id)
+    {
+        return $this->where('id', $id)->first();
+    }
+
+    // Ambil semua pesanan berdasarkan nama user
+    public function getPesananByNama($nama)
+    {
+        return $this->where('nama', $nama)->findAll();
     }
 }

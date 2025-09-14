@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard User</title>
+<title><?= esc($title) ?></title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 <style>
@@ -86,7 +86,7 @@ html, body {
   border-top-left-radius: 12px !important;
   border-top-right-radius: 12px !important;
 }
-.product-card img { border-top-left-radius: 12px; border-top-right-radius: 12px; }
+.product-card img { border-top-left-radius: 12px; border-top-right-radius: 12px; height: 150px; object-fit: cover; }
 .product-card .card-body { text-align: center; }
 </style>
 </head>
@@ -104,8 +104,8 @@ html, body {
 <div class="content">
   <!-- Welcome Section -->
   <div class="welcome-card">
-    <h4>Selamat Datang, Heni Yunida 👋</h4>
-    <p>Senang bertemu kembali! Yuk cek pesanan kamu atau lihat produk rekomendasi daging segar dari FarmUnand.</p>
+    <h4>Selamat Datang, <?= esc($username) ?> 👋</h4>
+    <p>Senang bertemu kembali! Yuk cek pesanan kamu atau lihat produk rekomendasi segar dari FarmUnand.</p>
   </div>
 
   <!-- Info Cards -->
@@ -115,7 +115,7 @@ html, body {
         <div class="card-body">
           <i class="bi bi-bag-check-fill text-success fs-2"></i>
           <h5 class="mt-2">Pesanan Sukses</h5>
-          <p class="text-success fw-bold">12</p>
+          <p class="text-success fw-bold"><?= esc($pesanan_sukses) ?></p>
         </div>
       </div>
     </div>
@@ -124,7 +124,7 @@ html, body {
         <div class="card-body">
           <i class="bi bi-clock-history text-warning fs-2"></i>
           <h5 class="mt-2">Pending</h5>
-          <p class="text-warning fw-bold">3</p>
+          <p class="text-warning fw-bold"><?= esc($pending) ?></p>
         </div>
       </div>
     </div>
@@ -133,7 +133,7 @@ html, body {
         <div class="card-body">
           <i class="bi bi-x-circle-fill text-danger fs-2"></i>
           <h5 class="mt-2">Dibatalkan</h5>
-          <p class="text-danger fw-bold">1</p>
+          <p class="text-danger fw-bold"><?= esc($batal) ?></p>
         </div>
       </div>
     </div>
@@ -141,35 +141,22 @@ html, body {
 
   <!-- Rekomendasi Produk -->
   <div class="card">
-    <div class="card-header">Rekomendasi Daging Segar</div>
+    <div class="card-header">Rekomendasi Produk</div>
     <div class="card-body d-flex gap-3 flex-wrap">
-      <!-- Produk 1 -->
-      <div class="card product-card" style="width: 13rem;">
-         <img src="<?= base_url('assets/images/sapi.jpg') ?>" alt="Daging Sapi Premium">
-        <div class="card-body">
-          <h6 class="card-title">Daging Sapi Premium</h6>
-          <p class="text-success">Rp 250.000</p>
-          <button class="btn btn-sm btn-success w-100">Beli</button>
-        </div>
-      </div>
-      <!-- Produk 2 -->
-      <div class="card product-card" style="width: 13rem;">
-         <img src="<?= base_url('assets/images/ayam.jpg') ?>" alt="Daging Ayam Premium">
-        <div class="card-body">
-          <h6 class="card-title">Daging Ayam</h6>
-          <p class="text-success">Rp 300.000</p>
-          <button class="btn btn-sm btn-success w-100">Beli</button>
-        </div>
-      </div>
-      <!-- Produk 3 -->
-      <div class="card product-card" style="width: 13rem;">
-        <img src="<?= base_url('assets/images/bebek.jpg') ?>" alt="Daging bebek Premium">
-        <div class="card-body">
-          <h6 class="card-title">Daging Bebek</h6>
-          <p class="text-success">Rp 200.000</p>
-          <button class="btn btn-sm btn-success w-100">Beli</button>
-        </div>
-      </div>
+      <?php if (!empty($produk)): ?>
+        <?php foreach ($produk as $p): ?>
+          <div class="card product-card" style="width: 13rem;">
+            <img src="<?= base_url('uploads/'.$p['foto']) ?>" alt="<?= esc($p['nama_produk']) ?>">
+            <div class="card-body">
+              <h6 class="card-title"><?= esc($p['nama_produk']) ?></h6>
+              <p class="text-success">Rp <?= number_format($p['harga'], 0, ',', '.') ?></p>
+              <button class="btn btn-sm btn-success w-100">Beli</button>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <p class="text-muted">Belum ada produk tersedia.</p>
+      <?php endif; ?>
     </div>
   </div>
 </div>
@@ -177,9 +164,7 @@ html, body {
 <!-- JavaScript untuk tombol Beli -->
 <script>
   const cart = [];
-  const buyButtons = document.querySelectorAll('.btn-success');
-
-  buyButtons.forEach(button => {
+  document.querySelectorAll('.btn-success').forEach(button => {
     button.addEventListener('click', () => {
       const productCard = button.closest('.product-card');
       const productName = productCard.querySelector('.card-title').innerText;
@@ -188,7 +173,7 @@ html, body {
       cart.push({ name: productName, price: productPrice });
 
       alert(`Berhasil menambahkan ke keranjang: ${productName}\nTotal item di keranjang: ${cart.length}`);
-      console.log(cart); // Bisa dilihat di console
+      console.log(cart);
     });
   });
 </script>

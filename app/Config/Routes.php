@@ -36,4 +36,9 @@ $routes->group('', ['namespace' => 'App\Controllers'], function($routes) {
     // Aksi konfirmasi selesai pesanan (pakai id pesanan)
     $routes->get('konfirmasipesanan/selesai/(:num)', 'KonfirmasiPesanan::selesai/$1');
 });
+$routes->get('/dashboarduser', 'DashboardUser::index');
+$routes->get('/detailproduk', 'DetailProduk::index');
+$routes->get('/detailproduk/(:num)', 'DetailProduk::index/$1');
+$routes->get('/melakukanpemesanan', 'MelakukanPemesanan::index');
+$routes->get('/melakukanpemesanan/(:num)', 'MelakukanPemesanan::index/$1');
 
