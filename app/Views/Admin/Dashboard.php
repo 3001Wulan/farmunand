@@ -94,6 +94,7 @@ html, body {
       <a href="#">Product</a>
       <a href="#">Chart</a>
       <a href="#">History</a>
+      <a href="manajemenakunuser">akunuser</a>
       <a href="#">Log Out</a>
     </div>
 
