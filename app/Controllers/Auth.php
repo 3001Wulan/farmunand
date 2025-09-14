@@ -38,7 +38,16 @@ class Auth extends BaseController
                     'role'      => $user['role'],
                     'logged_in' => true,
                 ]);
-                return redirect()->to('/dashboard'); // halaman setelah login sukses
+
+                // Redirect sesuai role
+                if ($user['role'] === 'user') {
+                    return redirect()->to('/dashboardpembeli'); // halaman untuk user/admin
+                } elseif ($user['role'] === 'admin') {
+                    return redirect()->to('/dashboard'); // halaman untuk pembeli
+                } else { 
+                    $session->setFlashdata('error', 'Role tidak dikenali!');
+                    return redirect()->to('/login');
+                }
             } else {
                 $session->setFlashdata('error', 'Password salah!');
                 return redirect()->to('/login');
@@ -62,7 +71,7 @@ class Auth extends BaseController
             'username'          => 'required|min_length[3]',
             'email'             => 'required|valid_email|is_unique[users.email]',
             'password'          => 'required|min_length[6]',
-            'password_confirm'  => 'matches[password]'
+            'password_confirm'  => 'matches[password]',
         ];
 
         if (!$this->validate($rules)) {
@@ -73,7 +82,7 @@ class Auth extends BaseController
             'username' => $this->request->getVar('username'),
             'email'    => $this->request->getVar('email'),
             'password' => password_hash($this->request->getVar('password'), PASSWORD_DEFAULT),
-            'role'     => 'user', // default role
+            'role'     => 'user',
         ]);
 
         session()->setFlashdata('success', 'Registrasi berhasil, silakan login.');
