@@ -125,30 +125,27 @@ html, body {
           </tr>
         </thead>
         <tbody id="laporanTable">
-          <tr>
-            <td>1</td>
-            <td>Heni Yunida</td>
-            <td>Daging Sapi Premium</td>
-            <td>20-10-2025</td>
-            <td>Rp 250.000</td>
-            <td class="status-success">Sukses</td>
-          </tr>
-          <tr>
-            <td>2</td>
-            <td>Budi Santoso</td>
-            <td>Daging Ayam Segar</td>
-            <td>21-10-2025</td>
-            <td>Rp 150.000</td>
-            <td class="status-pending">Pending</td>
-          </tr>
-          <tr>
-            <td>3</td>
-            <td>Siti Aisyah</td>
-            <td>Telur Organik</td>
-            <td>22-10-2025</td>
-            <td>Rp 50.000</td>
-            <td class="status-cancel">Dibatalkan</td>
-          </tr>
+          <?php if (!empty($laporan)): ?>
+            <?php $no = 1; foreach ($laporan as $row): ?>
+              <tr>
+                <td><?= $no++; ?></td>
+                <td><?= esc($row['nama_pembeli'] ?? 'Tidak ada'); ?></td>
+                <td><?= esc($row['nama_produk'] ?? '-'); ?></td>
+                <td><?= date('d-m-Y', strtotime($row['created_at'] ?? date('Y-m-d'))); ?></td>
+                <td>Rp <?= number_format($row['harga_produk'] * ($row['jumlah_produk'] ?? 1), 0, ',', '.'); ?></td>
+                <td class="<?php 
+                      if ($row['status_pemesanan'] == 'sukses') echo 'status-success'; 
+                      elseif ($row['status_pemesanan'] == 'pending') echo 'status-pending'; 
+                      else echo 'status-cancel'; ?>">
+                  <?= ucfirst($row['status_pemesanan']); ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <tr>
+              <td colspan="6" class="text-center text-muted">Belum ada data laporan</td>
+            </tr>
+          <?php endif; ?>
         </tbody>
       </table>
     </div>
@@ -164,9 +161,12 @@ document.getElementById("filterBtn").addEventListener("click", function() {
   const rows = document.querySelectorAll("#laporanTable tr");
 
   rows.forEach(row => {
-    const tanggalText = row.cells[3].textContent.trim(); // kolom tanggal (dd-mm-yyyy)
+    const tanggalCell = row.cells[3];
+    if (!tanggalCell) return;
+
+    const tanggalText = tanggalCell.textContent.trim(); // format dd-mm-yyyy
     const parts = tanggalText.split("-");
-    const formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // ubah ke yyyy-mm-dd
+    const formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // yyyy-mm-dd
     const rowDate = new Date(formattedDate);
 
     let show = true;

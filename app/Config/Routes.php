@@ -41,4 +41,6 @@ $routes->get('/detailproduk', 'DetailProduk::index');
 $routes->get('/detailproduk/(:num)', 'DetailProduk::index/$1');
 $routes->get('/melakukanpemesanan', 'MelakukanPemesanan::index');
 $routes->get('/melakukanpemesanan/(:num)', 'MelakukanPemesanan::index/$1');
+$routes->get('/melihatlaporan', 'MelihatLaporan::index');
+$routes->post('/melihatlaporan/filter', 'MelihatLaporan::filter');
 
