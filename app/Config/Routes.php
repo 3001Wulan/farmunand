@@ -29,4 +29,11 @@ $routes->group('manajemenakunuser', ['namespace' => 'App\Controllers'], function
 });
 $routes->get('/riwayatpesanan', 'Pesanan::index');
 
+$routes->group('', ['namespace' => 'App\Controllers'], function($routes) {
+    // Halaman daftar pesanan
+    $routes->get('konfirmasipesanan', 'KonfirmasiPesanan::index');
+
+    // Aksi konfirmasi selesai pesanan (pakai id pesanan)
+    $routes->get('konfirmasipesanan/selesai/(:num)', 'KonfirmasiPesanan::selesai/$1');
+});
 

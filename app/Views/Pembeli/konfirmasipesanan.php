@@ -3,24 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pilih Alamat - FarmUnand</title>
+    <title>Pesanan Saya - FarmUnand</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
+     body {
             background-color: #f8f9fa;
         }
         .sidebar {
             min-height: 100vh;
+            border-right: 2px solid #14532d;
         }
-        .address-card {
-            border: 1px solid #dee2e6;
+        .order-img {
+            width: 100px; 
+            height: 100px; 
+            background:#e9ecef; 
             border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            background: #fff;
-        }
-        .address-card .badge {
-            font-size: 12px;
+            object-fit: cover;
         }
     </style>
 </head>
@@ -29,38 +27,55 @@
 <div class="container-fluid">
     <div class="row g-0">
 
-        <!-- Sidebar -->
+        <!-- Sidebar (include) -->
         <?= $this->include('layout/sidebar'); ?>
 
         <!-- Main Content -->
         <div class="col-md-9 col-lg-10 p-4">
-            <h4 class="mb-3">Alamat</h4>
-            <button class="btn btn-sm btn-success mb-3">+ Tambah Alamat</button>
+            <!-- Tabs -->
+            <div class="mb-4 d-flex flex-wrap gap-2">
+    <a href="/pesanan" class="btn btn-sm btn-outline-success">Semua</a>
+    <a href="/pesanan?status=belum_bayar" class="btn btn-sm btn-outline-success">Belum Bayar</a>
+    <a href="/pesanan?status=dikemas" class="btn btn-sm btn-outline-success">Dikemas</a>
+    <a href="/pesanan?status=dikirim" class="btn btn-sm btn-success active">Dikirim</a>
+    <a href="/pesanan?status=selesai" class="btn btn-sm btn-outline-success">Selesai</a>
+    <a href="/pesanan?status=penilaian" class="btn btn-sm btn-outline-success">Berikan Penilaian</a>
+</div>
 
-            <!-- Alamat 1 -->
-            <div class="address-card d-flex justify-content-between align-items-start">
-                <div>
-                    <input type="radio" name="alamat" checked class="form-check-input me-2">
-                    <span class="fw-bold">Wulandari Yulianis</span> 
-                    <span class="text-muted">(+62) 822-8567-1644</span>
-                    <p class="mb-1">Kos, Jalan Pasar Ambacang</p>
-                    <p class="mb-1">Kota Padang, Sumatera Barat, ID 25151</p>
-                    <span class="badge bg-success">Utama</span>
-                </div>
-                <button class="btn btn-outline-secondary btn-sm">Ubah</button>
-            </div>
 
-            <!-- Alamat 2 -->
-            <div class="address-card d-flex justify-content-between align-items-start">
-                <div>
-                    <input type="radio" name="alamat" class="form-check-input me-2">
-                    <span class="fw-bold">Wulandari Yulianis</span> 
-                    <span class="text-muted">(+62) 822-8567-1644</span>
-                    <p class="mb-1">Jalan Sitinanggopoh</p>
-                    <p class="mb-1">Lubuk Basung, Kab. Agam, Sumatera Barat, ID 26451</p>
+            <!-- Loop Pesanan -->
+            <?php if (!empty($pesanan)) : ?>
+                <?php foreach ($pesanan as $p): ?>
+                <div class="card mb-3 shadow-sm">
+                    <div class="card-body d-flex flex-wrap justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <img src="<?= base_url('uploads/produk/'.$p['foto']); ?>" class="order-img" alt="produk">
+                            <div class="ms-3">
+                                <h6 class="fw-bold mb-1"><?= esc($p['nama_produk']); ?></h6>
+                                <p class="mb-0">Jumlah: <?= esc($p['jumlah_produk']); ?></p>
+                                <p class="mb-0">Harga: Rp.<?= number_format($p['harga'], 0, ',', '.'); ?></p>
+                            </div>
+                        </div>
+                        <div class="text-end mt-3 mt-md-0">
+                            <p class="mb-1 text-success fw-bold"><?= esc($p['status_pemesanan']); ?></p>
+                            <p class="mb-2">Total Pesanan 
+                                <span class="fw-bold">Rp.<?= number_format($p['harga'] * $p['jumlah_produk'], 0, ',', '.'); ?></span>
+                            </p>
+                            <?php if ($p['status_pemesanan'] !== 'Selesai'): ?>
+                                <a href="<?= site_url('konfirmasipesanan/selesai/'.$p['id_pemesanan']); ?>" 
+                                   class="btn btn-sm btn-success">
+                                   Pesanan Selesai
+                                </a>
+                            <?php else: ?>
+                                <span class="badge bg-success">Selesai</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 </div>
-                <button class="btn btn-outline-secondary btn-sm">Ubah</button>
-            </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p class="text-muted">Belum ada pesanan.</p>
+            <?php endif; ?>
         </div>
     </div>
 </div>
