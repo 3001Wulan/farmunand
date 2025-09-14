@@ -17,6 +17,15 @@
             height: 100px; 
             background:#e9ecef; 
             border-radius: 8px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            overflow:hidden;
+        }
+        .order-img img {
+            width:100%;
+            height:100%;
+            object-fit:cover;
         }
     </style>
 </head>
@@ -40,41 +49,40 @@
                 <button class="btn btn-sm btn-outline-success">Berikan Penilaian</button>
             </div>
 
-            <!-- Order Card 1 -->
-            <div class="card mb-3 shadow-sm">
-                <div class="card-body d-flex flex-wrap justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                        <div class="order-img"></div>
-                        <div class="ms-3">
-                            <h6 class="fw-bold mb-1">Daging Sapi Premium 1 KG</h6>
-                            <p class="text-muted mb-1">Farm Unand</p>
-                            <p class="mb-0">Pengiriman telah mengirimkan pesanan kamu</p>
+            <!-- Loop Pesanan -->
+            <?php if (!empty($orders)): ?>
+                <?php foreach ($orders as $order): ?>
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body d-flex flex-wrap justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="order-img">
+                                    <?php if (!empty($order['foto'])): ?>
+                                        <img src="<?= base_url('uploads/produk/' . $order['foto']); ?>" 
+                                             alt="<?= esc($order['nama_produk']); ?>">
+                                    <?php else: ?>
+                                        <span class="text-muted small">No Image</span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="ms-3">
+                                    <h6 class="fw-bold mb-1"><?= esc($order['nama_produk']); ?></h6>
+                                    <p class="text-muted mb-1">Farm Unand</p>
+                                    <p class="mb-0">Jumlah: <?= esc($order['jumlah_produk']); ?></p>
+                                </div>
+                            </div>
+                            <div class="text-end mt-3 mt-md-0">
+                                <p class="mb-1 text-success fw-bold"><?= esc($order['status_pemesanan']); ?></p>
+                                <p class="mb-0">Total Pesanan 
+                                    <span class="fw-bold">
+                                        Rp.<?= number_format($order['harga'] * $order['jumlah_produk'], 0, ',', '.'); ?>
+                                    </span>
+                                </p>
+                            </div>
                         </div>
                     </div>
-                    <div class="text-end mt-3 mt-md-0">
-                        <p class="mb-1 text-success fw-bold">Selesai</p>
-                        <p class="mb-0">Total Pesanan <span class="fw-bold">Rp.250.000</span></p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Order Card 2 -->
-            <div class="card mb-3 shadow-sm">
-                <div class="card-body d-flex flex-wrap justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                        <div class="order-img"></div>
-                        <div class="ms-3">
-                            <h6 class="fw-bold mb-1">Telur Ayam Kampung 30 Butir</h6>
-                            <p class="text-muted mb-1">Farm Unand</p>
-                            <p class="mb-0">Pengiriman telah mengirimkan paket kamu</p>
-                        </div>
-                    </div>
-                    <div class="text-end mt-3 mt-md-0">
-                        <p class="mb-1 text-success fw-bold">Selesai</p>
-                        <p class="mb-0">Total Pesanan <span class="fw-bold">Rp.48.000</span></p>
-                    </div>
-                </div>
-            </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="alert alert-info">Belum ada pesanan.</div>
+            <?php endif; ?>
 
         </div>
     </div>
