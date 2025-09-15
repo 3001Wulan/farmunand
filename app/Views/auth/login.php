@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <title>Login - FarmUnand</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <div class="logo-container">
+    <img src="<?= base_url('public/img/logo-unand.png') ?>" alt="Logo Universitas Andalas">
+    <img src="<?= base_url('public/img/logo-fapet.png') ?>" alt="Logo Fakultas Peternakan">
+  </div>
+
   <style>
     body {
       background: url("<?= base_url('public/img/bg-login.jpg') ?>") no-repeat center center fixed;
@@ -28,6 +34,22 @@
       border-radius: 15px;
       box-shadow: 0 8px 20px rgba(0, 128, 0, 0.3); /* shadow hijau */
     }
+
+    /* Posisi logo di kiri atas */
+    .logo-container {
+      position: absolute;
+      top: 20px;
+      left: 30px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 2;
+    }
+
+    .logo-container img {
+      height: 45px; /* bisa diatur sesuai kebutuhan */
+      width: auto;
+    }
   </style>
 </head>
 <body>
@@ -36,7 +58,7 @@
   <div class="col-md-4">
     <div class="card shadow-lg">
       <div class="card-body p-4">
-        <h3 class="text-center mb-4 text-success fw-bold">Login ke FarmUnand</h3>
+        <h3 class="text-center mb-4 text-success fw-bold">Selamat Datang Di Website Penjualan FarmUnand</h3>
 
         <?php if (session()->getFlashdata('error')): ?>
           <div class="alert alert-danger"><?= session()->getFlashdata('error') ?></div>
@@ -57,6 +79,10 @@
           </div>
           <button type="submit" class="btn btn-success w-100">Login</button>
         </form>
+
+        <p class="mt-2 text-center">
+          <a href="/forgot-password" class="text-decoration-none">Lupa password?</a>
+        </p>
 
         <p class="mt-3 text-center">
           Belum punya akun? <a href="/register" class="text-decoration-none">Register</a>
