@@ -86,4 +86,86 @@ class Auth extends BaseController
         session()->destroy();
         return redirect()->to('/login');
     }
+
+    // FORM FORGOT PASSWORD
+    public function forgotPassword()
+    {
+        return view('auth/forgot_password');
+    }
+
+    // KIRIM RESET LINK VIA EMAIL
+    public function sendResetLink()
+    {
+        $email = $this->request->getVar('email');
+        $user = $this->userModel->where('email', $email)->first();
+
+        if (!$user) {
+            return redirect()->back()->with('error', 'Email tidak ditemukan.');
+        }
+
+        // buat token
+        $token = bin2hex(random_bytes(50));
+        $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
+
+        // simpan ke tabel users
+        $this->userModel->update($user['id'], [
+            'reset_token' => $token,
+            'reset_expires' => $expires
+        ]);
+
+        // buat link reset
+        $resetLink = base_url("reset-password/$token");
+
+        // kirim email
+        $emailService = \Config\Services::email();
+        $emailService->setTo($email);
+        $emailService->setSubject('Reset Password FarmUnand');
+        $emailService->setMessage("Klik link berikut untuk reset password: <a href='$resetLink'>$resetLink</a>");
+        $emailService->send();
+
+        return redirect()->to('/login')->with('success', 'Link reset password sudah dikirim ke email.');
+    }
+
+    // FORM RESET PASSWORD
+    public function resetPassword($token)
+    {
+        $user = $this->userModel->where('reset_token', $token)
+                                ->where('reset_expires >=', date('Y-m-d H:i:s'))
+                                ->first();
+
+        if (!$user) {
+            return redirect()->to('/login')->with('error', 'Token tidak valid atau kadaluarsa.');
+        }
+
+        return view('auth/reset_password', ['token' => $token]);
+    }
+
+    // PROSES RESET PASSWORD
+    public function doResetPassword()
+    {
+        $token = $this->request->getVar('token');
+        $password = $this->request->getVar('password');
+        $confirm = $this->request->getVar('password_confirm');
+
+        if ($password !== $confirm) {
+            return redirect()->back()->with('error', 'Password tidak sama.');
+        }
+
+        $user = $this->userModel->where('reset_token', $token)
+                                ->where('reset_expires >=', date('Y-m-d H:i:s'))
+                                ->first();
+
+        if (!$user) {
+            return redirect()->to('/login')->with('error', 'Token tidak valid atau kadaluarsa.');
+        }
+
+        // update password
+        $this->userModel->update($user['id'], [
+            'password' => password_hash($password, PASSWORD_DEFAULT),
+            'reset_token' => null,
+            'reset_expires' => null
+        ]);
+
+        return redirect()->to('/login')->with('success', 'Password berhasil direset. Silakan login.');
+    }
 }
