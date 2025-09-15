@@ -77,7 +77,6 @@ table th {
   background: #198754;
   color: white;
 }
-
   </style>
 </head>
 <body>
@@ -99,6 +98,9 @@ table th {
     <!-- Content -->
     <div class="col-md-9 col-lg-10 content">
       <h3 class="mb-4 text-success">Manajemen Akun User</h3>
+
+      <!-- Tombol tambah user -->
+      <a href="<?= site_url('manajemenakunuser/create') ?>" class="btn btn-success mb-3">+ Tambah User</a>
       
       <table class="table table-bordered table-hover">
         <thead>
@@ -112,28 +114,33 @@ table th {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>1</td>
-            <td>Wulandari Yulianis</td>
-            <td>wulan@example.com</td>
-            <td>+62 822-8567-1644</td>
-            <td><span class="badge bg-success">Aktif</span></td>
-            <td>
-              <button class="btn btn-sm btn-warning">Edit</button>
-              <button class="btn btn-sm btn-danger">Hapus</button>
-            </td>
-          </tr>
-          <tr>
-            <td>2</td>
-            <td>Budi Santoso</td>
-            <td>budi@example.com</td>
-            <td>+62 811-2233-4455</td>
-            <td><span class="badge bg-secondary">Nonaktif</span></td>
-            <td>
-              <button class="btn btn-sm btn-warning">Edit</button>
-              <button class="btn btn-sm btn-danger">Hapus</button>
-            </td>
-          </tr>
+          <?php if (!empty($users) && is_array($users)): ?>
+            <?php $no = 1; foreach ($users as $user): ?>
+              <tr>
+                <td><?= $no++ ?></td>
+                <td><?= esc($user['nama']) ?></td>
+                <td><?= esc($user['email']) ?></td>
+                <td><?= esc($user['no_hp']) ?></td>
+                <td>
+                  <?php if ($user['status'] === 'Aktif'): ?>
+                    <span class="badge bg-success">Aktif</span>
+                  <?php else: ?>
+                    <span class="badge bg-secondary">Nonaktif</span>
+                  <?php endif; ?>
+                </td>
+                <td>
+                  <a href="<?= site_url('manajemenakunuser/edit/'.$user['id']) ?>" class="btn btn-sm btn-warning">Edit</a>
+                  <a href="<?= site_url('manajemenakunuser/delete/'.$user['id']) ?>" 
+                     onclick="return confirm('Yakin ingin menghapus user ini?')" 
+                     class="btn btn-sm btn-danger">Hapus</a>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <tr>
+              <td colspan="6" class="text-center">Belum ada data user.</td>
+            </tr>
+          <?php endif; ?>
         </tbody>
       </table>
     </div>

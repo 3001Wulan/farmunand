@@ -14,7 +14,6 @@ class UserModel extends Model
     // kolom yang boleh diisi
     protected $allowedFields = ['username', 'email', 'password', 'role', 'reset_token', 'reset_expires'];
 
-
     // timestamps otomatis
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';
@@ -22,4 +21,8 @@ class UserModel extends Model
 
     // optional: proteksi data
     protected $returnType     = 'array';
+    public function getTotalUser()
+    {
+        return $this->countAllResults();
+    }
 }
