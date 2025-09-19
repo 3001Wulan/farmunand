@@ -7,7 +7,7 @@ use CodeIgniter\Model;
 class UserModel extends Model
 {
     protected $table            = 'users';   // nama tabel
-    protected $primaryKey       = 'id';      // primary key
+    protected $primaryKey       = 'id_user';      // primary key
 
     protected $useAutoIncrement = true;
 

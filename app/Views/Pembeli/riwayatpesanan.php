@@ -85,7 +85,10 @@
             <a href="/pesanan?status=dikemas" class="btn btn-sm btn-outline-success">Dikemas</a>
             <a href="/konfirmasipesanan" class="btn btn-sm btn-outline-success">Dikirim</a>
             <a href="/pesanan?status=selesai" class="btn btn-sm btn-outline-success">Selesai</a>
-            <a href="/pesanan?status=penilaian" class="btn btn-sm btn-outline-success">Berikan Penilaian</a>
+            <a href="<?= base_url('penilaian/daftar') ?>" class="btn btn-sm btn-outline-success">
+    Berikan Penilaian
+</a>
+
         </div>
 
             <!-- Loop Pesanan -->

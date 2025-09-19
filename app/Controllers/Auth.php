@@ -32,7 +32,7 @@ class Auth extends BaseController
         if ($user) {
             if (password_verify($password, $user['password'])) {
                 $session->set([
-                    'id'        => $user['id'],
+                    'id_user'        => $user['id_user'],
                     'username'  => $user['username'],
                     'email'     => $user['email'],
                     'role'      => $user['role'],

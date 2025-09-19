@@ -92,8 +92,7 @@ html, body {
       <a href="#">Profil</a>
       <a href="#" class="active">Dashboard</a>
       <a href="#">Product</a>
-      <a href="#">Chart</a>
-      <a href="#">History</a>
+      <a href="#">Pesanan</a>
       <a href="manajemenakunuser">akunuser</a>
       <a href="#">Log Out</a>
     </div>

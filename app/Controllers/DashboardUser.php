@@ -19,7 +19,7 @@ class DashboardUser extends BaseController
         $pesananBatal   = $pesanModel->where('status_pemesanan', 'Batal')->countAllResults();
 
         $userModel = new UserModel();
-        $userId = session()->get('id');   // ✅ ambil id dari session login
+        $userId = session()->get('id_user');   // ✅ ambil id dari session login
         $user   = $userModel->find($userId);
 
         if (!$user) {
