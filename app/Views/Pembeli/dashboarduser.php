@@ -150,7 +150,8 @@ html, body {
             <div class="card-body">
               <h6 class="card-title"><?= esc($p['nama_produk']) ?></h6>
               <p class="text-success">Rp <?= number_format($p['harga'], 0, ',', '.') ?></p>
-              <button class="btn btn-sm btn-success w-100">Beli</button>
+              <!-- Tombol beli dengan data-id -->
+              <button class="btn btn-sm btn-success w-100" data-id="<?= $p['id_produk'] ?>">Beli</button>
             </div>
           </div>
         <?php endforeach; ?>
@@ -163,17 +164,10 @@ html, body {
 
 <!-- JavaScript untuk tombol Beli -->
 <script>
-  const cart = [];
   document.querySelectorAll('.btn-success').forEach(button => {
     button.addEventListener('click', () => {
-      const productCard = button.closest('.product-card');
-      const productName = productCard.querySelector('.card-title').innerText;
-      const productPrice = productCard.querySelector('p.text-success').innerText;
-
-      cart.push({ name: productName, price: productPrice });
-
-      alert(`Berhasil menambahkan ke keranjang: ${productName}\nTotal item di keranjang: ${cart.length}`);
-      console.log(cart);
+      const productId = button.getAttribute('data-id');
+      window.location.href = "<?= base_url('detailproduk') ?>/" + productId;
     });
   });
 </script>

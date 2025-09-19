@@ -87,7 +87,7 @@ table th {
     <div class="col-md-3 col-lg-2 sidebar">
       <div class="profile">Admin</div>
       <a href="#">Profil</a>
-      <a href="#">Dashboard</a>
+      <a href="dashboard">Dashboard</a>
       <a href="#">Product</a>
       <a href="#">Chart</a>
       <a href="#">History</a>
@@ -98,9 +98,6 @@ table th {
     <!-- Content -->
     <div class="col-md-9 col-lg-10 content">
       <h3 class="mb-4 text-success">Manajemen Akun User</h3>
-
-      <!-- Tombol tambah user -->
-      <a href="<?= site_url('manajemenakunuser/create') ?>" class="btn btn-success mb-3">+ Tambah User</a>
       
       <table class="table table-bordered table-hover">
         <thead>
