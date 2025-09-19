@@ -28,7 +28,7 @@
   <div class="form-container">
     <h3 class="mb-4">Edit Akun User</h3>
     
-    <form action="<?= base_url('manajemenakunuser/update/' . $user['id']); ?>" method="post">
+    <form action="<?= base_url('manajemenakunuser/update/' . $user['id_user']); ?>" method="post">
       <?= csrf_field(); ?>
       
       <div class="mb-3">

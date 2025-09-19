@@ -7,7 +7,7 @@ use CodeIgniter\Model;
 class PesanModel extends Model
 {
     protected $table      = 'pemesanan';
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'id_pemesanan';
     protected $allowedFields = [
         'nama',
         'produk',
@@ -32,7 +32,7 @@ class PesanModel extends Model
     // Ambil detail pesanan by id
     public function getPesananById($id)
     {
-        return $this->where('id', $id)->first();
+        return $this->where('id_pemesanan', $id)->first();
     }
 
     // Ambil semua pesanan berdasarkan nama user

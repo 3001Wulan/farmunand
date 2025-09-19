@@ -110,7 +110,10 @@ html, body { margin: 0; padding: 0; height: 100%; background: #f8f9fa; }
 
 <script>
 function addToCart() { alert("✅ Produk berhasil ditambahkan ke keranjang!"); }
-function checkout() { alert("🛒 Mengarahkan ke halaman pembayaran..."); }
+function checkout() { 
+    // Ganti URL sesuai route CI4 menuju view melakukanpemesanan
+    window.location.href = "<?= base_url('melakukanpemesanan/' . $produk['id_produk']) ?>";
+}
 </script>
 </body>
 </html>

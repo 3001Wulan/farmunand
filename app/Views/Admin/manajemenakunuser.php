@@ -125,8 +125,8 @@ table th {
                   <?php endif; ?>
                 </td>
                 <td>
-                  <a href="<?= site_url('manajemenakunuser/edit/'.$user['id']) ?>" class="btn btn-sm btn-warning">Edit</a>
-                  <a href="<?= site_url('manajemenakunuser/delete/'.$user['id']) ?>" 
+                  <a href="<?= site_url('manajemenakunuser/edit/'.$user['id_user']) ?>" class="btn btn-sm btn-warning">Edit</a>
+                  <a href="<?= site_url('manajemenakunuser/delete/'.$user['id_user']) ?>" 
                      onclick="return confirm('Yakin ingin menghapus user ini?')" 
                      class="btn btn-sm btn-danger">Hapus</a>
                 </td>

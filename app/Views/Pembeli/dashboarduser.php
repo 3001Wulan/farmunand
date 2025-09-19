@@ -146,7 +146,7 @@ html, body {
       <?php if (!empty($produk)): ?>
         <?php foreach ($produk as $p): ?>
           <div class="card product-card" style="width: 13rem;">
-            <img src="<?= base_url('uploads/'.$p['foto']) ?>" alt="<?= esc($p['nama_produk']) ?>">
+            <img src="<?= base_url('uploads/produk/'.$p['foto']) ?>" alt="<?= esc($p['nama_produk']) ?>">
             <div class="card-body">
               <h6 class="card-title"><?= esc($p['nama_produk']) ?></h6>
               <p class="text-success">Rp <?= number_format($p['harga'], 0, ',', '.') ?></p>
