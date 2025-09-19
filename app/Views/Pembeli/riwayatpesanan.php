@@ -1,53 +1,92 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Pesanan Saya - FarmUnand</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
+        /* Hapus margin/padding default yang bisa bikin celah */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             background-color: #f8f9fa;
         }
-        .sidebar {
-            min-height: 100vh;
-        }
-        .order-img {
-            width: 100px; 
-            height: 100px; 
-            background:#e9ecef; 
-            border-radius: 8px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            overflow:hidden;
-        }
+
+        /* Gambar produk */
         .order-img img {
-            width:100%;
-            height:100%;
-            object-fit:cover;
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
         }
+
+        /* Jika ingin sidebar menempel dan tidak ada garis/box shadow yang menunjukkan celah */
+        .sidebar {
+            /* tidak perlu border, biar rapi nempel */
+            border: 0;
+        }
+
+       /* Responsif: layar kecil sidebar jadi horizontal di atas */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-around;
+    }
+    .sidebar .d-grid {
+        display: flex !important;
+        flex-direction: row;
+        gap: 10px;
+    }
+    .sidebar .d-grid a {
+        flex: 1;
+        font-size: 14px;
+        padd
+        }
+    }
     </style>
 </head>
 <body>
 
-<div class="container-fluid">
+<!-- gunakan px-0 supaya tidak ada padding container -->
+<div class="container-fluid px-0">
     <div class="row g-0">
 
-        <!-- Sidebar (include) -->
-        <?= $this->include('layout/sidebar'); ?>
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 bg-success text-white d-flex flex-column vh-100 p-0 sidebar">
+            <div class="text-center mb-4 p-3">
+                <div class="order-img mb-3 mx-auto">
+                    <!-- kalau mau ngasih logo, pakai <img> di sini -->
+                </div>
+                <h5 class="fw-bold">Farm Unand</h5>
+            </div>
+            <div class="d-grid gap-2 px-3 mb-3">
+                <a href="/dashboarduser" class="btn btn-light">Dashboard</a>
+                <a href="/akun" class="btn btn-light">Akun Saya</a>
+                <a href="/riwayatpesanan" class="btn btn-dark text-white">Pesanan Saya</a>
+            </div>
+        </div>
 
         <!-- Main Content -->
         <div class="col-md-9 col-lg-10 p-4">
             <!-- Tabs -->
             <div class="mb-4 d-flex flex-wrap gap-2">
-                <button class="btn btn-sm btn-outline-success">Semua</button>
-                <button class="btn btn-sm btn-outline-success">Belum Bayar</button>
-                <button class="btn btn-sm btn-outline-success">Dikemas</button>
-                <button class="btn btn-sm btn-outline-success">Dikirim</button>
-                <button class="btn btn-sm btn-outline-success">Selesai</button>
-                <button class="btn btn-sm btn-outline-success">Berikan Penilaian</button>
-            </div>
+            <a href="/riwayatpesanan" class="btn btn-sm btn-success active">Semua</a>
+            <a href="/pesanan?status=belum_bayar" class="btn btn-sm btn-outline-success">Belum Bayar</a>
+            <a href="/pesanan?status=dikemas" class="btn btn-sm btn-outline-success">Dikemas</a>
+            <a href="/konfirmasipesanan" class="btn btn-sm btn-outline-success">Dikirim</a>
+            <a href="/pesanan?status=selesai" class="btn btn-sm btn-outline-success">Selesai</a>
+            <a href="/pesanan?status=penilaian" class="btn btn-sm btn-outline-success">Berikan Penilaian</a>
+        </div>
 
             <!-- Loop Pesanan -->
             <?php if (!empty($orders)): ?>

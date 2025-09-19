@@ -41,7 +41,7 @@ class Auth extends BaseController
 
                 // Redirect sesuai role
                 if ($user['role'] === 'user') {
-                    return redirect()->to('/dashboardpembeli'); // halaman untuk user/admin
+                    return redirect()->to('/dashboarduser'); // halaman untuk user/admin
                 } elseif ($user['role'] === 'admin') {
                     return redirect()->to('/dashboard'); // halaman untuk pembeli
                 } else { 

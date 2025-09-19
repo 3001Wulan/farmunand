@@ -96,8 +96,8 @@ html, body {
   <div class="profile">Pembeli</div>
   <a href="#" class="active">Dashboard</a>
   <a href="#">Akun Saya</a>
-  <a href="#">Pemesanan</a>
-  <a href="#">Laporan</a>
+  <a href="riwayatpesanan">Pemesanan Saya</a>
+  <a href="login">Log Out</a>
 </div>
 
 <!-- Content -->
