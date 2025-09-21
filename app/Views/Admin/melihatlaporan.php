@@ -78,8 +78,8 @@ html, body {
 </style>
 </head>
 <body>
-<!-- Sidebar dari layouts -->
-  <?= $this->include('layout/sidebarAdmin') ?>
+<!-- Sidebar -->
+  <?= $this->include('layout/sidebarAdmin') ?>  
 
 <!-- Content -->
 <div class="content">

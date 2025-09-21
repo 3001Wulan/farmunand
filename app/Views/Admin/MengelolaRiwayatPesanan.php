@@ -112,10 +112,12 @@ table th { background: #198754; color: white; }
           <?php if (!empty($pesanan)): ?>
             <?php foreach ($pesanan as $row): ?>
               <tr>
-                <td><?= esc($row['id']) ?></td>
+                <td><?= esc($row['id_user']) ?></td>
                 <td><?= esc($row['tanggal']) ?></td>
-                <td><?= esc($row['nama']) ?></td>
-                <td><?= esc($row['produk']) ?></td>
+                <td><?= esc($pesanan['nama_user'] ?? $pesanan['nama'] ?? '-') ?></td>
+<td><?= esc($pesanan['nama_produk'] ?? '-') ?></td>
+
+
                 <td><?= esc($row['quantity']) ?></td>
                 <td>Rp <?= number_format($row['total'], 0, ',', '.') ?></td>
                 <td><?= esc($row['pembayaran']) ?></td>
@@ -129,7 +131,7 @@ table th { background: #198754; color: white; }
                   <?php endif; ?>
                 </td>
                 <td>
-                  <a href="<?= base_url('pesanan/detail/'.$row['id']) ?>" class="btn btn-sm btn-info">Detail</a>
+                  <a href="<?= base_url('pesanan/detail/'.$row['id_user']) ?>" class="btn btn-sm btn-info">Detail</a>
                 </td>
               </tr>
             <?php endforeach; ?>
