@@ -89,7 +89,7 @@ table th {
       <a href="#">Profil</a>
       <a href="dashboard">Dashboard</a>
       <a href="#">Product</a>
-      <a href="#">Pesanan</a>
+      <a href="mengelolariwayatpesanan">Pesanan</a>
       <a href="#" class="active">Manajemen User</a>
       <a href="#">Log Out</a>
     </div>

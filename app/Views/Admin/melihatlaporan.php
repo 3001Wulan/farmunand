@@ -81,10 +81,13 @@ html, body {
 <!-- Sidebar -->
 <div class="sidebar">
   <div class="profile">Admin</div>
-  <a href="#">Dashboard</a>
-  <a href="#">Produk</a>
-  <a href="#">Pesanan</a>
-  <a href="#" class="active">Laporan</a>
+  <a href="#">Profil</a>
+      <a href="#" class="active">Dashboard</a>
+      <a href="#">Product</a>
+      <a href="mengelolariwayatpesanan">Pesanan</a>
+      <a href="manajemenakunuser">akunuser</a>
+      <a href="melihatlaporan">Laporan</a>
+      <a href="#">Log Out</a>
 </div>
 
 <!-- Content -->

@@ -94,6 +94,7 @@ html, body {
       <a href="#">Product</a>
       <a href="mengelolariwayatpesanan">Pesanan</a>
       <a href="manajemenakunuser">akunuser</a>
+      <a href="melihatlaporan">Laporan</a>
       <a href="#">Log Out</a>
     </div>
 
