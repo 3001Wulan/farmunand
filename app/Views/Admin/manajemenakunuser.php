@@ -91,7 +91,7 @@ table th {
       <a href="#">Product</a>
       <a href="mengelolariwayatpesanan">Pesanan</a>
       <a href="#" class="active">Manajemen User</a>
-      <a href="#">Log Out</a>
+      <a href="login">Log Out</a>
     </div>
 
     <!-- Content -->

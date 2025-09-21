@@ -69,7 +69,7 @@ table th { background: #198754; color: white; }
       <a href="#">Daging</a>
       <a href="#">Pesanan</a>
       <a href="<?= base_url('MengelolaRiwayatPesanan') ?>" class="active">Mengelola Riwayat Pesanan</a>
-      <a href="#">Log Out</a>
+      <a href="login">Log Out</a>
     </div>
 
     <!-- Content -->

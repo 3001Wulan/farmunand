@@ -92,10 +92,10 @@ html, body {
       <a href="#">Profil</a>
       <a href="#" class="active">Dashboard</a>
       <a href="#">Product</a>
-      <a href="mengelolariwayatpesanan">Pesanan</a>
+      <a href="MengelolaRiwayatPesanan">Pesanan</a>
       <a href="manajemenakunuser">akunuser</a>
       <a href="melihatlaporan">Laporan</a>
-      <a href="#">Log Out</a>
+      <a href="login">Log Out</a>
     </div>
 
     <!-- Content Dashboard -->
