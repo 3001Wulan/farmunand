@@ -61,4 +61,8 @@ $routes->group('penilaian', function($routes) {
     // Simpan penilaian
     $routes->post('simpan/(:num)', 'Penilaian::simpan/$1');
 });
+$routes->get('/memilihalamat', 'MemilihAlamat::index');
+$routes->match(['get', 'post'], '/memilihalamat/tambah', 'MemilihAlamat::tambah');
+$routes->match(['get', 'post'], '/memilihalamat/ubah/(:num)', 'MemilihAlamat::ubah/$1');
+$routes->match(['get','post'], '/memilihalamat/tambah', 'MemilihAlamat::tambah');
 

@@ -12,23 +12,32 @@ class MengelolaRiwayatPesanan extends BaseController
         $pesanModel = new PesanModel();
 
         // Ambil filter dari GET
-        $status = $this->request->getGet('status');
+        $status  = $this->request->getGet('status');
         $keyword = $this->request->getGet('keyword');
-        $sort = $this->request->getGet('sort') ?? 'desc';
+        $sort    = $this->request->getGet('sort') ?? 'desc';
 
-        $builder = $pesanModel;
+        // Build query dengan join
+        $builder = $pesanModel->select('pemesanan.*, users.nama AS nama_user, produk.nama_produk')
+                              ->join('users', 'users.id_user = pemesanan.id_user')
+                              ->join('produk', 'produk.id_produk = pemesanan.id_produk');
 
         if ($status) {
-            $builder = $builder->where('status', $status);
+            $builder->where('pemesanan.status', $status);
         }
 
         if ($keyword) {
-            $builder = $builder->like('nama', $keyword)
-                               ->orLike('produk', $keyword);
+            $builder->groupStart()
+                    ->like('users.nama', $keyword)
+                    ->orLike('produk.nama_produk', $keyword)
+                    ->groupEnd();
         }
 
+        $pesanan = $builder->orderBy('pemesanan.tanggal', strtoupper($sort))
+                           ->get()
+                           ->getResultArray();
+
         $data = [
-            'pesanan' => $builder->orderBy('tanggal', strtoupper($sort))->findAll(),
+            'pesanan' => $pesanan,
             'status'  => $status,
             'keyword' => $keyword,
             'sort'    => $sort
