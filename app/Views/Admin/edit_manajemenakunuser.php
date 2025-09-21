@@ -24,6 +24,9 @@
 </head>
 <body>
 
+<!-- Sidebar dari layouts -->
+<?= $this->include('layout/sidebarAdmin') ?>
+
 <div class="container">
   <div class="form-container">
     <h3 class="mb-4">Edit Akun User</h3>

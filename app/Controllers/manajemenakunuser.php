@@ -11,6 +11,13 @@ class ManajemenAkunUser extends BaseController
     {
         $model = new UserModel();
         $data['users'] = $model->findAll();
+        $userId = session()->get('id_user');   
+        $user   = $model->find($userId);
+
+        $data = [
+            'users'           => $data['users'],
+            'user'            => $user 
+        ];
 
         return view('Admin/manajemenakunuser', $data);
     }

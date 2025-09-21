@@ -6,6 +6,7 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 $routes->get('/', 'Home::index');
+
 // LOGIN
 $routes->get('/login', 'Auth::login');
 $routes->post('/auth/doLogin', 'Auth::doLogin');
@@ -19,6 +20,16 @@ $routes->post('/auth/doResetPassword', 'Auth::doResetPassword');
 // REGISTER
 $routes->get('/register', 'Auth::register');
 $routes->post('/auth/doRegister', 'Auth::doRegister');
+
+// Profile Pembeli
+$routes->get('/profile', 'Profile::index');
+$routes->get('/profile/edit', 'Profile::edit');
+$routes->post('/profile/update', 'Profile::update');
+
+// Profile Admin
+$routes->get('/profileadmin', 'ProfileAdmin::index');
+$routes->get('/profileadmin/edit', 'ProfileAdmin::edit');
+$routes->post('/profileadmin/update', 'ProfileAdmin::update');
 
 // LOGOUT
 $routes->get('/logout', 'Auth::logout');
@@ -49,4 +60,16 @@ $routes->get('/melakukanpemesanan', 'MelakukanPemesanan::index');
 $routes->get('/melakukanpemesanan/(:num)', 'MelakukanPemesanan::index/$1');
 $routes->get('/melihatlaporan', 'MelihatLaporan::index');
 $routes->post('/melihatlaporan/filter', 'MelihatLaporan::filter');
+$routes->get('/penilaian/(:num)', 'Penilaian::index/$1');
+$routes->post('/penilaian/simpan/(:num)', 'Penilaian::simpan/$1');
+$routes->group('penilaian', function($routes) {
+    // Halaman daftar pesanan selesai yang belum dinilai
+    $routes->get('daftar', 'Penilaian::daftar');
+
+    // Form penilaian untuk produk tertentu (opsional jika pakai halaman terpisah)
+    $routes->get('(:num)', 'Penilaian::index/$1');
+
+    // Simpan penilaian
+    $routes->post('simpan/(:num)', 'Penilaian::simpan/$1');
+});
 

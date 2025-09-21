@@ -6,103 +6,111 @@
   <title>Manajemen Akun User - Admin</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: #f8f9fa;
-}
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #f8f9fa;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-/* Hapus padding container bootstrap */
-.container-fluid {
-  margin: 0;
-  padding: 0;
-}
+    /* Konten geser agar tidak tertutup sidebar */
+    .content {
+      padding: 30px;
+      margin-left: 250px; /* lebar sidebar */
+    }
 
-/* Hapus gap row */
-.row.g-0 {
-  margin: 0;
-}
+    /* Judul halaman */
+    .page-title {
+      font-weight: bold;
+      color: #198754;
+      margin-bottom: 25px;
+    }
 
-/* Sidebar */
-.sidebar {
-  min-height: 100vh;
-  background: #198754; /* hijau */
-  padding: 20px;
-  margin: 0; 
-  color: white;
-}
+    /* Table */
+    .table {
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
 
-/* Profil di sidebar */
-.sidebar .profile {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: white;
-  margin: 0 auto 20px auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  color: #198754;
-  font-size: 18px;
-}
+    .table thead th {
+      background: #198754;
+      color: #fff;
+      text-align: center;
+      font-weight: 600;
+      border: none;
+    }
 
-/* Link sidebar */
-.sidebar a {
-  display: block;
-  padding: 10px;
-  margin: 10px 0;
-  background: white;
-  color: #198754;
-  text-decoration: none;
-  border-radius: 5px;
-  font-weight: 500;
-  text-align: center;
-  transition: all 0.3s;
-}
+    .table tbody tr {
+      transition: background 0.2s;
+    }
+    .table tbody tr:hover {
+      background: #f1fdf6;
+    }
 
-.sidebar a:hover,
-.sidebar a.active {
-  background: #145c32;
-  color: white;
-}
+    .table td, .table th {
+      vertical-align: middle;
+      text-align: center;
+      padding: 12px;
+    }
 
-/* Content */
-.content {
-  padding: 30px;
-}
+    /* Tombol aksi */
+    .btn-action {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: 0.3s;
+    }
 
-table th {
-  background: #198754;
-  color: white;
-}
+    .btn-warning {
+      background: #ffc107;
+      border: none;
+      color: #333;
+    }
+    .btn-warning:hover {
+      background: #e0a800;
+      color: white;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      border: none;
+    }
+    .btn-danger:hover {
+      background: #a71d2a;
+    }
+
+    /* Badge status */
+    .badge {
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 12px;
+    }
+
+    .badge.bg-success {
+      background: #198754 !important;
+    }
+
+    .badge.bg-secondary {
+      background: #6c757d !important;
+    }
   </style>
 </head>
 <body>
-<div class="container-fluid">
+<div class="container-fluid px-0">
   <div class="row g-0">
     
     <!-- Sidebar -->
-    <div class="col-md-3 col-lg-2 sidebar">
-      <div class="profile">Admin</div>
-      <a href="#">Profil</a>
-      <a href="#">Dashboard</a>
-      <a href="#">Product</a>
-      <a href="#">Chart</a>
-      <a href="#">History</a>
-      <a href="#" class="active">Manajemen User</a>
-      <a href="#">Log Out</a>
-    </div>
+    <?= $this->include('layout/sidebarAdmin') ?>
 
     <!-- Content -->
-    <div class="col-md-9 col-lg-10 content">
-      <h3 class="mb-4 text-success">Manajemen Akun User</h3>
-
-      <!-- Tombol tambah user -->
-      <a href="<?= site_url('manajemenakunuser/create') ?>" class="btn btn-success mb-3">+ Tambah User</a>
+    <div class="col content">
+      <h3 class="page-title">👥 Manajemen Akun User</h3>
       
-      <table class="table table-bordered table-hover">
+      <table class="table table-hover align-middle">
         <thead>
           <tr>
             <th>#</th>
@@ -129,16 +137,17 @@ table th {
                   <?php endif; ?>
                 </td>
                 <td>
-                  <a href="<?= site_url('manajemenakunuser/edit/'.$user['id']) ?>" class="btn btn-sm btn-warning">Edit</a>
+                  <a href="<?= site_url('manajemenakunuser/edit/'.$user['id']) ?>" 
+                     class="btn btn-warning btn-sm btn-action">✏️ Edit</a>
                   <a href="<?= site_url('manajemenakunuser/delete/'.$user['id']) ?>" 
                      onclick="return confirm('Yakin ingin menghapus user ini?')" 
-                     class="btn btn-sm btn-danger">Hapus</a>
+                     class="btn btn-danger btn-sm btn-action">🗑 Hapus</a>
                 </td>
               </tr>
             <?php endforeach; ?>
           <?php else: ?>
             <tr>
-              <td colspan="6" class="text-center">Belum ada data user.</td>
+              <td colspan="6" class="text-center text-muted">Belum ada data user.</td>
             </tr>
           <?php endif; ?>
         </tbody>

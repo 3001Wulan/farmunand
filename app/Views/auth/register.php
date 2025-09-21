@@ -83,14 +83,14 @@
             <input type="password" class="form-control" name="password" id="password" required>
           </div>
           <div class="mb-3">
-            <label for="password_confirm" class="form-label">Confirm Password</label>
+            <label for="password_confirm" class="form-label">Konfirmasi Password</label>
             <input type="password" class="form-control" name="password_confirm" id="password_confirm" required>
           </div>
           <button type="submit" class="btn btn-success w-100">Sign Up</button>
         </form>
 
         <p class="mt-3 text-center">
-          Already have an account? <a href="/login" class="text-decoration-none">Login</a>
+          Sudah Punya Akun Farmunand? <a href="/login" class="text-decoration-none">Login</a>
         </p>
       </div>
     </div>

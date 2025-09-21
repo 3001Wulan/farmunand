@@ -3,6 +3,8 @@
 namespace App\Controllers;
 
 use App\Models\PesananModel;
+use App\Models\UserModel;
+
 
 class Pesanan extends BaseController
 {
@@ -10,8 +12,26 @@ class Pesanan extends BaseController
     {
         $pesananModel = new PesananModel();
 
-        // sementara pakai id_user = 1 (nanti bisa ambil dari session login)
-        $id_user = 1;
+        // Ambil session
+        $session = session();
+
+        // Ambil id_user dari session login
+        $id_user = $session->get('id_user');
+
+        $model = new UserModel();
+        $data['users'] = $model->findAll();
+        $userId = session()->get('id_user');   
+        $user   = $model->find($userId);
+
+        $data = [
+            'users'           => $data['users'],
+            'user'            => $user 
+        ];
+
+        // Pastikan id_user ada, jika tidak redirect ke login atau halaman lain
+        if (!$id_user) {
+            return redirect()->to('/login');
+        }
 
         $data['orders'] = $pesananModel->getPesananWithProduk($id_user);
 

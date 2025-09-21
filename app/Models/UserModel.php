@@ -12,7 +12,7 @@ class UserModel extends Model
     protected $useAutoIncrement = true;
 
     // kolom yang boleh diisi
-    protected $allowedFields    = ['username','nama', 'email', 'password','status','no_hp', 'role', 'reset_token', 'reset_expires'];
+    protected $allowedFields    = ['username','nama', 'email', 'password','status','no_hp', 'role', 'reset_token', 'reset_expires', 'foto'];
     // timestamps otomatis
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';

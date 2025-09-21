@@ -25,4 +25,14 @@ class PesananModel extends Model
                     ->where('pemesanan.id_user', $id_user)
                     ->findAll();
     }
+    public function getPesananBelumDinilai($idUser)
+{
+    return $this->select('pemesanan.*, produk.nama_produk')
+                ->join('produk', 'produk.id_produk = pemesanan.id_produk')
+                ->where('pemesanan.id_user', $idUser)
+                ->where('pemesanan.status_pemesanan', 'Selesai')
+                ->where("pemesanan.id_produk NOT IN (SELECT id_produk FROM penilaian WHERE id_user = $idUser)", null, false)
+                ->findAll();
+}
+
 }

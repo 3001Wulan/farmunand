@@ -32,16 +32,17 @@ class Auth extends BaseController
         if ($user) {
             if (password_verify($password, $user['password'])) {
                 $session->set([
-                    'id'        => $user['id'],
+                    'id_user'        => $user['id'],
                     'username'  => $user['username'],
                     'email'     => $user['email'],
                     'role'      => $user['role'],
                     'logged_in' => true,
                 ]);
 
+
                 // Redirect sesuai role
                 if ($user['role'] === 'user') {
-                    return redirect()->to('/dashboardpembeli'); // halaman untuk user/admin
+                    return redirect()->to('/dashboarduser'); // halaman untuk user/admin
                 } elseif ($user['role'] === 'admin') {
                     return redirect()->to('/dashboard'); // halaman untuk pembeli
                 } else { 

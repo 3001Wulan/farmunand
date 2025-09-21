@@ -1,11 +1,70 @@
-<div class="col-md-3 col-lg-2 p-4 sidebar bg-success text-white">
-    <div class="text-center mb-4">
-        <div class="order-img mb-3 mx-auto"></div>
-        <h5 class="fw-bold">Farm Unand</h5>
-    </div>
-    <div class="d-grid gap-2">
-        <a href="/akun" class="btn btn-light">Akun Saya</a>
-        <a href="/dashboard" class="btn btn-light">Dashboard</a>
-        <a href="/pesanan" class="btn btn-dark text-white">Pesanan Saya</a>
-    </div>
+<div class="sidebar">
+  <!-- Judul -->
+  <div class="text-center mb-4 px-3">
+    <h4 class="fw-bold" style="font-size: 24px;">Farm Unand</h4>
 </div>
+
+  <!-- Foto Profil -->
+  <div class="text-center mb-4">
+    <img src="<?= base_url('uploads/profile/' . ($user['foto'] ?? 'default.png')) ?>" 
+         alt="Foto Profil" 
+         class="profile-photo">
+    <p class="mt-2 mb-0 fw-semibold"><?= esc($user['username']) ?> | <?= esc($user['role']) ?></p>
+</div>
+
+  <!-- Menu -->
+  <div class="d-grid gap-2 px-3">
+    <a href="/profile" class="sidebar-link <?= (url_is('profile')) ? 'active' : '' ?>">Akun Saya</a>
+    <a href="/dashboarduser" class="sidebar-link <?= (url_is('dashboard')) ? 'active' : '' ?>">Dashboard</a>
+    <a href="/riwayatpesanan" class="sidebar-link <?= (url_is('pesanan')) ? 'active' : '' ?>">Pesanan Saya</a>
+    <a href="/login" class="sidebar-link">Log Out</a>
+  </div>
+</div>
+
+<style>
+/* Sidebar container */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100vh;
+  background: #198754; /* hijau bootstrap */
+  color: white;
+  overflow-y: auto;
+  z-index: 1000;
+  padding-top: 20px;
+  box-shadow: 4px 0 12px rgba(0,0,0,0.15);
+}
+
+/* Foto Profil Lingkaran */
+.sidebar .profile-photo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* Sidebar link */
+.sidebar .sidebar-link {
+  display: block;
+  padding: 12px;
+  margin: 8px 0;
+  background: white;
+  color: #198754;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+/* Hover & Active */
+.sidebar .sidebar-link:hover,
+.sidebar .sidebar-link.active {
+  background: #145c32;
+  color: white;
+}
+</style>

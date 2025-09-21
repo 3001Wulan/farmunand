@@ -78,14 +78,8 @@ html, body {
 </style>
 </head>
 <body>
-<!-- Sidebar -->
-<div class="sidebar">
-  <div class="profile">Admin</div>
-  <a href="#">Dashboard</a>
-  <a href="#">Produk</a>
-  <a href="#">Pesanan</a>
-  <a href="#" class="active">Laporan</a>
-</div>
+<!-- Sidebar dari layouts -->
+  <?= $this->include('layout/sidebarAdmin') ?>
 
 <!-- Content -->
 <div class="content">
