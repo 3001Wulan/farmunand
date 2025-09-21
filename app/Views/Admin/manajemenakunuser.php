@@ -103,7 +103,8 @@
 <div class="container-fluid px-0">
   <div class="row g-0">
     
-
+    <!-- Sidebar -->
+    <?= $this->include('layout/sidebarAdmin') ?>
 
     <!-- Content -->
     <div class="col content">
