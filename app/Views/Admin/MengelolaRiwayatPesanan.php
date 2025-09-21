@@ -62,15 +62,8 @@ table th { background: #198754; color: white; }
 <div class="container-fluid">
   <div class="row g-0">
     
-    <!-- Sidebar -->
-    <div class="col-md-3 col-lg-2 sidebar">
-      <div class="profile">Admin</div>
-      <a href="<?= base_url('dashboard') ?>">Dashboard</a>
-      <a href="#">Daging</a>
-      <a href="#">Pesanan</a>
-      <a href="<?= base_url('MengelolaRiwayatPesanan') ?>" class="active">Mengelola Riwayat Pesanan</a>
-      <a href="login">Log Out</a>
-    </div>
+  <!-- Sidebar dari layouts -->
+  <?= $this->include('layout/sidebarAdmin') ?>
 
     <!-- Content -->
     <div class="col-md-9 col-lg-10 content">

@@ -29,10 +29,13 @@ class DashboardUser extends BaseController
         $data = [
             'title'           => 'Dashboard User',
             'username'        => $user['username'], // atau 'nama' tergantung kolom di tabel users
+            'role'            => $user['role'],
+            'foto'            => $user['foto'],
             'pesanan_sukses'  => $pesananSukses,
             'pending'         => $pesananPending,
             'batal'           => $pesananBatal,
-            'produk'          => $produk
+            'produk'          => $produk,
+            'user'  => $user
         ];
 
         return view('pembeli/dashboarduser', $data);

@@ -6,6 +6,7 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 $routes->get('/', 'Home::index');
+
 // LOGIN
 $routes->get('/login', 'Auth::login');
 $routes->post('/auth/doLogin', 'Auth::doLogin');
@@ -19,6 +20,16 @@ $routes->post('/auth/doResetPassword', 'Auth::doResetPassword');
 // REGISTER
 $routes->get('/register', 'Auth::register');
 $routes->post('/auth/doRegister', 'Auth::doRegister');
+
+// Profile Pembeli
+$routes->get('/profile', 'Profile::index');
+$routes->get('/profile/edit', 'Profile::edit');
+$routes->post('/profile/update', 'Profile::update');
+
+// Profile Admin
+$routes->get('/profileadmin', 'ProfileAdmin::index');
+$routes->get('/profileadmin/edit', 'ProfileAdmin::edit');
+$routes->post('/profileadmin/update', 'ProfileAdmin::update');
 
 // LOGOUT
 $routes->get('/logout', 'Auth::logout');

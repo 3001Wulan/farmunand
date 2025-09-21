@@ -50,12 +50,7 @@ html, body { margin: 0; padding: 0; height: 100%; background: #f8f9fa; }
 <body>
 
 <!-- Sidebar -->
-<div class="sidebar">
-  <div class="profile">Pembeli</div>
-  <a href="#">Akun Saya</a>
-  <a href="#">Dashboard</a>
-  <a href="#" class="active">Pemesanan Saya</a>
-</div>
+  <?= $this->include('layout/sidebar') ?>
 
 <!-- Content -->
 <div class="content">

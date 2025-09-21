@@ -32,12 +32,13 @@ class Auth extends BaseController
         if ($user) {
             if (password_verify($password, $user['password'])) {
                 $session->set([
-                    'id_user'        => $user['id_user'],
+                    'id_user'        => $user['id'],
                     'username'  => $user['username'],
                     'email'     => $user['email'],
                     'role'      => $user['role'],
                     'logged_in' => true,
                 ]);
+
 
                 // Redirect sesuai role
                 if ($user['role'] === 'user') {

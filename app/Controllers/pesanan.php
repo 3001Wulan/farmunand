@@ -3,6 +3,8 @@
 namespace App\Controllers;
 
 use App\Models\PesananModel;
+use App\Models\UserModel;
+
 
 class Pesanan extends BaseController
 {
@@ -15,6 +17,16 @@ class Pesanan extends BaseController
 
         // Ambil id_user dari session login
         $id_user = $session->get('id_user');
+
+        $model = new UserModel();
+        $data['users'] = $model->findAll();
+        $userId = session()->get('id_user');   
+        $user   = $model->find($userId);
+
+        $data = [
+            'users'           => $data['users'],
+            'user'            => $user 
+        ];
 
         // Pastikan id_user ada, jika tidak redirect ke login atau halaman lain
         if (!$id_user) {

@@ -113,12 +113,7 @@ html, body {
 <body>
 
 <!-- Sidebar -->
-<div class="sidebar">
-  <div class="profile">Pembeli</div>
-  <a href="#">Akun Saya</a>
-  <a href="#">Dashboard</a>
-  <a href="#" class="active">Pemesanan Saya</a>
-</div>
+  <?= $this->include('layout/sidebar') ?>
 
 <!-- Content -->
 <div class="content">

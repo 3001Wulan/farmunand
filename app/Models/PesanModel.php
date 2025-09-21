@@ -14,13 +14,13 @@ class PesanModel extends Model
         'quantity',
         'total',
         'pembayaran',
-        'status'
+        'status_pemesanan'
     ];
 
     // Hitung jumlah pesanan belum dibaca
     public function getPesanMasuk()
     {
-        return $this->where('status', 'belum_dibaca')->countAllResults();
+        return $this->where('status_pemesanan', 'belum_dibaca')->countAllResults();
     }
 
     // Ambil semua pesanan

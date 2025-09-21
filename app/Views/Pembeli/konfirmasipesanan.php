@@ -65,19 +65,7 @@
 <body>
 
     <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="text-center mb-4">
-            <div class="order-img mb-3 mx-auto">
-                <!-- Logo bisa taruh di sini -->
-            </div>
-            <h5 class="fw-bold">Farm Unand</h5>
-        </div>
-        <div class="d-grid gap-2 mb-3">
-            <a href="/dashboarduser" class="btn btn-light">Dashboard</a>
-            <a href="/akun" class="btn btn-light">Akun Saya</a>
-            <a href="/riwayatpesanan" class="btn btn-dark text-white">Pesanan Saya</a>
-        </div>
-    </div>
+  <?= $this->include('layout/sidebar') ?>
 
     <!-- Main Content -->
     <div class="content">
