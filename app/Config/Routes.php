@@ -41,7 +41,7 @@ $routes->get('/dashboarduser', 'DashboardUser::index');
 
 // Fungsional User
 $routes->get('/riwayatpesanan', 'Pesanan::index');
-$routes->get('/detailproduk', 'DetailProduk::index');
+//$routes->get('/detailproduk', 'DetailProduk::index');
 $routes->get('/detailproduk/(:num)', 'DetailProduk::index/$1');
 $routes->get('/melakukanpemesanan', 'MelakukanPemesanan::index');
 $routes->get('/melakukanpemesanan/(:num)', 'MelakukanPemesanan::index/$1');
@@ -84,6 +84,19 @@ $routes->group('', ['namespace' => 'App\Controllers'], function($routes) {
     // Aksi konfirmasi selesai pesanan (pakai id pesanan)
     $routes->get('konfirmasipesanan/selesai/(:num)', 'KonfirmasiPesanan::selesai/$1');
 });
+
+// Admin Mengelola Produk
+$routes->group('admin', ['filter' => 'auth:admin'], function($routes) {
+    $routes->get('produk', 'ProdukAdmin::index');
+    $routes->get('produk/create', 'ProdukAdmin::create');
+    $routes->post('produk/store', 'ProdukAdmin::store');
+    $routes->get('produk/edit/(:num)', 'ProdukAdmin::edit/$1');
+    $routes->post('produk/update/(:num)', 'ProdukAdmin::update/$1');
+    $routes->get('produk/delete/(:num)', 'ProdukAdmin::delete/$1');
+});
+
+
+
 
 
 

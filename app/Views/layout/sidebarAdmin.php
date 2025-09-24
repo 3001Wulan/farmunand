@@ -16,7 +16,11 @@
   <div class="d-grid gap-2 px-3">
     <a href="/profileadmin" class="sidebar-link <?= (url_is('profileadmin')) ? 'active' : '' ?>">Profil</a>
     <a href="/dashboard" class="sidebar-link">Dashboard</a>
-    <a href="/produk" class="sidebar-link <?= (url_is('produk*')) ? 'active' : '' ?>">Produk</a>
+    <a href="<?= base_url('admin/produk') ?>" 
+      class="sidebar-link <?= (url_is('admin/produk*')) ? 'active' : '' ?>">
+      Produk
+    </a>
+
     <a href="/pesanan" class="sidebar-link <?= (url_is('pesanan*')) ? 'active' : '' ?>">Pesanan</a>
     <a href="/manajemenakunuser" class="sidebar-link <?= (url_is('manajemenakunuser')) ? 'active' : '' ?>">Manajemen Akun User</a>
     <a href="/login" class="sidebar-link">Log Out</a>
