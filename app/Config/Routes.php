@@ -34,26 +34,13 @@ $routes->post('/profileadmin/update', 'ProfileAdmin::update');
 // LOGOUT
 $routes->get('/logout', 'Auth::logout');
 
+
+// Dashboard Admin & User
 $routes->get('/dashboard', 'Dashboard::index');
-$routes->get('/MengelolaRiwayatPesanan', 'MengelolaRiwayatPesanan::index');
-$routes->group('manajemenakunuser', ['namespace' => 'App\Controllers'], function($routes) {
-    $routes->get('/', 'ManajemenAkunUser::index');               // list user
-    $routes->get('create', 'ManajemenAkunUser::create');         // form tambah
-    $routes->post('store', 'ManajemenAkunUser::store');          // simpan
-    $routes->get('edit/(:num)', 'ManajemenAkunUser::edit/$1');   // form edit
-    $routes->post('update/(:num)', 'ManajemenAkunUser::update/$1'); // update
-    $routes->get('delete/(:num)', 'ManajemenAkunUser::delete/$1');  // hapus
-});
-$routes->get('/riwayatpesanan', 'Pesanan::index');
-
-$routes->group('', ['namespace' => 'App\Controllers'], function($routes) {
-    // Halaman daftar pesanan
-    $routes->get('konfirmasipesanan', 'KonfirmasiPesanan::index');
-
-    // Aksi konfirmasi selesai pesanan (pakai id pesanan)
-    $routes->get('konfirmasipesanan/selesai/(:num)', 'KonfirmasiPesanan::selesai/$1');
-});
 $routes->get('/dashboarduser', 'DashboardUser::index');
+
+// Fungsional User
+$routes->get('/riwayatpesanan', 'Pesanan::index');
 $routes->get('/detailproduk', 'DetailProduk::index');
 $routes->get('/detailproduk/(:num)', 'DetailProduk::index/$1');
 $routes->get('/melakukanpemesanan', 'MelakukanPemesanan::index');
@@ -76,4 +63,27 @@ $routes->get('/memilihalamat', 'MemilihAlamat::index');
 $routes->match(['get', 'post'], '/memilihalamat/tambah', 'MemilihAlamat::tambah');
 $routes->match(['get', 'post'], '/memilihalamat/ubah/(:num)', 'MemilihAlamat::ubah/$1');
 $routes->match(['get','post'], '/memilihalamat/tambah', 'MemilihAlamat::tambah');
+
+
+// Fungsioanal Admin
+$routes->get('/MengelolaRiwayatPesanan', 'MengelolaRiwayatPesanan::index');
+$routes->group('manajemenakunuser', ['namespace' => 'App\Controllers'], function($routes) {
+    $routes->get('/', 'ManajemenAkunUser::index');               // list user
+    $routes->get('create', 'ManajemenAkunUser::create');         // form tambah
+    $routes->post('store', 'ManajemenAkunUser::store');          // simpan
+    $routes->get('edit/(:num)', 'ManajemenAkunUser::edit/$1');   // form edit
+    $routes->post('update/(:num)', 'ManajemenAkunUser::update/$1'); // update
+    $routes->get('delete/(:num)', 'ManajemenAkunUser::delete/$1');  // hapus
+});
+
+
+$routes->group('', ['namespace' => 'App\Controllers'], function($routes) {
+    // Halaman daftar pesanan
+    $routes->get('konfirmasipesanan', 'KonfirmasiPesanan::index');
+
+    // Aksi konfirmasi selesai pesanan (pakai id pesanan)
+    $routes->get('konfirmasipesanan/selesai/(:num)', 'KonfirmasiPesanan::selesai/$1');
+});
+
+
 

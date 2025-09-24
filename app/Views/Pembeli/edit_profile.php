@@ -66,82 +66,81 @@
     }
   </style>
 </head>
-<body>
+  <body>
+    <!-- Sidebar -->
+    <?= $this->include('layout/sidebar') ?>
 
-  <!-- Sidebar -->
-  <?= $this->include('layout/sidebar') ?>
+    <!-- Content -->
+    <div class="content">
+      <div class="card profile-card">
+        <div class="profile-header">
+          <h4><i class="bi bi-pencil-square me-2"></i>Edit Profil</h4>
+        </div>
 
-  <!-- Content -->
-  <div class="content">
-    <div class="card profile-card">
-      <div class="profile-header">
-        <h4><i class="bi bi-pencil-square me-2"></i>Edit Profil</h4>
-      </div>
-
-      <div class="profile-body">
-        <?php if (session()->getFlashdata('errors')): ?>
-          <div class="alert alert-danger">
-            <ul class="mb-0">
-              <?php foreach (session()->getFlashdata('errors') as $error): ?>
-                <li><?= esc($error) ?></li>
-              <?php endforeach ?>
-            </ul>
-          </div>
-        <?php endif; ?>
-
-        <form action="<?= base_url('profile/update') ?>" method="post" enctype="multipart/form-data">
-          <?= csrf_field() ?>
-
-          <div class="mb-3 text-center">
-            <img src="<?= base_url('uploads/profile/' . ($user['foto'] ?? 'default.png')) ?>" 
-                 alt="Foto Profil" class="preview-img mb-2" id="previewFoto">
-            <div>
-              <input type="file" name="foto" class="form-control mt-2" accept="image/*" onchange="previewImage(event)">
+        <div class="profile-body">
+          <?php if (session()->getFlashdata('errors')): ?>
+            <div class="alert alert-danger">
+              <ul class="mb-0">
+                <?php foreach (session()->getFlashdata('errors') as $error): ?>
+                  <li><?= esc($error) ?></li>
+                <?php endforeach ?>
+              </ul>
             </div>
-          </div>
+          <?php endif; ?>
 
-          <div class="mb-3">
-            <label class="form-label">Username</label>
-            <input type="text" name="username" value="<?= old('username', $user['username']) ?>" class="form-control" required>
-          </div>
+          <form action="<?= base_url('profile/update') ?>" method="post" enctype="multipart/form-data">
+            <?= csrf_field() ?>
 
-          <div class="mb-3">
-            <label class="form-label">Nama</label>
-            <input type="text" name="nama" value="<?= old('nama', $user['nama']) ?>" class="form-control" required>
-          </div>
+            <div class="mb-3 text-center">
+              <img src="<?= base_url('uploads/profile/' . ($user['foto'] ?? 'default.png')) ?>" 
+                  alt="Foto Profil" class="preview-img mb-2" id="previewFoto">
+              <div>
+                <input type="file" name="foto" class="form-control mt-2" accept="image/*" onchange="previewImage(event)">
+              </div>
+            </div>
 
-          <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input type="email" name="email" value="<?= old('email', $user['email']) ?>" class="form-control" required>
-          </div>
+            <div class="mb-3">
+              <label class="form-label">Username</label>
+              <input type="text" name="username" value="<?= old('username', $user['username']) ?>" class="form-control" required>
+            </div>
 
-          <div class="mb-3">
-            <label class="form-label">No HP</label>
-            <input type="text" name="no_hp" value="<?= old('no_hp', $user['no_hp']) ?>" class="form-control">
-          </div>
+            <div class="mb-3">
+              <label class="form-label">Nama</label>
+              <input type="text" name="nama" value="<?= old('nama', $user['nama']) ?>" class="form-control" required>
+            </div>
 
-          <div class="d-flex justify-content-end gap-2">
-            <a href="<?= base_url('profile') ?>" class="btn btn-cancel text-white">
-              <i class="bi bi-x-circle me-1"></i> Batal
-            </a>
-            <button type="submit" class="btn btn-save text-white">
-              <i class="bi bi-check-circle me-1"></i> Simpan
-            </button>
-          </div>
-        </form>
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" name="email" value="<?= old('email', $user['email']) ?>" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">No HP</label>
+              <input type="text" name="no_hp" value="<?= old('no_hp', $user['no_hp']) ?>" class="form-control">
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+              <a href="<?= base_url('profile') ?>" class="btn btn-cancel text-white">
+                <i class="bi bi-x-circle me-1"></i> Batal
+              </a>
+              <button type="submit" class="btn btn-save text-white">
+                <i class="bi bi-check-circle me-1"></i> Simpan
+              </button>
+            </div>
+          
+          </form>
+        </div>
       </div>
     </div>
-  </div>
 
-  <script>
-    function previewImage(event) {
-      const reader = new FileReader();
-      reader.onload = function(){
-        document.getElementById('previewFoto').src = reader.result;
+    <script>
+      function previewImage(event) {
+        const reader = new FileReader();
+        reader.onload = function(){
+          document.getElementById('previewFoto').src = reader.result;
+        }
+        reader.readAsDataURL(event.target.files[0]);
       }
-      reader.readAsDataURL(event.target.files[0]);
-    }
-  </script>
-
-</body>
+    </script>
+  </body>
 </html>
