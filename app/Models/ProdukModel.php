@@ -35,4 +35,14 @@ class ProdukModel extends Model
     {
         return $this->where('id_produk', $id)->first();
     }
+
+    // Cari produk berdasarkan keyword (nama atau deskripsi)
+    public function searchProduk($keyword)
+    {
+        return $this->table($this->table)
+            ->like('nama_produk', $keyword)
+            ->orLike('deskripsi', $keyword)
+            ->findAll();
+    }
+
 }
