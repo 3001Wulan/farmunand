@@ -17,12 +17,11 @@
       .row.g-0 { margin: 0; }
 
       /* Konten geser agar tidak tertutup sidebar */
-          .content {
-            padding: 30px;
-            margin-left: 250px;
-          }
+      .content {
+        padding: 30px;
+        margin-left: 250px;
+      }
           
-      .content { padding: 30px; }
       table th { background: #198754; color: white; }
     </style>
   </head>
@@ -82,23 +81,23 @@
               <?php if (!empty($pesanan)): ?>
                 <?php foreach ($pesanan as $row): ?>
                   <tr>
-                    <td><?= esc($row['id_user']) ?></td>
-                    <td><?= esc($row['tanggal']) ?></td>
-                    <td><?= esc($pesanan['nama_user'] ?? $pesanan['nama'] ?? '-') ?></td>
-                    <td><?= esc($pesanan['nama_produk'] ?? '-') ?></td>
-
-
-                    <td><?= esc($row['quantity']) ?></td>
-                    <td>Rp <?= number_format($row['total'], 0, ',', '.') ?></td>
-                    <td><?= esc($row['pembayaran']) ?></td>
+                    <td><?= esc($row['id_user'] ?? '-') ?></td>
+                    <td><?= esc($row['tanggal'] ?? '-') ?></td>
+                    <td><?= esc($row['nama_user'] ?? $row['nama'] ?? '-') ?></td>
+                    <td><?= esc($row['nama_produk'] ?? '-') ?></td>
+                    <td><?= esc($row['quantity'] ?? '-') ?></td>
+                    <td>Rp <?= isset($row['total']) ? number_format($row['total'], 0, ',', '.') : '0' ?></td>
+                    <td><?= esc($row['pembayaran'] ?? '-') ?></td>
 
                     <td>
-                      <?php if ($row['status'] === 'Selesai'): ?>
+                      <?php if (($row['status'] ?? '') === 'Selesai'): ?>
                         <span class="badge bg-success">Selesai</span>
-                      <?php elseif ($row['status'] === 'Diproses'): ?>
+                      <?php elseif (($row['status'] ?? '') === 'Diproses'): ?>
                         <span class="badge bg-warning text-dark">Diproses</span>
-                      <?php else: ?>
+                      <?php elseif (($row['status'] ?? '') === 'Dibatalkan'): ?>
                         <span class="badge bg-danger">Dibatalkan</span>
+                      <?php else: ?>
+                        <span class="badge bg-secondary">Tidak Diketahui</span>
                       <?php endif; ?>
                     </td>
 

@@ -1,74 +1,40 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pemesanan</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        background: #f8f9fa;
-      }
-
-      .content {
-        margin-left: 240px;
-        padding: 30px;
-      }
-      .product-image {
-        width: 150px;
-        height: 120px;
-        background: #f0f0f0;
-        border-radius: 5px;
-        overflow: hidden;
-        flex-shrink: 0;
-      }
-      .product-image img { width: 100%; height: 100%; object-fit: cover; }
-      .product-info .product-name { font-size: 18px; font-weight: bold; color: #333; }
-      .product-info .product-description { font-size: 15px; color: #555; }
-      .product-info .product-weight { font-size: 14px; color: #666; }
-      .product-info .product-price { font-size: 15px; color: #198754; font-weight: bold; margin-top: 8px; }
-      .ubah-btn { background: #198754; border: none; padding: 6px 14px; font-size: 13px; color: white; border-radius: 4px; float: right; cursor: pointer; }
-      .ubah-btn:hover { background: #145c32; }
-      .method-option { background: #fff; padding: 12px 15px; border-radius: 4px; border: 2px solid #999; margin-bottom: 8px; cursor: pointer; transition: all 0.3s; font-size: 14px; }
-      .method-option:hover { border-color: #198754; background: #d9f3e6; }
-      .method-option.selected { border-color: #198754; background: #d9f3e6; }
-      .method-text { font-weight: 500; color: #333; }
-      .btn-order { background: #198754; border: none; padding: 10px 22px; font-size: 14px; color: white; border-radius: 4px; cursor: pointer; }
-      .btn-order:hover { background: #145c32; }
-      .modal-overlay {
-        display: none;
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 1050;
-        justify-content: center;
-        align-items: center;
-      }
-      .modal-content {
-        background: white;
-        border-radius: 8px;
-        padding: 20px;
-        width: 90%;
-        max-width: 500px;
-        max-height: 80vh;
-        overflow-y: auto;
-        position: relative;
-      }
-      .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-      .modal-title { font-size: 18px; font-weight: bold; color: #198754; }
-      .close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; color: #666; cursor: pointer; }
-      .close-btn:hover { color: #333; }
-      .option-item { display: flex; align-items: center; padding: 12px; margin: 8px 0; border: 2px solid #eee; border-radius: 8px; cursor: pointer; transition: all 0.3s; }
-      .option-item:hover { border-color: #198754; background: #f8fff8; }
-      .option-item.selected { border-color: #198754; background: #d9f3e6; }
-      .option-logo { width: 40px; height: 40px; margin-right: 12px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: #f0f0f0; }
-      .option-text { font-weight: 500; color: #333; }
-    </style>
-  </head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pemesanan</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    html, body { margin:0; padding:0; height:100%; background:#f8f9fa; }
+    .content { margin-left:240px; padding:30px; }
+    .product-image { width:150px; height:120px; background:#f0f0f0; border-radius:5px; overflow:hidden; flex-shrink:0; }
+    .product-image img { width:100%; height:100%; object-fit:cover; }
+    .product-info .product-name { font-size:18px; font-weight:bold; color:#333; }
+    .product-info .product-description { font-size:15px; color:#555; }
+    .product-info .product-weight { font-size:14px; color:#666; }
+    .product-info .product-price { font-size:15px; color:#198754; font-weight:bold; margin-top:8px; }
+    .ubah-btn { background:#198754; border:none; padding:6px 14px; font-size:13px; color:white; border-radius:4px; float:right; cursor:pointer; text-decoration:none; display:inline-block; }
+    .ubah-btn:hover { background:#145c32; }
+    .method-option { background:#fff; padding:12px 15px; border-radius:4px; border:2px solid #999; margin-bottom:8px; cursor:pointer; transition: all 0.3s; font-size:14px; }
+    .method-option:hover { border-color:#198754; background:#d9f3e6; }
+    .method-option.selected { border-color:#198754; background:#d9f3e6; }
+    .method-text { font-weight:500; color:#333; }
+    .btn-order { background:#198754; border:none; padding:10px 22px; font-size:14px; color:white; border-radius:4px; cursor:pointer; }
+    .btn-order:hover { background:#145c32; }
+    .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1050; justify-content:center; align-items:center; }
+    .modal-content { background:white; border-radius:8px; padding:20px; width:90%; max-width:500px; max-height:80vh; overflow-y:auto; position:relative; }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:15px; }
+    .modal-title { font-size:18px; font-weight:bold; color:#198754; }
+    .close-btn { position:absolute; top:15px; right:15px; background:none; border:none; font-size:24px; color:#666; cursor:pointer; }
+    .close-btn:hover { color:#333; }
+    .option-item { display:flex; align-items:center; padding:12px; margin:8px 0; border:2px solid #eee; border-radius:8px; cursor:pointer; transition: all 0.3s; }
+    .option-item:hover { border-color:#198754; background:#f8fff8; }
+    .option-item.selected { border-color:#198754; background:#d9f3e6; }
+    .option-logo { width:40px; height:40px; margin-right:12px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:18px; background:#f0f0f0; }
+    .option-text { font-weight:500; color:#333; }
+  </style>
+</head>
 <body>
 
 <!-- Sidebar -->
@@ -82,12 +48,11 @@
   <div class="card mb-3">
     <div class="card-header bg-success text-white">Alamat Pemesanan</div>
     <div class="card-body">
-      <p><b><?= esc($pesanan['nama'] ?? 'Nama Tidak Ada'); ?></b> | +62 821 6738 3190</p>
+      <p><b><?= esc($pesanan['nama'] ?? 'Nama Tidak Ada'); ?></b> | <?= esc($pesanan['no_hp'] ?? '-'); ?></p>
       <p class="text-muted">
-        Kost XYZ, Jalan Mohamad Hatta, RT.2/RW.1, Pasar Baru, Padang<br>
-        PAUH, KOTA PADANG, SUMATERA BARAT, ID, 25162
+        <?= esc($pesanan['alamat_lengkap'] ?? 'Alamat Tidak Tersedia'); ?>
       </p>
-      <button class="ubah-btn" onclick="ubahAlamat()">Ubah</button>
+      <a href="<?= base_url('memilihalamat/'.$pesanan['id_user']) ?>" class="ubah-btn">Ubah</a>
     </div>
   </div>
 
@@ -99,8 +64,8 @@
         <img src="<?= base_url('assets/images/sapi.jpg') ?>" alt="<?= esc($pesanan['produk'] ?? 'Produk'); ?>">
       </div>
       <div class="product-info">
-        <div class="product-name">FarmUnand</div>
-        <div class="product-description"><?= esc($pesanan['produk'] ?? 'Produk Tidak Ada'); ?></div>
+        <div class="product-name"><?= esc($pesanan['produk'] ?? 'Produk'); ?></div>
+        <div class="product-description"><?= esc($pesanan['deskripsi'] ?? '-'); ?></div>
         <div class="product-weight"><?= esc($pesanan['quantity'] ?? '0'); ?> pcs</div>
         <div class="product-price">Total Pembayaran: Rp<?= number_format($pesanan['total'] ?? 0, 0, ',', '.'); ?></div>
       </div>
@@ -192,33 +157,9 @@ document.querySelectorAll('.method-option').forEach(method => {
     if (methodType === 'ewallet') { openModal('ewalletModal'); return; }
     document.querySelectorAll('.method-option').forEach(pm => pm.classList.remove('selected'));
     this.classList.add('selected');
-  });
-});
-
-// Payment method selection
-document.querySelectorAll('.method-option').forEach(method => {
-  method.addEventListener('click', function() {
-    const methodType = this.getAttribute('data-method');
-
-    if (methodType === 'transfer') { 
-      openModal('bankModal'); 
-      return; 
-    }
-    if (methodType === 'ewallet') { 
-      openModal('ewalletModal'); 
-      return; 
-    }
-
-    // Kalau COD dipilih
-    if (methodType === 'cod') {
-      // Reset semua dulu
-      document.querySelectorAll('.method-option').forEach(pm => pm.classList.remove('selected'));
-      this.classList.add('selected');
-
-      // Reset teks bank & ewallet ke default
-      document.querySelector('[data-method="transfer"] .method-text').textContent = '🏦 Transfer Bank';
-      document.querySelector('[data-method="ewallet"] .method-text').textContent = '📱 E-Wallet';
-    }
+    // Reset teks bank & ewallet
+    document.querySelector('[data-method="transfer"] .method-text').textContent = '🏦 Transfer Bank';
+    document.querySelector('[data-method="ewallet"] .method-text').textContent = '📱 E-Wallet';
   });
 });
 
@@ -226,14 +167,11 @@ document.querySelectorAll('.method-option').forEach(method => {
 document.querySelectorAll('#bankModal .option-item').forEach(item => {
   item.addEventListener('click', function() {
     selectedBank = this.getAttribute('data-bank');
-    document.querySelectorAll('.method-option').forEach(pm => pm.classList.remove('selected'));
     const bankText = this.querySelector('.option-text').textContent;
     document.querySelector('[data-method="transfer"] .method-text').textContent = `🏦 ${bankText}`;
+    document.querySelectorAll('.method-option').forEach(pm => pm.classList.remove('selected'));
     document.querySelector('[data-method="transfer"]').classList.add('selected');
-
-    // Reset ewallet ke default
     document.querySelector('[data-method="ewallet"] .method-text').textContent = '📱 E-Wallet';
-
     closeModal('bankModal');
   });
 });
@@ -242,27 +180,20 @@ document.querySelectorAll('#bankModal .option-item').forEach(item => {
 document.querySelectorAll('#ewalletModal .option-item').forEach(item => {
   item.addEventListener('click', function() {
     selectedEwallet = this.getAttribute('data-ewallet');
-    document.querySelectorAll('.method-option').forEach(pm => pm.classList.remove('selected'));
     const ewalletText = this.querySelector('.option-text').textContent;
     document.querySelector('[data-method="ewallet"] .method-text').textContent = `📱 ${ewalletText}`;
+    document.querySelectorAll('.method-option').forEach(pm => pm.classList.remove('selected'));
     document.querySelector('[data-method="ewallet"]').classList.add('selected');
-
-    // Reset bank ke default
     document.querySelector('[data-method="transfer"] .method-text').textContent = '🏦 Transfer Bank';
-
     closeModal('ewalletModal');
   });
 });
 
-
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', function(e) { if (e.target === this) this.style.display = 'none'; });
 });
-
-function ubahAlamat() { alert('🔄 Mengubah alamat pengiriman...'); }
 
 function buatPesanan(event) {
   const selectedMethod = document.querySelector('.method-option.selected .method-text').textContent;

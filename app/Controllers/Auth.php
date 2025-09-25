@@ -32,7 +32,7 @@ class Auth extends BaseController
         if ($user) {
             if (password_verify($password, $user['password'])) {
                 $session->set([
-                    'id_user'        => $user['id'],
+                    'id_user'        => $user['id_user'],
                     'username'  => $user['username'],
                     'email'     => $user['email'],
                     'role'      => $user['role'],
@@ -118,7 +118,7 @@ class Auth extends BaseController
         $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
         // simpan ke tabel users
-        $this->userModel->update($user['id'], [
+        $this->userModel->update($user['id_user'], [
             'reset_token' => $token,
             'reset_expires' => $expires
         ]);
@@ -170,7 +170,7 @@ class Auth extends BaseController
         }
 
         // update password
-        $this->userModel->update($user['id'], [
+        $this->userModel->update($user['id_user'], [
             'password' => password_hash($password, PASSWORD_DEFAULT),
             'reset_token' => null,
             'reset_expires' => null

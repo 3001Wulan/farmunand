@@ -45,7 +45,7 @@
       <div class="card mb-3">
         <div class="card-body d-flex gap-3">
           <div class="product-image">
-            <img src="<?= base_url('assets/images/' . esc($produk['foto'])) ?>" alt="<?= esc($produk['nama_produk']) ?>">
+            <img src="<?= base_url('uploads/produk/' . esc($produk['foto'])) ?>" alt="<?= esc($produk['nama_produk']) ?>">
           </div>
           <div class="product-info">
             <div class="product-title"><?= esc($produk['nama_produk']) ?></div>

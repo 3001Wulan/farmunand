@@ -87,25 +87,28 @@
 
       <!-- Rekomendasi Produk -->
       <div class="card">
-        <div class="card-header">Rekomendasi Produk</div>
-        <div class="card-body d-flex gap-3 flex-wrap">
-          <?php if (!empty($produk)): ?>
-            <?php foreach ($produk as $p): ?>
-              <div class="card product-card" style="width: 13rem;">
-                <img src="<?= base_url('uploads/produk/'.$p['foto']) ?>" alt="<?= esc($p['nama_produk']) ?>">
-                <div class="card-body">
-                  <h6 class="card-title"><?= esc($p['nama_produk']) ?></h6>
-                  <p class="text-success">Rp <?= number_format($p['harga'], 0, ',', '.') ?></p>
-                  <button class="btn btn-sm btn-success w-100" data-id="<?= $p['id_produk'] ?>">Beli</button>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <p class="text-muted">Belum ada produk tersedia.</p>
-          <?php endif; ?>
+  <div class="card-header">Rekomendasi Produk</div>
+  <div class="card-body d-flex gap-3 flex-wrap">
+    <?php if (!empty($produk)): ?>
+      <?php foreach ($produk as $p): ?>
+        <div class="card product-card" style="width: 13rem;">
+          <img 
+            src="<?= !empty($p['foto']) ? base_url('uploads/produk/'.$p['foto']) : base_url('uploads/default.png') ?>" 
+            class="card-img-top" 
+            alt="<?= esc($p['nama_produk']) ?>">
+          <div class="card-body text-center">
+            <h6 class="card-title"><?= esc($p['nama_produk']) ?></h6>
+            <p class="text-success">Rp <?= number_format($p['harga'], 0, ',', '.') ?></p>
+            <button class="btn btn-sm btn-success w-100" data-id="<?= $p['id_produk'] ?>">Beli</button>
+          </div>
         </div>
-      </div>
-    </div>
+      <?php endforeach; ?>
+    <?php else: ?>
+      <p class="text-muted">Belum ada produk tersedia.</p>
+    <?php endif; ?>
+  </div>
+</div>
+
 
     <script>
       document.querySelectorAll('.btn-success').forEach(button => {

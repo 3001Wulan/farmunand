@@ -21,7 +21,7 @@
       Produk
     </a>
 
-    <a href="/pesanan" class="sidebar-link <?= (url_is('pesanan*')) ? 'active' : '' ?>">Pesanan</a>
+    <a href="/MengelolaRiwayatPesanan" class="sidebar-link <?= (url_is('pesanan*')) ? 'active' : '' ?>">Pesanan</a>
     <a href="/manajemenakunuser" class="sidebar-link <?= (url_is('manajemenakunuser')) ? 'active' : '' ?>">Manajemen Akun User</a>
     <a href="/login" class="sidebar-link">Log Out</a>
   </div>

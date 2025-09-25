@@ -65,9 +65,9 @@
         <div class="col main-content">
             <!-- Tabs -->
             <div class="mb-4 d-flex flex-wrap gap-2">
-                <a href="/riwayatpesanan" class="btn btn-sm btn-success btn-filter active">Semua</a>
+                <a href="/riwayatpesanan" class="btn btn-sm btn-outline-success btn-filter">Semua</a>
                 <a href="/pesananbelumbayar" class="btn btn-sm btn-outline-success btn-filter">Belum Bayar</a>
-                <a href="/pesanandikemas" class="btn btn-sm btn-outline-success btn-filter">Dikemas</a>
+                <a href="/pesanandikemas" class="btn btn-sm btn-success btn-filter active">Dikemas</a>
                 <a href="/konfirmasipesanan" class="btn btn-sm btn-outline-success btn-filter">Dikirim</a>
                 <a href="/pesananselesai" class="btn btn-sm btn-outline-success btn-filter">Selesai</a>
                 <a href="<?= base_url('penilaian/daftar') ?>" class="btn btn-sm btn-outline-success btn-filter">

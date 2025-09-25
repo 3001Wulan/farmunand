@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\PesananModel;
+use App\Models\UserModel;
 
 class KonfirmasiPesanan extends BaseController
 {
@@ -17,17 +18,19 @@ class KonfirmasiPesanan extends BaseController
 {
     $id_user = session()->get('id_user') ?? 1;
 
-    // Ambil semua pesanan user lewat model
     $pesanan = $this->pesananModel->getPesananWithProduk($id_user);
 
-    // Filter hanya yang status "Dikirim"
     $data['pesanan'] = array_filter($pesanan, function($p) {
         return $p['status_pemesanan'] === 'dikirim';
     });
 
+    // Ambil user dari database
+    $userModel = new UserModel();
+    $data['user'] = $userModel->find($id_user);
+
     return view('pembeli/konfirmasipesanan', $data);
 }
-
+    
     public function selesai($id_pemesanan)
     {
         // Update status jadi 'Selesai'

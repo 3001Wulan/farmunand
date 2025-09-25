@@ -140,9 +140,9 @@
                       <?php endif; ?>
                     </td>
                     <td>
-                      <a href="<?= site_url('manajemenakunuser/edit/'.$user['id']) ?>" 
+                      <a href="<?= site_url('manajemenakunuser/edit/'.$user['id_user']) ?>" 
                         class="btn btn-warning btn-sm btn-action">✏️ Edit</a>
-                      <a href="<?= site_url('manajemenakunuser/delete/'.$user['id']) ?>" 
+                      <a href="<?= site_url('manajemenakunuser/delete/'.$user['id_user']) ?>" 
                         onclick="return confirm('Yakin ingin menghapus user ini?')" 
                         class="btn btn-danger btn-sm btn-action">🗑 Hapus</a>
                     </td>

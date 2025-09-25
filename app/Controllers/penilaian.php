@@ -18,8 +18,6 @@ class Penilaian extends BaseController
         $this->penilaianModel  = new PenilaianModel();
         $this->pesananModel    = new PesananModel();
     }
-
-  
     
     public function daftar()
     {
@@ -29,13 +27,18 @@ class Penilaian extends BaseController
             return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
+        // Ambil data user dari session
+        $user = session()->get();
+
         // Ambil pesanan yang belum dinilai
         $pesanan = $this->pesananModel->getPesananBelumDinilai($idUser);
 
         return view('Pembeli/penilaianproduk', [
-            'pesanan' => $pesanan
+            'pesanan' => $pesanan,
+            'user'    => $user,   // ✅ kirim user ke view
         ]);
     }
+
     public function index($id_produk)
     {
         $produk = $this->produkModel->find($id_produk);
@@ -44,44 +47,51 @@ class Penilaian extends BaseController
             return redirect()->to('/riwayatpesanan')->with('error', 'Produk tidak ditemukan');
         }
 
+        $user = session()->get();
+
         return view('Pembeli/penilaianproduk', [
-            'produk' => $produk
+            'produk' => $produk,
+            'user'   => $user,   // ✅ kirim user ke view
         ]);
     }
 
-    /**
-     * Simpan penilaian
-     */
     public function simpan($id_produk)
-    {
-        $validation = \Config\Services::validation();
+{
+    $validation = \Config\Services::validation();
 
-        $rules = [
-            'rating' => 'required|in_list[1,2,3,4,5]',
-            'ulasan' => 'required|min_length[50]',
-            'media'  => 'if_exist|max_size[media,2048]|ext_in[media,jpg,jpeg,png,mp4,mov,avi]',
-        ];
+    $rules = [
+        'rating' => 'required|in_list[1,2,3,4,5]',
+        'media.*' => 'max_size[media,2048]|ext_in[media,jpg,jpeg,png,mp4,mov,avi]',
+        // ulasan tidak wajib
+    ];
 
-        if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $validation->getErrors());
-        }
-
-        $fileMedia = $this->request->getFile('media');
-        $mediaName = null;
-
-        if ($fileMedia && $fileMedia->isValid() && !$fileMedia->hasMoved()) {
-            $mediaName = $fileMedia->getRandomName();
-            $fileMedia->move('uploads/penilaian', $mediaName);
-        }
-
-        $this->penilaianModel->save([
-            'id_produk' => $id_produk,
-            'id_user'   => session()->get('id_user'), // pastikan session login user ada
-            'rating'    => $this->request->getPost('rating'),
-            'ulasan'    => $this->request->getPost('ulasan'),
-            'media'     => $mediaName,
-        ]);
-
-        return redirect()->to('riwayatpesanan')->with('success', 'Penilaian berhasil dikirim');
+    if (!$this->validate($rules)) {
+        return redirect()->back()->withInput()->with('errors', $validation->getErrors());
     }
+
+    $uploadedMedia = $this->request->getFiles();
+    $mediaNames = [];
+
+    if (!empty($uploadedMedia['media'])) {
+        foreach ($uploadedMedia['media'] as $file) {
+            if ($file->isValid() && !$file->hasMoved()) {
+                $fileName = $file->getRandomName();
+                $file->move('uploads/penilaian', $fileName);
+                $mediaNames[] = $fileName;
+            }
+        }
+    }
+
+    $this->penilaianModel->save([
+        'id_produk' => $id_produk,
+        'id_user'   => session()->get('id_user'),
+        'rating'    => $this->request->getPost('rating'),
+        'ulasan'    => $this->request->getPost('ulasan') ?? null,
+        'media'     => !empty($mediaNames) ? json_encode($mediaNames) : null,
+    ]);
+
+    return redirect()->to('riwayatpesanan')->with('success', 'Penilaian berhasil dikirim');
+}
+
+
 }

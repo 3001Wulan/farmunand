@@ -5,6 +5,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Pesanan Saya - FarmUnand</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <!-- SweetAlert2 -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <style>
             body {
                 background-color: #f8f9fa;
@@ -48,11 +50,13 @@
             <!-- Tabs -->
             <div class="mb-4 d-flex flex-wrap gap-2">
                 <a href="/riwayatpesanan" class="btn btn-sm btn-outline-success">Semua</a>
-                <a href="/pesanan?status=belum_bayar" class="btn btn-sm btn-outline-success">Belum Bayar</a>
-                <a href="/pesanan?status=dikemas" class="btn btn-sm btn-outline-success">Dikemas</a>
-                <a href="/pesanan?status=dikirim" class="btn btn-sm btn-success active">Dikirim</a>
-                <a href="/pesanan?status=selesai" class="btn btn-sm btn-outline-success">Selesai</a>
-                <a href="/pesanan?status=penilaian" class="btn btn-sm btn-outline-success">Berikan Penilaian</a>
+                <a href="/pesananbelumbayar" class="btn btn-sm btn-outline-success">Belum Bayar</a>
+                <a href="/pesanandikemas" class="btn btn-sm btn-outline-success">Dikemas</a>
+                <a href="/konfirmasipesanan" class="btn btn-sm btn-success active">Dikirim</a>
+                <a href="/pesananselesai" class="btn btn-sm btn-outline-success">Selesai</a>
+                <a href="<?= base_url('penilaian/daftar') ?>" class="btn btn-sm btn-outline-success btn-filter">
+                    Berikan Penilaian
+                </a>
             </div>
 
             <!-- Loop Pesanan -->
@@ -74,9 +78,11 @@
                                 <span class="fw-bold">Rp.<?= number_format($p['harga'] * $p['jumlah_produk'], 0, ',', '.'); ?></span>
                             </p>
                             <?php if ($p['status_pemesanan'] !== 'Selesai'): ?>
-                                <a href="<?= site_url('konfirmasipesanan/selesai/'.$p['id_pemesanan']); ?>" 
-                                class="btn btn-sm btn-success">
-                                Pesanan Selesai
+                                <!-- Tombol dengan popup -->
+                                <a href="javascript:void(0);" 
+                                   onclick="konfirmasiSelesai('<?= site_url('konfirmasipesanan/selesai/'.$p['id_pemesanan']); ?>')" 
+                                   class="btn btn-sm btn-success">
+                                   Pesanan Selesai
                                 </a>
                             <?php else: ?>
                                 <span class="badge bg-success">Selesai</span>
@@ -89,6 +95,24 @@
                 <div class="alert alert-info">Belum ada pesanan.</div>
             <?php endif; ?>
         </div>
+
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        
+        <!-- Script SweetAlert2 -->
+        <script>
+        function konfirmasiSelesai(url) {
+            Swal.fire({
+                title: 'Pesanan Telah Selesai',
+                text: 'Terima kasih telah berbelanja di FarmUnand!',
+                icon: 'success',
+                showConfirmButton: false,
+                timer: 2000, // tampil 2 detik
+                timerProgressBar: true
+            }).then(() => {
+                // redirect setelah popup hilang
+                window.location.href = url;
+            });
+        }
+        </script>
     </body>
 </html>

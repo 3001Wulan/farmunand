@@ -95,8 +95,13 @@ $routes->group('admin', ['filter' => 'auth:admin'], function($routes) {
     $routes->get('produk/delete/(:num)', 'ProdukAdmin::delete/$1');
 });
 
+$routes->get('/pesananselesai', 'Pesanan::selesai');
+$routes->get('/pesanandikemas', 'Pesanan::dikemas');
+$routes->get('/pesananbelumbayar', 'Pesanan::belumbayar');
 
-
-
-
-
+$routes->get('memilihalamat', 'MemilihAlamat::index');
+$routes->post('memilihalamat/tambah', 'MemilihAlamat::tambah');
+$routes->get('memilihalamat/ubah/(:num)', 'MemilihAlamat::ubah/$1');
+$routes->post('memilihalamat/ubah/(:num)', 'MemilihAlamat::ubah/$1');
+$routes->get('memilihalamat/pilih/(:num)', 'MemilihAlamat::pilih/$1');
+$routes->get('memilihalamat/(:num)', 'MemilihAlamat::index/$1');

@@ -68,7 +68,7 @@ class Profile extends BaseController
         $rules = [
             'username' => 'required|min_length[3]',
             'nama'     => 'required|min_length[3]',
-            'email'    => "required|valid_email|is_unique[users.email,id,{$userId}]",
+            'email'    => "required|valid_email|is_unique[users.email,id_user,{$userId}]",
             'no_hp'    => 'permit_empty|min_length[10]|max_length[15]',
             'foto'     => 'is_image[foto]|mime_in[foto,image/jpg,image/jpeg,image/png]'
         ];
