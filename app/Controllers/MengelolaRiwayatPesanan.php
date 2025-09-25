@@ -12,7 +12,8 @@ class MengelolaRiwayatPesanan extends BaseController
         $pesanModel = new PesanModel();
 
         // Ambil filter dari GET
-        $status  = $this->request->getGet('status');
+        $status  = $this->request->getGet('status_pemesanan');
+        $idUser = session()->get('id_user');
         $keyword = $this->request->getGet('keyword');
         $sort    = $this->request->getGet('sort') ?? 'desc';
 
@@ -35,11 +36,13 @@ class MengelolaRiwayatPesanan extends BaseController
         $pesanan = $builder->orderBy('pemesanan.tanggal', strtoupper($sort))
                            ->get()
                            ->getResultArray();
+        $user = session()->get(); 
 
         $data = [
             'pesanan' => $pesanan,
-            'status'  => $status,
+            'status_pemesanan'  => $status,
             'keyword' => $keyword,
+            'user'    => $user,  
             'sort'    => $sort
         ];
 

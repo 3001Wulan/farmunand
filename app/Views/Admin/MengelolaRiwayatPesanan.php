@@ -90,11 +90,11 @@
                     <td><?= esc($row['pembayaran'] ?? '-') ?></td>
 
                     <td>
-                      <?php if (($row['status'] ?? '') === 'Selesai'): ?>
+                      <?php if (($row['status_pemesanan'] ?? '') === 'Selesai'): ?>
                         <span class="badge bg-success">Selesai</span>
-                      <?php elseif (($row['status'] ?? '') === 'Diproses'): ?>
+                      <?php elseif (($row['status_pemesanan'] ?? '') === 'Diproses'): ?>
                         <span class="badge bg-warning text-dark">Diproses</span>
-                      <?php elseif (($row['status'] ?? '') === 'Dibatalkan'): ?>
+                      <?php elseif (($row['status_pemesanan'] ?? '') === 'Dibatalkan'): ?>
                         <span class="badge bg-danger">Dibatalkan</span>
                       <?php else: ?>
                         <span class="badge bg-secondary">Tidak Diketahui</span>
