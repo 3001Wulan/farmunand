@@ -44,17 +44,25 @@
 <div class="content">
   <h3 class="mb-4 text-success">Pemesanan</h3>
 
-  <!-- Alamat Pemesanan -->
-  <div class="card mb-3">
+ <!-- Alamat Pemesanan -->
+<div class="card mb-3">
     <div class="card-header bg-success text-white">Alamat Pemesanan</div>
     <div class="card-body">
-      <p><b><?= esc($pesanan['nama'] ?? 'Nama Tidak Ada'); ?></b> | <?= esc($pesanan['no_hp'] ?? '-'); ?></p>
-      <p class="text-muted">
-        <?= esc($pesanan['alamat_lengkap'] ?? 'Alamat Tidak Tersedia'); ?>
-      </p>
-      <a href="<?= base_url('memilihalamat/'.$pesanan['id_user']) ?>" class="ubah-btn">Ubah</a>
+        <?php if (!empty($alamat) && count($alamat) > 0): ?>
+            <?php $alamatAktif = $alamat[0]; // ambil alamat pertama ?>
+            <p><b><?= esc($alamatAktif['nama_penerima']); ?></b> | <?= esc($alamatAktif['no_telepon']); ?></p>
+            <p class="text-muted">
+                <?= esc($alamatAktif['jalan']); ?>, <?= esc($alamatAktif['kota']); ?>, <?= esc($alamatAktif['provinsi']); ?>, <?= esc($alamatAktif['kode_pos']); ?>
+            </p>
+            <a href="<?= base_url('memilihalamat/'.$user['id_user']) ?>" class="ubah-btn">Ubah</a>
+        <?php else: ?>
+            <p><b>Nama Tidak Ada</b> | -</p>
+            <p class="text-muted">Alamat Tidak Tersedia</p>
+            <a href="<?= base_url('memilihalamat/'.$user['id_user']) ?>" class="ubah-btn">Tambah Alamat</a>
+        <?php endif; ?>
     </div>
-  </div>
+</div>
+
 
   <!-- Detail Pemesanan -->
   <div class="card mb-3">

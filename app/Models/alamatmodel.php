@@ -11,9 +11,11 @@ class AlamatModel extends Model
     protected $allowedFields = [
         'id_user',
         'nama_penerima',
+        'jalan',
         'kota',
         'provinsi',
         'kode_pos',
+        'aktif',
         'no_telepon'
     ];
 
@@ -21,4 +23,11 @@ class AlamatModel extends Model
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
+    
+    public function getAlamatAktifByUser($idUser)
+    {
+        return $this->where('id_user', $idUser)
+                    ->where('aktif', 1)
+                    ->findAll();
+    }
 }

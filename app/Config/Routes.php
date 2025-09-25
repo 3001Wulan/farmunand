@@ -104,4 +104,5 @@ $routes->post('memilihalamat/tambah', 'MemilihAlamat::tambah');
 $routes->get('memilihalamat/ubah/(:num)', 'MemilihAlamat::ubah/$1');
 $routes->post('memilihalamat/ubah/(:num)', 'MemilihAlamat::ubah/$1');
 $routes->get('memilihalamat/pilih/(:num)', 'MemilihAlamat::pilih/$1');
+$routes->post('memilihalamat/pilih/(:num)', 'MemilihAlamat::pilih/$1');
 $routes->get('memilihalamat/(:num)', 'MemilihAlamat::index/$1');
