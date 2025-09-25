@@ -5,75 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pilih Alamat - FarmUnand</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-    body {
-        background-color: #f8f9fa;
-        font-family: 'Segoe UI', sans-serif;
-        margin: 0;
-        padding: 0;
-    }
-
-    .main-content {
-        margin-left: 250px;
-        padding: 30px;
-    }
-
-    .address-card {
-        border: 1px solid #dee2e6;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
-        background: #fff;
-        transition: all 0.3s ease;
-        position: relative;
-        cursor: pointer;
-    }
-
-    .address-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-    }
-
-    .address-card.selected {
-        border-color: #28a745;
-        box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
-    }
-
-    .address-card .badge {
-        font-size: 12px;
-    }
-
-    .active-badge {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-    }
-
-    .btn-submit, .btn-success {
-        font-weight: 600;
-    }
-
-    /* Toast styling di tengah layar */
-    #toastContainer {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 1080;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .toast {
-        min-width: 250px;
-        max-width: 350px;
-        border-radius: 12px;
-        padding: 15px 20px;
-        font-weight: 500;
-        font-size: 14px;
-        text-align: center;
-    }
+    body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+    .main-content { margin-left: 250px; padding: 30px; }
+    .address-card { border: 1px solid #dee2e6; border-radius: 10px; padding: 20px; margin-bottom: 20px; background: #fff; transition: all 0.3s ease; position: relative; cursor: pointer; }
+    .address-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+    .address-card.selected { border-color: #28a745; box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2); }
+    .address-card .badge { font-size: 12px; }
+    .active-badge { position: absolute; top: 15px; right: 15px; }
+    .btn-submit, .btn-success { font-weight: 600; }
+    #toastContainer { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1080; display: flex; flex-direction: column; align-items: center; }
+    .toast { min-width: 250px; max-width: 350px; border-radius: 12px; padding: 15px 20px; font-weight: 500; font-size: 14px; text-align: center; }
+    #mapTambah, #mapUbah { height: 300px; margin-bottom: 15px; border:1px solid #ccc; border-radius: 8px; }
 </style>
 </head>
 <body>
@@ -94,7 +38,7 @@
                 + Tambah Alamat
             </button>
 
-            <!-- Tombol Gunakan Alamat di atas daftar -->
+            <!-- Tombol Gunakan Alamat -->
             <?php if(!empty($alamat)): ?>
                 <button class="btn btn-success mb-3" id="gunakanAlamatBtn">Gunakan Alamat</button>
             <?php endif; ?>
@@ -122,6 +66,8 @@
                                     data-kota="<?= esc($a['kota']) ?>"
                                     data-provinsi="<?= esc($a['provinsi']) ?>"
                                     data-kodepos="<?= esc($a['kode_pos']) ?>"
+                                    data-lat="<?= esc($a['latitude'] ?? '') ?>"
+                                    data-lng="<?= esc($a['longitude'] ?? '') ?>"
                                     data-bs-toggle="modal"
                                     data-bs-target="#ubahAlamatModal">
                                 Ubah
@@ -146,10 +92,13 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <div id="mapTambah"></div>
+                    <input type="hidden" name="latitude" id="latitude_tambah">
+                    <input type="hidden" name="longitude" id="longitude_tambah">
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Nama Penerima</label>
-                            <input type="text" class="form-control" name="nama_penerima" required>
+                            <input type="text" class="form-control" name="nama_penerima" id="nama_penerima_tambah" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">No. Telepon</label>
@@ -157,19 +106,19 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label">Jalan</label>
-                            <input type="text" class="form-control" name="jalan" required>
+                            <input type="text" class="form-control" name="jalan" id="jalan_tambah" required>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Kota</label>
-                            <input type="text" class="form-control" name="kota" required>
+                            <input type="text" class="form-control" name="kota" id="kota_tambah" required>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Provinsi</label>
-                            <input type="text" class="form-control" name="provinsi" required>
+                            <input type="text" class="form-control" name="provinsi" id="provinsi_tambah" required>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Kode Pos</label>
-                            <input type="text" class="form-control" name="kode_pos" required>
+                            <input type="text" class="form-control" name="kode_pos" id="kodepos_tambah" required>
                         </div>
                     </div>
                 </div>
@@ -192,7 +141,10 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <div id="mapUbah"></div>
                     <input type="hidden" name="id_alamat" id="ubah_id_alamat">
+                    <input type="hidden" name="latitude" id="latitude_ubah">
+                    <input type="hidden" name="longitude" id="longitude_ubah">
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Nama Penerima</label>
@@ -229,10 +181,8 @@
     </div>
 </div>
 
-<!-- Toast Container -->
 <div id="toastContainer"></div>
 
-<!-- CSRF Token -->
 <script>
 const csrfName = '<?= csrf_token() ?>';
 const csrfHash = '<?= csrf_hash() ?>';
@@ -240,6 +190,7 @@ let originalData = {};
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // Toast
 function showToast(message, type='success') {
@@ -261,7 +212,6 @@ document.getElementById('gunakanAlamatBtn')?.addEventListener('click', function(
     const selected = document.querySelector('input[name="alamat"]:checked');
     if(!selected){ showToast('Silakan pilih alamat terlebih dahulu.', 'danger'); return; }
     const alamatId = selected.value;
-
     fetch('<?= base_url("memilihalamat/pilih") ?>/' + alamatId, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -277,8 +227,6 @@ document.getElementById('gunakanAlamatBtn')?.addEventListener('click', function(
             const rightDiv = card.querySelector('div.d-flex.flex-column');
             rightDiv.insertAdjacentHTML('afterbegin','<span class="badge bg-success active-badge">Aktif</span>');
             showToast('Alamat berhasil dipilih!');
-
-            // Redirect ke halaman melakukanpemesanan
             setTimeout(()=>{ window.location.href='<?= base_url("melakukanpemesanan") ?>'; }, 1200);
         } else showToast(data.message || 'Gagal menandai alamat aktif.', 'danger');
     }).catch(err => { console.error(err); showToast('Terjadi kesalahan saat memilih alamat.', 'danger'); });
@@ -315,10 +263,8 @@ document.getElementById('formUbahAlamat').addEventListener('submit', function(e)
         const input = document.getElementById(`ubah_${field}`);
         if(input.value !== originalData[id][field]) changedData[field] = input.value;
     });
-
     if(Object.keys(changedData).length === 0){ showToast('Tidak ada perubahan pada alamat.', 'info'); return; }
     changedData[csrfName] = csrfHash;
-
     fetch('<?= base_url("memilihalamat/ubah") ?>/' + id, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -328,8 +274,46 @@ document.getElementById('formUbahAlamat').addEventListener('submit', function(e)
     .then(res => {
         if(res.success){ showToast(res.message); setTimeout(()=>location.reload(), 1200); }
         else showToast(res.message || 'Gagal mengubah alamat.', 'danger');
-    })
-    .catch(err => console.error(err));
+    }).catch(err => console.error(err));
+});
+
+// Leaflet maps
+function initLeafletMap(mapId, latInputId, lngInputId, jalanId, kotaId, provinsiId, kodeposId, defaultLat=-0.9492, defaultLng=100.3544){
+    const map = L.map(mapId).setView([defaultLat, defaultLng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+    const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+    function updateInputs(lat, lng){
+        document.getElementById(latInputId).value = lat;
+        document.getElementById(lngInputId).value = lng;
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
+        .then(res => res.json())
+        .then(data => {
+            if(data.address){
+                document.getElementById(jalanId).value = data.address.road || '';
+                document.getElementById(kotaId).value = data.address.city || data.address.town || data.address.village || '';
+                document.getElementById(provinsiId).value = data.address.state || '';
+                document.getElementById(kodeposId).value = data.address.postcode || '';
+            }
+        });
+    }
+    marker.on('dragend', e => updateInputs(e.target.getLatLng().lat, e.target.getLatLng().lng));
+    map.on('click', e => { marker.setLatLng(e.latlng); updateInputs(e.latlng.lat, e.latlng.lng); });
+    updateInputs(defaultLat, defaultLng);
+    return { map, marker };
+}
+
+// Modal Tambah
+document.getElementById('tambahAlamatModal').addEventListener('shown.bs.modal', () => {
+    initLeafletMap('mapTambah', 'latitude_tambah', 'longitude_tambah', 'jalan_tambah', 'kota_tambah', 'provinsi_tambah', 'kodepos_tambah');
+});
+
+// Modal Ubah
+document.querySelectorAll('.ubahAlamatBtn').forEach(btn => {
+    btn.addEventListener('click', function(){
+        const lat = parseFloat(this.dataset.lat) || -0.9492;
+        const lng = parseFloat(this.dataset.lng) || 100.3544;
+        initLeafletMap('mapUbah', 'latitude_ubah', 'longitude_ubah', 'ubah_jalan', 'ubah_kota', 'ubah_provinsi', 'ubah_kode_pos', lat, lng);
+    });
 });
 </script>
 
