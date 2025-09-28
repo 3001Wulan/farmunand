@@ -10,6 +10,8 @@ class MelihatLaporan extends Controller
     public function index()
     {
         $db = Database::connect();
+        $idUser = session()->get('id_user');
+
 
         // Query join tabel pemesanan, users, produk, detail_pemesanan
         $builder = $db->table('pemesanan p')
@@ -20,9 +22,12 @@ class MelihatLaporan extends Controller
             ->orderBy('p.id_pemesanan', 'DESC');
 
         $laporan = $builder->get()->getResultArray();
+        $user = session()->get(); 
+
 
         return view('Admin/melihatlaporan', [
-            'laporan' => $laporan
+            'laporan' => $laporan,
+            'user'    => $user,
         ]);
     }
 }

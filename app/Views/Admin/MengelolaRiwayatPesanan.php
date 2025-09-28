@@ -86,7 +86,7 @@
                     <td><?= esc($row['nama_user'] ?? $row['nama'] ?? '-') ?></td>
                     <td><?= esc($row['nama_produk'] ?? '-') ?></td>
                     <td><?= esc($row['quantity'] ?? '-') ?></td>
-                    <td>Rp <?= isset($row['total']) ? number_format($row['total'], 0, ',', '.') : '0' ?></td>
+                    <td>Rp <?= isset($row['total']) ? number_format($row['total'] * 1000, 0, ',', '.') : '0' ?></td>
                     <td><?= esc($row['pembayaran'] ?? '-') ?></td>
 
                     <td>
