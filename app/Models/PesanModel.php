@@ -40,4 +40,13 @@ class PesanModel extends Model
     {
         return $this->where('nama', $nama)->findAll();
     }
+    public function getPenjualanBulan()
+{
+    return $this->selectSum('total')
+        ->where('status_pemesanan', 'selesai')
+        ->where('MONTH(tanggal)', date('m'))
+        ->where('YEAR(tanggal)', date('Y'))
+        ->first()['total'] ?? 0;
+}
+
 }

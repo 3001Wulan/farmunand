@@ -27,7 +27,7 @@ class Dashboard extends BaseController
             'total_produk'    => $produkModel->getTotalProduk(),
             'total_user'      => $userModel->getTotalUser(),
             'transaksi_hari'  => $transaksiModel->getTransaksiHariIni(),
-            'penjualan_bulan' => $transaksiModel->getPenjualanBulan(),
+            'penjualan_bulan' => $pesanModel->getPenjualanBulan(),
             'stok_rendah'     => $produkModel->getStokRendah(),
             'pesan_masuk'     => $pesanModel->getPesanMasuk(),
             'total_pesanan'   => $pesananModel->countAllResults(), // ✅ Total pesanan
