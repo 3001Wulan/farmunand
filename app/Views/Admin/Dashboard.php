@@ -108,7 +108,7 @@
               <div class="card-dashboard">
                 <i class="bi bi-cash-coin"></i>
                 <h5>Penjualan Bulan Ini</h5>
-                <p>Rp <?= number_format($penjualan_bulan, 0, ',', '.') ?></p>
+                <p>Rp <?= number_format($penjualan_bulan * 1000, 0, ',', '.') ?></p>
               </div>
             </div>
             <div class="col-md-4">
