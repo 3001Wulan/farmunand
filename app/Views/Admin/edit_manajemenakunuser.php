@@ -67,7 +67,7 @@
           </div>
           
           <button type="submit" class="btn btn-success">Simpan</button>
-          <a href="<?= base_url('admin/manajemenakunuser'); ?>" class="btn btn-secondary">Batal</a>
+          <a href="<?= base_url('Admin/manajemenakunuser'); ?>" class="btn btn-secondary">Batal</a>
         </form>
         
       </div>

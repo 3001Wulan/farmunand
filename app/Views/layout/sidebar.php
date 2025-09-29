@@ -1,3 +1,6 @@
+
+
+
 <div class="sidebar">
   <!-- Judul -->
   <div class="text-center mb-4 px-3">
@@ -20,9 +23,8 @@
 
   <a href="/keranjang" class="sidebar-link <?= (url_is('keranjang*')) ? 'active' : '' ?>">
     Keranjang
-    <?php $cartCount = (int)(session()->get('cart_count') ?? 0); if ($cartCount > 0): ?>
-      <span class="badge bg-danger ms-2"><?= $cartCount ?></span>
-    <?php endif; ?>
+    <?php $cartCount = session()->get('cart_count_u_' . ($user['id_user'] ?? 0)) ?? 0; ?>
+      <span class="badge bg-danger ms-2"><?= (int)$cartCount ?></span>
   </a>
 
   <a href="/login" class="sidebar-link">Log Out</a>
