@@ -11,6 +11,8 @@ class MelihatLaporan extends BaseController
     public function index()
     {
         $db = Database::connect();
+        $idUser = session()->get('id_user');
+
 
         $builder = $db->table('pemesanan p')
             ->select('
@@ -28,6 +30,8 @@ class MelihatLaporan extends BaseController
             ->orderBy('p.created_at', 'DESC');
 
         $laporan = $builder->get()->getResultArray();
+        $user = session()->get(); 
+
 
         // Data user admin untuk sidebar
         $userId = session()->get('id_user');

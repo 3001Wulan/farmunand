@@ -6,7 +6,7 @@
 
   <!-- Foto Profil -->
   <div class="text-center mb-4">
-    <img src="<?= base_url('uploads/profile/' . ($user['foto'] ?? 'default.png')) ?>" 
+    <img src="<?= base_url('uploads/profile/' . ($user['foto'] ?? 'delfaut.jpeg')) ?>" 
          alt="Foto Profil" 
          class="profile-photo">
     <p class="mt-2 mb-0 fw-semibold"><?= esc($user['username']) ?> | <?= esc($user['role']) ?></p>

@@ -139,57 +139,57 @@
             </div>
           </form>
 
-          <!-- Tabel Riwayat -->
-          <div class="table-responsive">
-            <table class="table table-hover align-middle">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Tanggal</th>
-                  <th>Nama</th>
-                  <th>Pesanan</th>
-                  <th>Quantity</th>
-                  <th>Total</th>
-                  <th>Pembayaran</th>
-                  <th>Status</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php if (!empty($pesanan)): ?>
-                  <?php foreach ($pesanan as $row): ?>
-                    <tr>
-                      <td><?= esc($row['id_pemesanan'] ?? '-') ?></td>
-                      <td><?= esc($row['created_at'] ?? '-') ?></td>
-                      <td><?= esc($row['nama_user'] ?? $row['nama'] ?? '-') ?></td>
-                      <td><?= esc($row['nama_produk'] ?? '-') ?></td>
-                      <td><?= esc($row['quantity'] ?? '-') ?></td>
-                      <td>Rp <?= isset($row['total']) ? number_format($row['total'], 0, ',', '.') : '0' ?></td>
-                      <td><?= esc($row['pembayaran'] ?? '-') ?></td>
-                      <td>
-                        <?php if (($row['status_pemesanan'] ?? '') === 'Selesai'): ?>
-                          <span class="badge bg-success">Selesai</span>
-                        <?php elseif (($row['status_pemesanan'] ?? '') === 'Diproses'): ?>
-                          <span class="badge bg-warning text-dark">Diproses</span>
-                        <?php elseif (($row['status_pemesanan'] ?? '') === 'Dibatalkan'): ?>
-                          <span class="badge bg-danger">Dibatalkan</span>
-                        <?php else: ?>
-                          <span class="badge bg-secondary">Tidak Diketahui</span>
-                        <?php endif; ?>
-                      </td>
-                      <td>
-                        <a href="<?= base_url('pesanan/detail/'.$row['id_pemesanan']) ?>" class="btn btn-sm btn-info">
-                          👁 Detail
-                        </a>
-                      </td>
-                    </tr>
-                  <?php endforeach; ?>
-                <?php else: ?>
-                  <tr><td colspan="9" class="text-center text-muted">Belum ada data pesanan</td></tr>
-                <?php endif; ?>
-              </tbody>
-            </table>
-          </div>
+          <!-- Tabel Riwayat Pesanan -->
+          <table class="table table-bordered table-hover">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tanggal</th>
+                <th>Nama</th>
+                <th>Pesanan</th>
+                <th>Quantity</th>
+                <th>Total</th>
+                <th>Pembayaran</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <?php if (!empty($pesanan)): ?>
+                <?php foreach ($pesanan as $row): ?>
+                  <tr>
+                    <td><?= esc($row['id_user'] ?? '-') ?></td>
+                    <td><?= esc($row['tanggal'] ?? '-') ?></td>
+                    <td><?= esc($row['nama_user'] ?? $row['nama'] ?? '-') ?></td>
+                    <td><?= esc($row['nama_produk'] ?? '-') ?></td>
+                    <td><?= esc($row['quantity'] ?? '-') ?></td>
+                    <td>Rp <?= isset($row['total']) ? number_format($row['total'], 0, ',', '.') : '0' ?></td>
+                    <td><?= esc($row['pembayaran'] ?? '-') ?></td>
+
+                    <td>
+                      <?php if (($row['status_pemesanan'] ?? '') === 'Selesai'): ?>
+                        <span class="badge bg-success">Selesai</span>
+                      <?php elseif (($row['status_pemesanan'] ?? '') === 'Diproses'): ?>
+                        <span class="badge bg-warning text-dark">Diproses</span>
+                      <?php elseif (($row['status_pemesanan'] ?? '') === 'Dibatalkan'): ?>
+                        <span class="badge bg-danger">Dibatalkan</span>
+                      <?php else: ?>
+                        <span class="badge bg-secondary">Tidak Diketahui</span>
+                      <?php endif; ?>
+                    </td>
+
+                    <td>
+                      <a href="<?= base_url('pesanan/detail/'.$row['id_user']) ?>" class="btn btn-sm btn-info">Detail</a>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <tr><td colspan="9" class="text-center">Belum ada data pesanan</td></tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
 
         </div>
       </div>

@@ -25,23 +25,14 @@ class Dashboard extends BaseController
 
         $data = [
             'title'           => 'Dashboard',
-            'total_produk'    => method_exists($produkModel, 'getTotalProduk')
-                                    ? $produkModel->getTotalProduk()
-                                    : $produkModel->countAllResults(),
-            'total_user'      => method_exists($userModel, 'getTotalUser')
-                                    ? $userModel->getTotalUser()
-                                    : $userModel->countAllResults(),
-            // ✅ pakai PesananModel (bukan TransaksiModel)
-            'transaksi_hari'  => $pesananModel->getTransaksiHariIni(),
-            'penjualan_bulan' => $pesananModel->getPenjualanBulan(),
-            'stok_rendah'     => method_exists($produkModel, 'getStokRendah')
-                                    ? $produkModel->getStokRendah()
-                                    : 0,
-            'pesan_masuk'     => method_exists($pesanModel, 'getPesanMasuk')
-                                    ? $pesanModel->getPesanMasuk()
-                                    : 0,
-            'total_pesanan'   => $pesananModel->countAllResults(),
-            'user'            => $user
+            'total_produk'    => $produkModel->getTotalProduk(),
+            'total_user'      => $userModel->getTotalUser(),
+            'transaksi_hari'  => $transaksiModel->getTransaksiHariIni(),
+            'penjualan_bulan' => $transaksiModel->getPenjualanBulan(),
+            'stok_rendah'     => $produkModel->getStokRendah(),
+            'pesan_masuk'     => $pesanModel->getPesanMasuk(),
+            'total_pesanan'   => $pesananModel->countAllResults(), // ✅ Total pesanan
+            'user'            => $user 
         ];
 
         return view('Admin/Dashboard', $data);

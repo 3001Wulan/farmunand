@@ -82,67 +82,59 @@
           📊 <?= esc($title) ?>
         </div>
 
-        <!-- Statistik -->
-        <div class="row g-4">
-          <div class="col-md-4">
-            <div class="card-dashboard">
-              <i class="bi bi-box-seam-fill"></i>
-              <h5>Total Produk</h5>
-              <p><?= esc($total_produk) ?></p>
+          <div class="row g-4">
+            <div class="col-md-4">
+              <div class="card-dashboard">
+                <i class="bi bi-box-seam-fill"></i>
+                <h5>Total Produk</h5>
+                <p><?= esc($total_produk) ?></p>
+              </div>
             </div>
-          </div>
-
-          <div class="col-md-4">
-            <div class="card-dashboard">
-              <i class="bi bi-people-fill"></i>
-              <h5>Total User</h5>
-              <p><?= esc($total_user) ?></p>
+            <div class="col-md-4">
+              <div class="card-dashboard">
+                <i class="bi bi-people-fill"></i>
+                <h5>Total User</h5>
+                <p><?= esc($total_user) ?></p>
+              </div>
             </div>
-          </div>
-
-          <div class="col-md-4">
-            <div class="card-dashboard">
-              <i class="bi bi-cart-check-fill"></i>
-              <h5>Transaksi Hari Ini</h5>
-              <p><?= esc($transaksi_hari) ?></p>
+            <div class="col-md-4">
+              <div class="card-dashboard">
+                <i class="bi bi-cart-check-fill"></i>
+                <h5>Transaksi Hari Ini</h5>
+                <p><?= esc($transaksi_hari) ?></p>
+              </div>
             </div>
-          </div>
-
-          <div class="col-md-4">
-            <div class="card-dashboard">
-              <i class="bi bi-cash-coin"></i>
-              <h5>Penjualan Bulan Ini</h5>
-              <p>Rp <?= number_format($penjualan_bulan, 0, ',', '.') ?></p>
+            <div class="col-md-4">
+              <div class="card-dashboard">
+                <i class="bi bi-cash-coin"></i>
+                <h5>Penjualan Bulan Ini</h5>
+                <p>Rp <?= number_format($penjualan_bulan, 0, ',', '.') ?></p>
+              </div>
             </div>
-          </div>
-
-          <div class="col-md-4">
-            <div class="card-dashboard">
-              <i class="bi bi-exclamation-triangle-fill"></i>
-              <h5>Stok Rendah</h5>
-              <p><?= esc($stok_rendah) ?> Produk</p>
+            <div class="col-md-4">
+              <div class="card-dashboard">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <h5>Stok Rendah</h5>
+                <p><?= esc($stok_rendah) ?> Produk</p>
+              </div>
             </div>
-          </div>
-
-          <div class="col-md-4">
-            <div class="card-dashboard">
-              <i class="bi bi-envelope-fill"></i>
-              <h5>Pesan Masuk</h5>
-              <p><?= esc($pesan_masuk) ?></p>
+            <div class="col-md-4">
+              <div class="card-dashboard">
+                <i class="bi bi-envelope-fill"></i>
+                <h5>Pesan Masuk</h5>
+                <p><?= esc($pesan_masuk) ?></p>
+              </div>
             </div>
-          </div>
-
-          <div class="col-md-4">
-            <div class="card-dashboard">
-              <i class="bi bi-bag-fill"></i>
-              <h5>Total Pesanan</h5>
-              <p><?= esc($total_pesanan) ?></p>
+            <div class="col-md-4">
+              <div class="card-dashboard">
+                <i class="bi bi-bag-fill"></i>
+                <h5>Total Pesanan</h5>
+                <p><?= esc($total_pesanan) ?></p>
+              </div>
             </div>
           </div>
         </div>
-
       </div>
     </div>
-  </div>
-</body>
+  </body>
 </html>
