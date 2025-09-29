@@ -6,56 +6,35 @@ use App\Models\UserModel;
 
 class ManajemenAkunUser extends BaseController
 {
-    // Tampilkan daftar user
-    public function index()
+        public function index()
     {
         $model = new UserModel();
         $data['users'] = $model->findAll();
-        $userId = session()->get('id_user');   
+        $userId = session()->get('id_user');   // ✅ sudah benar
         $user   = $model->find($userId);
 
         $data = [
-            'users'           => $data['users'],
-            'user'            => $user 
+            'users' => $data['users'],
+            'user'  => $user 
         ];
 
         return view('Admin/manajemenakunuser', $data);
     }
 
-    // Form tambah user
-    public function create()
-    {
-        return view('admin/manajemenakunuser/create');
-    }
-
-    // Simpan user baru
-    public function store()
-    {
-        $model = new UserModel();
-        $model->insert([
-            'nama'   => $this->request->getPost('nama'),
-            'email'  => $this->request->getPost('email'),
-            'no_hp'  => $this->request->getPost('no_hp'),
-            'status' => $this->request->getPost('status'),
-        ]);
-
-        return redirect()->to('/manajemenakunuser');
-    }
-
     // Form edit user
-    public function edit($id)
+    public function edit($id_user) // ✅ param jadi id_user
     {
         $model = new UserModel();
-        $data['user'] = $model->find($id);
+        $data['user'] = $model->find($id_user);
 
         return view('admin/edit_manajemenakunuser', $data);
     }
 
     // Update user
-    public function update($id)
+    public function update($id_user) // ✅ param jadi id_user
     {
         $model = new UserModel();
-        $model->update($id, [
+        $model->update($id_user, [
             'nama'   => $this->request->getPost('nama'),
             'email'  => $this->request->getPost('email'),
             'no_hp'  => $this->request->getPost('no_hp'),
@@ -66,10 +45,10 @@ class ManajemenAkunUser extends BaseController
     }
 
     // Hapus user
-    public function delete($id)
+    public function delete($id_user) // ✅ param jadi id_user
     {
         $model = new UserModel();
-        $model->delete($id);
+        $model->delete($id_user);
 
         return redirect()->to('/manajemenakunuser');
     }

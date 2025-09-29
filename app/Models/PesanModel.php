@@ -9,35 +9,28 @@ class PesanModel extends Model
     protected $table      = 'pemesanan';
     protected $primaryKey = 'id_pemesanan';
     protected $allowedFields = [
-        'nama',
-        'produk',
-        'quantity',
-        'total',
-        'pembayaran',
-        'status_pemesanan'
+        'id_user','id_produk','quantity','total','pembayaran','status_pemesanan'
     ];
 
-    // Hitung jumlah pesanan belum dibaca
     public function getPesanMasuk()
     {
-        return $this->where('status_pemesanan', 'belum_dibaca')->countAllResults();
+        return $this->where('status_pemesanan','belum_dibaca')->countAllResults();
     }
 
-    // Ambil semua pesanan
     public function getAllPesanan()
     {
-        return $this->findAll(); // tanpa orderBy tanggal
+        return $this->findAll();
     }
 
-    // Ambil detail pesanan by id
-    public function getPesananById($id)
+    public function getPesananById($id_pemesanan)
     {
-        return $this->where('id_pemesanan', $id)->first();
+        return $this->where('id_pemesanan',$id_pemesanan)->first();
     }
 
-    // Ambil semua pesanan berdasarkan nama user
     public function getPesananByNama($nama)
     {
-        return $this->where('nama', $nama)->findAll();
+        return $this->join('users','users.id_user = pemesanan.id_user')
+                    ->where('users.nama',$nama)
+                    ->findAll();
     }
 }

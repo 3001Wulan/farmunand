@@ -3,41 +3,40 @@
 namespace App\Controllers;
 
 use App\Models\ProdukModel;
-use App\Models\PesanModel;
+use App\Models\PesananModel;
 use App\Models\UserModel;
 
 class DashboardUser extends BaseController
 {
     public function index()
     {
-        $produkModel = new ProdukModel();
-        $produk = $produkModel->findAll();
-
-        $pesanModel = new PesanModel();
-        $pesananSukses = $pesanModel->where('status_pemesanan', 'Selesai')->countAllResults();
-        $pesananPending = $pesanModel->where('status_pemesanan', 'Pending')->countAllResults();
-        $pesananBatal   = $pesanModel->where('status_pemesanan', 'Batal')->countAllResults();
-
-        $userModel = new UserModel();
-        $userId = session()->get('id_user');   // ✅ ambil id dari session login
-        $user   = $userModel->find($userId);
-
-        if (!$user) {
-            return redirect()->to('/login')->with('error', 'User tidak ditemukan.');
+        $userId = session()->get('id_user');
+        if (!$userId) {
+            return redirect()->to('/login')->with('error', 'Silakan login dulu.');
         }
 
+        $userModel    = new UserModel();
+        $produkModel  = new ProdukModel();
+        $pesananModel = new PesananModel();
+
+        $user = $userModel->find($userId);
+
+        $pesananSukses = $pesananModel->where('status_pemesanan', 'Selesai')->where('id_user', $userId)->countAllResults();
+        $pesananPending = $pesananModel->where('status_pemesanan', 'Pending')->where('id_user', $userId)->countAllResults();
+        $pesananBatal   = $pesananModel->where('status_pemesanan', 'Batal')->where('id_user', $userId)->countAllResults();
+
         $data = [
-            'title'           => 'Dashboard User',
-            'username'        => $user['username'], // atau 'nama' tergantung kolom di tabel users
-            'role'            => $user['role'],
-            'foto'            => $user['foto'],
-            'pesanan_sukses'  => $pesananSukses,
-            'pending'         => $pesananPending,
-            'batal'           => $pesananBatal,
-            'produk'          => $produk,
-            'user'  => $user
+            'title'          => 'Dashboard User',
+            'username'       => $user['username'],
+            'role'           => $user['role'],
+            'foto'           => $user['foto'],
+            'pesanan_sukses' => $pesananSukses,
+            'pending'        => $pesananPending,
+            'batal'          => $pesananBatal,
+            'produk'         => $produkModel->findAll(),
+            'user'           => $user
         ];
 
-        return view('pembeli/dashboarduser', $data);
+        return view('Pembeli/dashboarduser', $data);
     }
 }

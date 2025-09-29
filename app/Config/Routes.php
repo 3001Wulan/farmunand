@@ -43,8 +43,26 @@ $routes->get('/dashboarduser', 'DashboardUser::index');
 $routes->get('/riwayatpesanan', 'Pesanan::index');
 //$routes->get('/detailproduk', 'DetailProduk::index');
 $routes->get('/detailproduk/(:num)', 'DetailProduk::index/$1');
-$routes->get('/melakukanpemesanan', 'MelakukanPemesanan::index');
-$routes->get('/melakukanpemesanan/(:num)', 'MelakukanPemesanan::index/$1');
+
+// Detail produk (GET)
+$routes->get('detail-produk/(:num)', 'DetailProduk::index/$1');
+
+// Melakukan pemesanan (POST direkomendasikan)
+$routes->post('melakukanpemesanan', 'MelakukanPemesanan::index');
+
+// Kompatibilitas lama (GET + segment)
+$routes->get('melakukanpemesanan', 'MelakukanPemesanan::index');        
+$routes->get('melakukanpemesanan/(:num)', 'MelakukanPemesanan::index/$1');
+
+// Keranjang (Cart)
+$routes->get('keranjang', 'Keranjang::index');
+$routes->post('keranjang/add', 'Keranjang::add');
+$routes->post('keranjang/update', 'Keranjang::update');
+$routes->get('keranjang/remove/(:num)', 'Keranjang::remove/$1');
+$routes->post('keranjang/clear', 'Keranjang::clear');
+
+
+
 $routes->get('/melihatlaporan', 'MelihatLaporan::index');
 $routes->post('/melihatlaporan/filter', 'MelihatLaporan::filter');
 $routes->get('/penilaian/(:num)', 'Penilaian::index/$1');

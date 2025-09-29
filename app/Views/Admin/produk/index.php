@@ -8,134 +8,76 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
   <style>
-  /* 🌿 Global */
-  body {
-    background-color: #f1f3f6;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    padding: 0;
-  }
+    body {
+      background: #f8f9fa;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-  /* 🌿 Sidebar fix */
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 250px;
-    height: 100%;
-    background: #198754;
-    color: white;
-    padding-top: 20px;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-    z-index: 1000;
-  }
+    .content {
+      margin-left: 250px;
+      padding: 30px;
+    }
 
-  .sidebar h4 {
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 30px;
-  }
+    /* Header hijau */
+    .page-header {
+      background: linear-gradient(135deg, #198754, #20c997);
+      color: white;
+      border-radius: 12px 12px 0 0;
+      padding: 18px 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .page-header h3 {
+      margin: 0;
+      font-weight: 700;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-  .sidebar a {
-    display: block;
-    color: white;
-    padding: 12px 20px;
-    text-decoration: none;
-    transition: background 0.3s;
-  }
+    .card-container {
+      background: #fff;
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 20px;
+    }
 
-  .sidebar a:hover,
-  .sidebar a.active {
-    background: #157347;
-    border-radius: 8px;
-  }
+    /* Table */
+    .table thead th {
+      background: #198754;
+      color: #fff;
+      text-align: center;
+      border: none;
+    }
+    .table td, .table th {
+      vertical-align: middle;
+      text-align: center;
+    }
+    .table tbody tr:hover {
+      background: #f1fdf6;
+    }
 
-  /* 🌿 Konten utama */
-  .content {
-    margin-left: 250px; /* Biar tidak ketiban sidebar */
-    padding: 30px;
-    animation: fadeIn 0.6s ease-in-out;
-  }
+    .table img {
+      border-radius: 8px;
+      border: 2px solid #e9ecef;
+      padding: 2px;
+      transition: 0.3s;
+    }
+    .table img:hover {
+      transform: scale(1.08);
+    }
 
-  .dashboard-title {
-    color: #198754;
-    font-weight: bold;
-    margin-bottom: 20px;
-    font-size: 1.6rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+    /* Tombol */
+    .btn-success {
+      background: #198754;
+      border: none;
+    }
+    .btn-success:hover { background: #157347; transform: translateY(-2px); }
+    .btn-warning:hover, .btn-danger:hover { transform: translateY(-2px); }
 
-  .dashboard-title::before {
-    content: "📦";
-    font-size: 1.4rem;
-  }
-
-  /* 🌿 Tabel & tombol */
-  .table th {
-    text-align: center;
-    vertical-align: middle;
-  }
-
-  .table td {
-    vertical-align: middle;
-  }
-
-  .btn-success {
-    background-color: #198754;
-    border: none;
-    transition: all 0.3s ease;
-  }
-
-  .btn-success:hover {
-    background-color: #157347;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(25,135,84,0.3);
-  }
-
-  .btn-warning:hover,
-  .btn-danger:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  }
-
-  .table img {
-    border: 2px solid #e9ecef;
-    padding: 3px;
-    border-radius: 10px;
-    transition: 0.3s;
-  }
-
-  .table img:hover {
-    transform: scale(1.1);
-  }
-
-  .table thead {
-    background: linear-gradient(90deg, #198754, #20c997);
-    color: white;
-  }
-
-  .table tbody tr:hover {
-    background-color: #f1fdf5;
-    transition: 0.2s;
-  }
-
-  .alert {
-    border-radius: 10px;
-    animation: slideDown 0.6s ease-in-out;
-  }
-
-  /* 🌿 Animasi */
-  @keyframes fadeIn {
-    from {opacity: 0; transform: translateY(10px);}
-    to {opacity: 1; transform: translateY(0);}
-  }
-
-  @keyframes slideDown {
-    from {opacity: 0; transform: translateY(-20px);}
-    to {opacity: 1; transform: translateY(0);}
-  }
+    .badge { border-radius: 8px; padding: 6px 12px; }
   </style>
 </head>
 <body>
@@ -143,108 +85,90 @@
   <!-- Sidebar -->
   <?= $this->include('layout/sidebarAdmin') ?>
 
-  <!-- Konten Produk -->
-  <div class="content">
-    <!-- Judul Halaman -->
-    <h3 class="dashboard-title"><?= esc($title) ?></h3>
+  <!-- Konten -->
+  <div class="col content">
 
-    <!-- Notifikasi Flash Message -->
-    <?php if (session()->getFlashdata('success')): ?>
-      <div class="alert alert-success shadow-sm">
-        ✅ <?= session()->getFlashdata('success') ?>
-      </div>
-    <?php endif; ?>
+    <!-- Header hijau -->
+    <div class="page-header">
+      <h3>📦 <?= esc($title) ?></h3>
+      <a href="<?= base_url('admin/produk/create') ?>" class="btn btn-light btn-sm fw-semibold">➕ Tambah Produk</a>
+    </div>
 
-    <!-- Form Pencarian Produk -->
-    <form method="get" action="<?= base_url('admin/produk') ?>" class="mb-3 d-flex">
-      <input type="text" name="keyword" value="<?= esc($keyword) ?>" 
-             class="form-control me-2" placeholder="🔍 Cari produk...">
-      <button type="submit" class="btn btn-success">Cari</button>
-    </form>
+    <!-- Card Isi -->
+    <div class="card-container">
 
-    <!-- Tombol Tambah Produk -->
-    <a href="<?= base_url('admin/produk/create') ?>" class="btn btn-success mb-3">➕ Tambah Produk</a>
+      <!-- Notifikasi -->
+      <?php if (session()->getFlashdata('success')): ?>
+        <div class="alert alert-success mb-3">
+          ✅ <?= session()->getFlashdata('success') ?>
+        </div>
+      <?php endif; ?>
 
-    <!-- Tabel Produk -->
-    <div class="table-responsive">
-      <table class="table table-bordered table-striped align-middle">
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>Foto</th>
-            <th>Nama Produk</th>
-            <th>Harga</th>
-            <th>Stok</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php if (!empty($produk)): ?>
-            <?php $no = 1; foreach ($produk as $p): ?>
-              <tr>
-                <td class="text-center"><?= $no++ ?></td>
-                <td class="text-center">
-                  <img src="<?= base_url('uploads/produk/'.$p['foto']) ?>" width="60" class="rounded">
-                </td>
-                <td><?= esc($p['nama_produk']) ?></td>
-                <td class="text-center">
-                <span class="badge bg-success">
-                    Rp <?= number_format($p['harga'], 0, ',', '.') ?>
-                </span>
-                </td>
+      <!-- Pencarian -->
+      <form method="get" action="<?= base_url('admin/produk') ?>" class="mb-3 d-flex">
+        <input type="text" name="keyword" value="<?= esc($keyword) ?>"
+               class="form-control me-2" placeholder="🔍 Cari produk...">
+        <button type="submit" class="btn btn-success">Cari</button>
+      </form>
 
-                <td class="text-center">
-                <span class="badge bg-secondary">
-                    <?= esc($p['stok']) ?>
-                </span>
-                </td>
-
-                <td class="text-center">
-                <!-- Tombol Edit -->
-                <a href="<?= base_url('admin/produk/edit/'.$p['id_produk']) ?>" 
-                    class="btn btn-sm btn-warning">✏️ Edit</a>
-
-                <!-- Tombol Hapus (Trigger Modal) -->
-                <button type="button" class="btn btn-sm btn-danger" 
-                        data-bs-toggle="modal" data-bs-target="#deleteModal<?= $p['id_produk'] ?>">
-                    🗑 Hapus
-                </button>
-
-                <!-- Modal Konfirmasi Hapus -->
-                <div class="modal fade" id="deleteModal<?= $p['id_produk'] ?>" tabindex="-1">
-                    <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content border-0 shadow">
-                        <div class="modal-header" style="background: linear-gradient(90deg, #198754, #20c997); color: #fff;">
-                        <h5 class="modal-title">Konfirmasi Hapus</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body text-center">
-                        <p class="mb-3">Apakah kamu yakin ingin menghapus produk <b><?= esc($p['nama_produk']) ?></b>?</p>
-                        <span class="badge bg-success">Rp <?= number_format($p['harga'], 0, ',', '.') ?></span>
-                        <span class="badge bg-secondary"><?= esc($p['stok']) ?> Stok</span>
-                        </div>
-                        <div class="modal-footer d-flex justify-content-center">
-                        <a href="<?= base_url('admin/produk/delete/'.$p['id_produk']) ?>" 
-                            class="btn btn-danger px-4">Ya, Hapus</a>
-                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Batal</button>
-                        </div>
-                    </div>
-                    </div>
-                </div>
-                </td>
-
-              </tr>
-            <?php endforeach; ?>
-          <?php else: ?>
+      <!-- Tabel Produk -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead>
             <tr>
-              <td colspan="6" class="text-center text-muted">⚠️ Tidak ada produk ditemukan.</td>
+              <th>No</th>
+              <th>Foto</th>
+              <th>Nama Produk</th>
+              <th>Harga</th>
+              <th>Stok</th>
+              <th>Aksi</th>
             </tr>
-          <?php endif; ?>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <?php if (!empty($produk)): ?>
+              <?php $no = 1; foreach ($produk as $p): ?>
+                <tr>
+                  <td><?= $no++ ?></td>
+                  <td><img src="<?= base_url('uploads/produk/'.$p['foto']) ?>" width="60"></td>
+                  <td><?= esc($p['nama_produk']) ?></td>
+                  <td><span class="badge bg-success">Rp <?= number_format($p['harga'], 0, ',', '.') ?></span></td>
+                  <td><span class="badge bg-secondary"><?= esc($p['stok']) ?></span></td>
+                  <td>
+                    <a href="<?= base_url('admin/produk/edit/'.$p['id_produk']) ?>" class="btn btn-sm btn-warning">✏️ Edit</a>
+                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                            data-bs-target="#deleteModal<?= $p['id_produk'] ?>">🗑 Hapus</button>
+
+                    <!-- Modal Konfirmasi -->
+                    <div class="modal fade" id="deleteModal<?= $p['id_produk'] ?>" tabindex="-1">
+                      <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow">
+                          <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title">Konfirmasi Hapus</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                          </div>
+                          <div class="modal-body text-center">
+                            <p>Apakah yakin ingin menghapus <b><?= esc($p['nama_produk']) ?></b>?</p>
+                          </div>
+                          <div class="modal-footer d-flex justify-content-center">
+                            <a href="<?= base_url('admin/produk/delete/'.$p['id_produk']) ?>" class="btn btn-danger px-4">Ya, Hapus</a>
+                            <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Batal</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <tr><td colspan="6" class="text-center text-muted">⚠️ Tidak ada produk ditemukan.</td></tr>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
+
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </html>

@@ -3,34 +3,26 @@
 namespace App\Controllers;
 
 use App\Models\UserModel;
-use App\Models\ProdukModel;
-use App\Models\PesanModel;
 
 class ProfileAdmin extends BaseController
 {
     protected $userModel;
-    protected $produkModel;
-    protected $pesanModel;
 
     public function __construct()
     {
-        $this->userModel  = new UserModel();
+        $this->userModel = new UserModel();
     }
 
     public function index()
     {
-        $session = session();
-        $userId = $session->get('id_user');
-
+        $userId = session()->get('id_user');
         if (!$userId) {
             return redirect()->to('/login')->with('error', 'Silakan login dulu.');
         }
 
-        $user = $this->userModel->find($userId);
-
         $data = [
-            'title'        => 'Profil Admin',
-            'user'         => $user,
+            'title' => 'Profil Admin',
+            'user'  => $this->userModel->find($userId),
         ];
 
         return view('Admin/profile_admin', $data);
@@ -38,18 +30,14 @@ class ProfileAdmin extends BaseController
 
     public function edit()
     {
-        $session = session();
-        $userId = $session->get('id_user');
-
+        $userId = session()->get('id_user');
         if (!$userId) {
             return redirect()->to('/login')->with('error', 'Silakan login dulu.');
         }
 
-        $user = $this->userModel->find($userId);
-
         $data = [
             'title' => 'Edit Profil Admin',
-            'user'  => $user,
+            'user'  => $this->userModel->find($userId),
         ];
 
         return view('Admin/edit_profile_admin', $data);
@@ -58,8 +46,8 @@ class ProfileAdmin extends BaseController
     public function update()
     {
         $session = session();
-        $userId = $session->get('id_user');
-        $user   = $this->userModel->find($userId);
+        $userId  = $session->get('id_user');
+        $user    = $this->userModel->find($userId);
 
         $dataUpdate = [
             'username' => $this->request->getPost('username'),
@@ -73,8 +61,8 @@ class ProfileAdmin extends BaseController
             $newName = $fileFoto->getRandomName();
             $fileFoto->move('uploads/profile', $newName);
 
-            if ($user['foto'] && $user['foto'] !== 'default.png' && file_exists('uploads/profile/' . $user['foto'])) {
-                unlink('uploads/profile/' . $user['foto']);
+            if ($user['foto'] && $user['foto'] !== 'default.png' && file_exists('uploads/profile/'.$user['foto'])) {
+                unlink('uploads/profile/'.$user['foto']);
             }
 
             $dataUpdate['foto'] = $newName;

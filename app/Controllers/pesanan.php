@@ -7,137 +7,89 @@ use App\Models\UserModel;
 
 class Pesanan extends BaseController
 {
+    protected $pesananModel;
+    protected $userModel;
+
+    public function __construct()
+    {
+        $this->pesananModel = new PesananModel();
+        $this->userModel    = new UserModel();
+    }
+
+    // Ambil data user dari session
+    private function getUserData()
+    {
+        $session = session();
+        $userId  = $session->get('id_user'); // ✅ ganti id → id_user
+        
+        if (!$userId) {
+            return null;
+        }
+
+        return $this->userModel->find($userId);
+    }
+
+    // === Semua pesanan user ===
     public function index()
     {
-        $pesananModel = new PesananModel();
-
-        // Ambil session
-        $session = session();
-        $id_user = $session->get('id_user');
-
-        $model = new UserModel();
-        $data['users'] = $model->findAll();
-        $userId = $session->get('id_user');   
-        $user   = $model->find($userId);
-
-        $data = [
-            'users' => $data['users'],
-            'user'  => $user 
-        ];
-
-        // Jika belum login
-        if (!$id_user) {
+        $user = $this->getUserData();
+        if (!$user) {
             return redirect()->to('/login');
         }
 
-        // Semua pesanan user
-        $data['orders'] = $pesananModel->getPesananWithProduk($id_user);
+        $data = [
+            'user'   => $user,
+            'orders' => $this->pesananModel->getPesananWithProduk($user['id_user']) // ✅
+        ];
 
         return view('pembeli/riwayatpesanan', $data);
     }
 
-    // === Tambahan untuk menampilkan pesanan selesai ===
+    // === Pesanan Selesai ===
     public function selesai()
     {
-        $pesananModel = new PesananModel();
-$session = session();
-$id_user = $session->get('id_user');
+        $user = $this->getUserData();
+        if (!$user) {
+            return redirect()->to('/login');
+        }
 
-$model = new UserModel();
-$data['users'] = $model->findAll();
-$userId = $session->get('id_user');
-$user   = $model->find($userId);
+        $data = [
+            'user'   => $user,
+            'orders' => $this->pesananModel->getPesananByStatus($user['id_user'], 'Selesai') // ✅
+        ];
 
-$data = [
-    'users' => $data['users'],
-    'user'  => $user
-];                             
-
-if (!$id_user) {
-    return redirect()->to('/login');
-}
-
-// Ambil hanya pesanan dengan status "Selesai" + join produk
-$db = \Config\Database::connect();
-$builder = $db->table('pemesanan p')
-    ->select('p.*, pr.nama_produk, pr.foto,pr.harga, dp.jumlah_produk')
-    ->join('detail_pemesanan dp', 'dp.id_pemesanan = p.id_pemesanan')
-    ->join('produk pr', 'pr.id_produk = dp.id_produk')
-    ->where('p.id_user', $id_user)
-    ->where('p.status_pemesanan', 'Selesai');
-
-$data['orders'] = $builder->get()->getResultArray();
-
-return view('pembeli/pesananselesai', $data);
-
+        return view('pembeli/pesananselesai', $data);
     }
 
+    // === Pesanan Dikemas ===
     public function dikemas()
     {
-        $pesananModel = new PesananModel();
-$session = session();
-$id_user = $session->get('id_user');
+        $user = $this->getUserData();
+        if (!$user) {
+            return redirect()->to('/login');
+        }
 
-$model = new UserModel();
-$data['users'] = $model->findAll();
-$userId = $session->get('id_user');
-$user   = $model->find($userId);
+        $data = [
+            'user'   => $user,
+            'orders' => $this->pesananModel->getPesananByStatus($user['id_user'], 'Dikemas') // ✅
+        ];
 
-$data = [
-    'users' => $data['users'],
-    'user'  => $user
-];                             
-
-if (!$id_user) {
-    return redirect()->to('/login');
-}
-
-// Ambil hanya pesanan dengan status "Selesai" + join produk
-$db = \Config\Database::connect();
-$builder = $db->table('pemesanan p')
-    ->select('p.*, pr.nama_produk, pr.foto,pr.harga, dp.jumlah_produk')
-    ->join('detail_pemesanan dp', 'dp.id_pemesanan = p.id_pemesanan')
-    ->join('produk pr', 'pr.id_produk = dp.id_produk')
-    ->where('p.id_user', $id_user)
-    ->where('p.status_pemesanan', 'dikemas');
-
-$data['orders'] = $builder->get()->getResultArray();
-
-return view('pembeli/pesanandikemas', $data);
-
+        return view('pembeli/pesanandikemas', $data);
     }
+
+    // === Pesanan Belum Bayar ===
     public function belumbayar()
     {
-        $pesananModel = new PesananModel();
-$session = session();
-$id_user = $session->get('id_user');
+        $user = $this->getUserData();
+        if (!$user) {
+            return redirect()->to('/login');
+        }
 
-$model = new UserModel();
-$data['users'] = $model->findAll();
-$userId = $session->get('id_user');
-$user   = $model->find($userId);
+        $data = [
+            'user'   => $user,
+            'orders' => $this->pesananModel->getPesananByStatus($user['id_user'], 'Belum Bayar') // ✅
+        ];
 
-$data = [
-    'users' => $data['users'],
-    'user'  => $user
-];                             
-
-if (!$id_user) {
-    return redirect()->to('/login');
-}
-
-// Ambil hanya pesanan dengan status "Selesai" + join produk
-$db = \Config\Database::connect();
-$builder = $db->table('pemesanan p')
-    ->select('p.*, pr.nama_produk, pr.foto,pr.harga, dp.jumlah_produk')
-    ->join('detail_pemesanan dp', 'dp.id_pemesanan = p.id_pemesanan')
-    ->join('produk pr', 'pr.id_produk = dp.id_produk')
-    ->where('p.id_user', $id_user)
-    ->where('p.status_pemesanan', 'dikemas');
-
-$data['orders'] = $builder->get()->getResultArray();
-
-return view('pembeli/pesananbelumbayar', $data);
-
+        return view('pembeli/pesananbelumbayar', $data);
     }
 }

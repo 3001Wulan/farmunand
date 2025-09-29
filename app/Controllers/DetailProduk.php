@@ -7,32 +7,26 @@ use App\Models\UserModel;
 
 class DetailProduk extends BaseController
 {
-    public function index($id = null)
+    public function index($id_produk = null)
     {
         $produkModel = new ProdukModel();
-        $userModel = new UserModel();
-        $userId = session()->get('id_user');   // ✅ ambil id dari session login
+        $userModel   = new UserModel();
+
+        $userId = session()->get('id_user');
         $user   = $userModel->find($userId);
 
-        if ($id === null) {
-            // Kalau tidak ada id, ambil produk pertama
-            $produk = $produkModel->first();
-        } else {
-            $produk = $produkModel->find($id);
-        }
+        $produk = $id_produk
+            ? $produkModel->find($id_produk)
+            : $produkModel->first();
 
         if (!$produk) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Produk dengan ID $id tidak ditemukan.");
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Produk dengan ID $id_produk tidak ditemukan.");
         }
 
-        $data = [
+        return view('pembeli/detailproduk', [
             'title'  => 'Detail Produk',
             'produk' => $produk,
-            'user'   => $user 
-        ];
-
-
-        return view('pembeli/detailproduk', $data);
-
+            'user'   => $user
+        ]);
     }
 }
