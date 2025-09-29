@@ -17,6 +17,8 @@ class Keranjang extends BaseController
         helper(['form']);
     }
 
+    /* ===== Helpers ===== */
+
     private function ensureLogin()
     {
         if (!session()->get('id_user')) {
@@ -31,19 +33,46 @@ class Keranjang extends BaseController
         return $this->userModel->find($id);
     }
 
-    private function syncCartCount()
+    // Key session per-user
+    private function cartKey(): string
     {
-        $cart = session()->get('cart') ?? [];
-        $count = 0;
-        foreach ($cart as $row) { $count += (int)($row['qty'] ?? 0); }
-        session()->set('cart_count', $count);
+        return 'cart_u_' . (session()->get('id_user') ?? 0);
     }
+
+    private function countKey(): string
+    {
+        return 'cart_count_u_' . (session()->get('id_user') ?? 0);
+    }
+
+    private function getCart(): array
+    {
+        return session()->get($this->cartKey()) ?? [];
+    }
+
+    private function putCart(array $cart): void
+    {
+        session()->set($this->cartKey(), $cart);
+
+        // hitung total qty untuk badge
+        $count = 0;
+        foreach ($cart as $row) {
+            $count += (int)($row['qty'] ?? 0);
+        }
+        session()->set($this->countKey(), $count);
+    }
+
+    private function syncCartCount(): void
+    {
+        $this->putCart($this->getCart());
+    }
+
+    /* ===== Actions ===== */
 
     public function index()
     {
         if ($redir = $this->ensureLogin()) return $redir;
 
-        $cart  = session()->get('cart') ?? [];
+        $cart  = $this->getCart();
         $total = 0;
         foreach ($cart as $row) {
             $total += ((float)$row['harga']) * ((int)$row['qty']);
@@ -69,14 +98,14 @@ class Keranjang extends BaseController
             return redirect()->back()->with('error', 'Produk tidak ditemukan.');
         }
 
-        // Batasi ke stok yang tersedia
+        // Validasi stok
         $stok = (int)($produk['stok'] ?? 0);
         if ($stok <= 0) {
             return redirect()->back()->with('error', 'Stok produk habis.');
         }
         if ($qty > $stok) $qty = $stok;
 
-        $cart = session()->get('cart') ?? [];
+        $cart = $this->getCart();
 
         if (isset($cart[$idProduk])) {
             $newQty = $cart[$idProduk]['qty'] + $qty;
@@ -91,8 +120,7 @@ class Keranjang extends BaseController
             ];
         }
 
-        session()->set('cart', $cart);
-        $this->syncCartCount();
+        $this->putCart($cart);
 
         return redirect()->to('/keranjang')->with('success', 'Produk masuk ke keranjang.');
     }
@@ -104,7 +132,7 @@ class Keranjang extends BaseController
         $idProduk = (int)$this->request->getPost('id_produk');
         $qty      = max(0, (int)$this->request->getPost('qty')); // 0 = hapus
 
-        $cart = session()->get('cart') ?? [];
+        $cart = $this->getCart();
         if (!isset($cart[$idProduk])) {
             return redirect()->back()->with('error', 'Item tidak ada di keranjang.');
         }
@@ -121,8 +149,7 @@ class Keranjang extends BaseController
             $cart[$idProduk]['qty'] = $qty;
         }
 
-        session()->set('cart', $cart);
-        $this->syncCartCount();
+        $this->putCart($cart);
 
         return redirect()->to('/keranjang')->with('success', 'Keranjang diperbarui.');
     }
@@ -131,11 +158,10 @@ class Keranjang extends BaseController
     {
         if ($redir = $this->ensureLogin()) return $redir;
 
-        $cart = session()->get('cart') ?? [];
+        $cart = $this->getCart();
         unset($cart[(int)$idProduk]);
 
-        session()->set('cart', $cart);
-        $this->syncCartCount();
+        $this->putCart($cart);
 
         return redirect()->to('/keranjang')->with('success', 'Item dihapus.');
     }
@@ -144,8 +170,8 @@ class Keranjang extends BaseController
     {
         if ($redir = $this->ensureLogin()) return $redir;
 
-        session()->remove('cart');
-        $this->syncCartCount();
+        session()->remove($this->cartKey());
+        session()->remove($this->countKey());
 
         return redirect()->to('/keranjang')->with('success', 'Keranjang dikosongkan.');
     }
