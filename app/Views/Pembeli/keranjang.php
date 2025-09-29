@@ -154,9 +154,7 @@ function stepQty(btn, delta){
   if (v < 0) v = 0; // 0 = hapus
   input.value = v;
 }
-</script>
 
-<script>
 function enterEdit(id){
   const row = document.querySelector(`.cart-qty-row[data-id="${id}"]`);
   row.querySelector('.view-state').classList.add('d-none');
