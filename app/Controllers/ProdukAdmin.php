@@ -16,18 +16,16 @@ class ProdukAdmin extends BaseController
         $this->userModel   = new UserModel();
     }
 
-    // Tampilkan semua produk + search
+    // === List Produk (dengan search)
     public function index()
     {
         $userId = session()->get('id_user');
         $user   = $this->userModel->find($userId);
 
         $keyword = $this->request->getVar('keyword');
-        if ($keyword) {
-            $produk = $this->produkModel->searchProduk($keyword);
-        } else {
-            $produk = $this->produkModel->findAll();
-        }
+        $produk  = $keyword
+            ? $this->produkModel->searchProduk($keyword)
+            : $this->produkModel->findAll();
 
         $data = [
             'title'   => 'Manajemen Produk',
@@ -39,7 +37,7 @@ class ProdukAdmin extends BaseController
         return view('admin/produk/index', $data);
     }
 
-    // Form tambah produk
+    // === Form Tambah Produk
     public function create()
     {
         $userId = session()->get('id_user');
@@ -51,11 +49,11 @@ class ProdukAdmin extends BaseController
         ]);
     }
 
-    // Simpan produk baru
+    // === Simpan Produk Baru
     public function store()
     {
         $file = $this->request->getFile('foto');
-        $fotoName = $file->isValid() && !$file->hasMoved()
+        $fotoName = ($file->isValid() && !$file->hasMoved())
             ? $file->getRandomName()
             : 'default.png';
 
@@ -75,32 +73,30 @@ class ProdukAdmin extends BaseController
         return redirect()->to('/admin/produk')->with('success', 'Produk berhasil ditambahkan!');
     }
 
-    // Form edit produk
-    public function edit($id)
+    // === Form Edit Produk
+    public function edit($id_produk)
     {
-        $produk = $this->produkModel->find($id);
+        $produk = $this->produkModel->find($id_produk);
         if (!$produk) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Produk dengan ID $id tidak ditemukan.");
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Produk dengan ID $id_produk tidak ditemukan.");
         }
 
         $userId = session()->get('id_user');
         $user   = $this->userModel->find($userId);
 
-        $data = [
+        return view('admin/produk/edit', [
             'title'  => 'Edit Produk',
             'produk' => $produk,
             'user'   => $user
-        ];
-
-        return view('admin/produk/edit', $data);
+        ]);
     }
 
-    // Update produk
-    public function update($id)
+    // === Update Produk
+    public function update($id_produk)
     {
-        $produk = $this->produkModel->find($id);
+        $produk = $this->produkModel->find($id_produk);
         if (!$produk) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Produk dengan ID $id tidak ditemukan.");
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Produk dengan ID $id_produk tidak ditemukan.");
         }
 
         $file = $this->request->getFile('foto');
@@ -108,7 +104,6 @@ class ProdukAdmin extends BaseController
             $fotoName = $file->getRandomName();
             $file->move('uploads/produk', $fotoName);
 
-            // hapus foto lama kalau bukan default
             if ($produk['foto'] !== 'default.png' && file_exists('uploads/produk/' . $produk['foto'])) {
                 unlink('uploads/produk/' . $produk['foto']);
             }
@@ -116,7 +111,7 @@ class ProdukAdmin extends BaseController
             $fotoName = $produk['foto'];
         }
 
-        $this->produkModel->update($id, [
+        $this->produkModel->update($id_produk, [
             'nama_produk' => $this->request->getVar('nama_produk'),
             'deskripsi'   => $this->request->getVar('deskripsi'),
             'foto'        => $fotoName,
@@ -127,19 +122,17 @@ class ProdukAdmin extends BaseController
         return redirect()->to('/admin/produk')->with('success', 'Produk berhasil diperbarui!');
     }
 
-    // Hapus produk
-    public function delete($id)
+    // === Hapus Produk
+    public function delete($id_produk)
     {
-        $produk = $this->produkModel->find($id);
+        $produk = $this->produkModel->find($id_produk);
 
         if ($produk) {
-            // hapus foto kalau bukan default
             if ($produk['foto'] !== 'default.png' && file_exists('uploads/produk/' . $produk['foto'])) {
                 unlink('uploads/produk/' . $produk['foto']);
             }
 
-            // gunakan where explicit
-            $this->produkModel->where('id_produk', $id)->delete();
+            $this->produkModel->where('id_produk', $id_produk)->delete();
         }
 
         return redirect()->to('/admin/produk')->with('success', 'Produk berhasil dihapus!');

@@ -14,11 +14,20 @@
 
   <!-- Menu -->
   <div class="d-grid gap-2 px-3">
-    <a href="/profile" class="sidebar-link <?= (url_is('profile')) ? 'active' : '' ?>">Akun Saya</a>
-    <a href="/dashboarduser" class="sidebar-link <?= (url_is('dashboard')) ? 'active' : '' ?>">Dashboard</a>
-    <a href="/riwayatpesanan" class="sidebar-link <?= (url_is('pesanan')) ? 'active' : '' ?>">Pesanan Saya</a>
-    <a href="/login" class="sidebar-link">Log Out</a>
-  </div>
+  <a href="/profile" class="sidebar-link <?= (url_is('profile')) ? 'active' : '' ?>">Akun Saya</a>
+  <a href="/dashboarduser" class="sidebar-link <?= (url_is('dashboarduser')) ? 'active' : '' ?>">Dashboard</a>
+  <a href="/riwayatpesanan" class="sidebar-link <?= (url_is('riwayatpesanan*')) ? 'active' : '' ?>">Pesanan Saya</a>
+
+  <a href="/keranjang" class="sidebar-link <?= (url_is('keranjang*')) ? 'active' : '' ?>">
+    Keranjang
+    <?php $cartCount = (int)(session()->get('cart_count') ?? 0); if ($cartCount > 0): ?>
+      <span class="badge bg-danger ms-2"><?= $cartCount ?></span>
+    <?php endif; ?>
+  </a>
+
+  <a href="/login" class="sidebar-link">Log Out</a>
+</div>
+
 </div>
 
 <style>

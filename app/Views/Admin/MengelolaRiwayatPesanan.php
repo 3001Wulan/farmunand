@@ -1,51 +1,126 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Riwayat Pesanan - Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        background: #f8f9fa;
-      }
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riwayat Pesanan - Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-      .container-fluid { margin: 0; padding: 0; }
-      .row.g-0 { margin: 0; }
+  <style>
+    body {
+      background: #f8f9fa;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-      /* Konten geser agar tidak tertutup sidebar */
-      .content {
-        padding: 30px;
-        margin-left: 250px;
-      }
-          
-      table th { background: #198754; color: white; }
-    </style>
-  </head>
+    .content {
+      margin-left: 250px;
+      padding: 30px;
+    }
 
-  <body>
-    <div class="container-fluid">
-      <div class="row g-0">
-        
-        <!-- Sidebar dari layouts -->
-        <?= $this->include('layout/sidebarAdmin') ?>
+    /* Header Hijau */
+    .page-header {
+      background: linear-gradient(135deg, #198754, #28a745);
+      color: white;
+      border-radius: 12px 12px 0 0;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .page-header h4 {
+      margin: 0;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-        <!-- Content -->
-        <div class="col-md-9 col-lg-10 content">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 class="text-success">Mengelola Riwayat Pesanan</h3>
-            <button class="btn btn-success btn-sm">Export Data</button>
-          </div>
+    /* Card Isi */
+    .card-container {
+      background: #fff;
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 20px;
+    }
+
+    /* Filter */
+    .filter-form .form-control,
+    .filter-form .form-select {
+      border-radius: 8px;
+    }
+
+    /* Table */
+    .table thead th {
+      background: #198754;
+      color: #fff;
+      text-align: center;
+      border: none;
+    }
+    .table td, .table th {
+      text-align: center;
+      vertical-align: middle;
+      padding: 12px;
+    }
+    .table tbody tr:hover {
+      background: #f1fdf6;
+    }
+
+    /* Tombol */
+    .btn-success {
+      background: #198754;
+      border: none;
+    }
+    .btn-success:hover {
+      background: #157347;
+      transform: translateY(-2px);
+    }
+    .btn-info {
+      background: #0dcaf0;
+      border: none;
+      color: #fff;
+    }
+    .btn-info:hover {
+      background: #0bb5d8;
+      transform: translateY(-2px);
+    }
+
+    /* Badge Status */
+    .badge {
+      font-size: 0.85rem;
+      padding: 6px 10px;
+      border-radius: 12px;
+    }
+    .badge.bg-success { background: #198754 !important; }
+  </style>
+</head>
+<body>
+  <div class="container-fluid px-0">
+    <div class="row g-0">
+
+      <!-- Sidebar -->
+      <?= $this->include('layout/sidebarAdmin') ?>
+
+      <!-- Content -->
+      <div class="col content">
+
+        <!-- Header Hijau -->
+        <div class="page-header">
+          <h4>📜 Mengelola Riwayat Pesanan</h4>
+          <a href="<?= site_url('pesanan/export') ?>" class="btn btn-light btn-sm fw-semibold">
+            ⬇️ Export Data
+          </a>
+        </div>
+
+        <!-- Card Isi -->
+        <div class="card-container">
 
           <!-- Filter & Search -->
-          <form method="get" class="row mb-3">
-            <div class="col-md-6">
-              <input type="text" class="form-control" name="keyword" placeholder="Cari Pesanan..." value="<?= esc($keyword ?? '') ?>">
+          <form method="get" class="row mb-4 filter-form">
+            <div class="col-md-5 mb-2">
+              <input type="text" class="form-control" name="keyword" placeholder="Cari Pesanan..."
+                value="<?= esc($keyword ?? '') ?>">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-3 mb-2">
               <select name="status" class="form-select">
                 <option value="">Semua Status</option>
                 <option value="Diproses" <?= isset($status) && $status=="Diproses" ? 'selected':'' ?>>Diproses</option>
@@ -53,11 +128,14 @@
                 <option value="Dibatalkan" <?= isset($status) && $status=="Dibatalkan" ? 'selected':'' ?>>Dibatalkan</option>
               </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2 mb-2">
               <select name="sort" class="form-select">
                 <option value="desc" <?= isset($sort) && $sort=="desc" ? 'selected':'' ?>>Terbaru</option>
                 <option value="asc" <?= isset($sort) && $sort=="asc" ? 'selected':'' ?>>Terlama</option>
               </select>
+            </div>
+            <div class="col-md-2 mb-2">
+              <button type="submit" class="btn btn-success w-100">Filter</button>
             </div>
           </form>
 
@@ -86,7 +164,7 @@
                     <td><?= esc($row['nama_user'] ?? $row['nama'] ?? '-') ?></td>
                     <td><?= esc($row['nama_produk'] ?? '-') ?></td>
                     <td><?= esc($row['quantity'] ?? '-') ?></td>
-                    <td>Rp <?= isset($row['total']) ? number_format($row['total'] * 1000, 0, ',', '.') : '0' ?></td>
+                    <td>Rp <?= isset($row['total']) ? number_format($row['total'], 0, ',', '.') : '0' ?></td>
                     <td><?= esc($row['pembayaran'] ?? '-') ?></td>
 
                     <td>
@@ -113,7 +191,9 @@
           </table>
         </div>
 
+        </div>
       </div>
     </div>
-  </body>
+  </div>
+</body>
 </html>

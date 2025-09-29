@@ -11,7 +11,8 @@ class TransaksiModel extends Model
 
     public function getTransaksiHariIni()
     {
-        return $this->where('DATE(created_at)', date('Y-m-d'))->countAllResults();
+        return $this->where('DATE(created_at)', date('Y-m-d'))
+                    ->countAllResults();
     }
 
     public function getPenjualanBulan()

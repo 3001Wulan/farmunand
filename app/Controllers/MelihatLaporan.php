@@ -2,10 +2,11 @@
 
 namespace App\Controllers;
 
-use CodeIgniter\Controller;
+use App\Controllers\BaseController;
+use App\Models\UserModel;
 use Config\Database;
 
-class MelihatLaporan extends Controller
+class MelihatLaporan extends BaseController
 {
     public function index()
     {
@@ -13,21 +14,32 @@ class MelihatLaporan extends Controller
         $idUser = session()->get('id_user');
 
 
-        // Query join tabel pemesanan, users, produk, detail_pemesanan
         $builder = $db->table('pemesanan p')
-            ->select('p.id_pemesanan, u.nama as nama_pembeli, pr.nama_produk, dp.jumlah_produk, dp.harga_produk, p.status_pemesanan')
+            ->select('
+                p.id_pemesanan,
+                u.nama AS nama_pembeli,
+                pr.nama_produk,
+                dp.jumlah_produk,
+                dp.harga_produk,
+                p.status_pemesanan,
+                p.created_at
+            ')
             ->join('users u', 'p.id_user = u.id_user', 'left')
             ->join('detail_pemesanan dp', 'p.id_pemesanan = dp.id_pemesanan', 'left')
             ->join('produk pr', 'dp.id_produk = pr.id_produk', 'left')
-            ->orderBy('p.id_pemesanan', 'DESC');
+            ->orderBy('p.created_at', 'DESC');
 
         $laporan = $builder->get()->getResultArray();
         $user = session()->get(); 
 
 
+        // Data user admin untuk sidebar
+        $userId = session()->get('id_user');
+        $user   = (new UserModel())->find($userId);
+
         return view('Admin/melihatlaporan', [
             'laporan' => $laporan,
-            'user'    => $user,
+            'user'    => $user
         ]);
     }
 }

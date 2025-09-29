@@ -13,52 +13,39 @@ class Profile extends BaseController
         $this->userModel = new UserModel();
     }
 
-    // ===== HALAMAN PROFIL =====
     public function index()
     {
-        $session = session();
-        $userId = $session->get('id_user');
-
+        $userId = session()->get('id_user');
         if (!$userId) {
             return redirect()->to('/login')->with('error', 'Silakan login dulu.');
         }
 
-        $user = $this->userModel->find($userId);
-
         $data = [
             'title' => 'Profil Saya',
-            'user'  => $user,
+            'user'  => $this->userModel->find($userId),
         ];
 
         return view('Pembeli/profile', $data);
     }
 
-    // ===== FORM EDIT PROFIL =====
     public function edit()
     {
-        $session = session();
-        $userId = $session->get('id_user');
-
+        $userId = session()->get('id_user');
         if (!$userId) {
             return redirect()->to('/login')->with('error', 'Silakan login dulu.');
         }
 
-        $user = $this->userModel->find($userId);
-
         $data = [
             'title' => 'Edit Profil',
-            'user'  => $user,
+            'user'  => $this->userModel->find($userId),
         ];
 
         return view('Pembeli/edit_profile', $data);
     }
 
-    // ===== PROSES UPDATE PROFIL =====
     public function update()
     {
-        $session = session();
-        $userId = $session->get('id_user');
-
+        $userId = session()->get('id_user');
         if (!$userId) {
             return redirect()->to('/login')->with('error', 'Silakan login dulu.');
         }
@@ -84,7 +71,6 @@ class Profile extends BaseController
             'no_hp'    => $this->request->getPost('no_hp'),
         ];
 
-        // Upload foto jika ada
         $file = $this->request->getFile('foto');
         if ($file && $file->isValid() && !$file->hasMoved()) {
             $newName = $file->getRandomName();

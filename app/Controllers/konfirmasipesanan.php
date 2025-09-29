@@ -8,37 +8,37 @@ use App\Models\UserModel;
 class KonfirmasiPesanan extends BaseController
 {
     protected $pesananModel;
+    protected $userModel;
 
     public function __construct()
     {
         $this->pesananModel = new PesananModel();
+        $this->userModel    = new UserModel();
     }
 
     public function index()
-{
-    $id_user = session()->get('id_user') ?? 1;
+    {
+        $idUser = session()->get('id_user');
+        if (!$idUser) {
+            return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
+        }
 
-    $pesanan = $this->pesananModel->getPesananWithProduk($id_user);
+        $pesanan = $this->pesananModel->getPesananWithProduk($idUser);
 
-    $data['pesanan'] = array_filter($pesanan, function($p) {
-        return $p['status_pemesanan'] === 'dikirim';
-    });
+        $data = [
+            'pesanan' => array_filter($pesanan, fn($p) => strtolower($p['status_pemesanan']) === 'dikirim'),
+            'user'    => $this->userModel->find($idUser),
+        ];
 
-    // Ambil user dari database
-    $userModel = new UserModel();
-    $data['user'] = $userModel->find($id_user);
-
-    return view('pembeli/konfirmasipesanan', $data);
-}
+        return view('pembeli/konfirmasipesanan', $data);
+    }
     
     public function selesai($id_pemesanan)
     {
-        // Update status jadi 'Selesai'
         $this->pesananModel->update($id_pemesanan, [
             'status_pemesanan' => 'Selesai'
         ]);
 
-        // Redirect ke halaman konfirmasi
         return redirect()->to('/konfirmasipesanan')
                          ->with('success', 'Pesanan berhasil dikonfirmasi!');
     }

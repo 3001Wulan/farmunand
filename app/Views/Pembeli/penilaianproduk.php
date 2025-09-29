@@ -10,7 +10,7 @@
         height: 100%;
         margin: 0;
         padding: 0;
-        background-color: #f1f3f6;
+        background-color: #f8f9fa;
         font-family: 'Segoe UI', sans-serif;
     }
 
@@ -19,25 +19,27 @@
         padding: 30px;
     }
 
+    /* Card Pesanan */
     .card-order {
         border-radius: 12px;
-        border: none;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border: 1px solid #e0e0e0;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
         transition: all 0.2s ease;
     }
     .card-order:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.1);
     }
 
     .order-img img {
-        width: 80px;
-        height: 80px;
+        width: 85px;
+        height: 85px;
         object-fit: cover;
         border-radius: 10px;
-        border: 1px solid #dee2e6;
+        border: 2px solid #e9ecef;
     }
 
+    /* Rating Stars */
     .stars span {
         font-size: 28px;
         color: #ccc;
@@ -49,21 +51,25 @@
         color: #ffc107;
     }
 
-    .btn-submit {
-        background-color: #28a745;
-        color: white;
+    /* Button Hijau */
+    .btn-success {
+        background-color: #198754;
+        border: none;
         font-weight: 600;
-        transition: all 0.2s;
     }
-    .btn-submit:hover {
-        background-color: #218838;
+    .btn-success:hover {
+        background-color: #145c32;
         transform: translateY(-2px);
     }
 
-    /* Modal scrollable agar tidak terpotong */
-    .modal-dialog {
-        max-width: 500px;
-        margin: 1.75rem auto;
+    /* Modal */
+    .modal-content {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+        border-bottom: 2px solid #e9ecef;
     }
     .modal-body {
         max-height: 70vh;
@@ -89,7 +95,7 @@
 
         <!-- Main Content -->
         <div class="col main-content">
-            <h4 class="mb-4">Berikan Penilaian</h4>
+            <h4 class="mb-4 text-success fw-bold">Berikan Penilaian</h4>
 
             <!-- Loop Pesanan -->
             <?php if(!empty($pesanan)): ?>
@@ -111,8 +117,8 @@
                                 </div>
                             </div>
                             <div class="text-end mt-3 mt-md-0">
-                                <p class="mb-1 text-success"><?= esc($p['status_pemesanan']); ?></p>
-                                <p class="mb-0">Total: <span class="fw-bold">
+                                <p class="mb-1 text-success fw-semibold"><?= esc($p['status_pemesanan']); ?></p>
+                                <p class="mb-0">Total: <span class="fw-bold text-dark">
                                     Rp <?= number_format($p['harga'] * $p['jumlah_produk'],0,',','.'); ?>
                                 </span></p>
                                 <!-- Button Berikan Penilaian -->
@@ -122,7 +128,7 @@
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>
-                <div class="alert alert-info">Belum ada pesanan.</div>
+                <div class="alert alert-info">Belum ada pesanan yang bisa dinilai.</div>
             <?php endif; ?>
         </div>
     </div>
@@ -132,26 +138,31 @@
 <div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content p-3">
-        <h5>Nilai Produk: <span id="modal-product-name"></span></h5>
-        <form id="form-penilaian" method="post" enctype="multipart/form-data">
-            <?= csrf_field() ?>
-            
-            <p class="mb-1 mt-3">Rating (wajib):</p>
-            <div class="stars mb-3">
-                <?php for($i=1;$i<=5;$i++): ?>
-                    <span data-value="<?= $i ?>">★</span>
-                <?php endfor; ?>
-                <input type="hidden" name="rating" id="rating" value="">
-            </div>
+        <div class="modal-header">
+            <h5 class="modal-title">Nilai Produk: <span id="modal-product-name" class="text-success"></span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="form-penilaian" method="post" enctype="multipart/form-data">
+                <?= csrf_field() ?>
+                
+                <p class="mb-1 mt-2">Rating (wajib):</p>
+                <div class="stars mb-3">
+                    <?php for($i=1;$i<=5;$i++): ?>
+                        <span data-value="<?= $i ?>">★</span>
+                    <?php endfor; ?>
+                    <input type="hidden" name="rating" id="rating" value="">
+                </div>
 
-            <p class="mb-1">Foto atau Video (opsional, boleh lebih dari 1):</p>
-            <input type="file" name="media[]" class="form-control mb-3" accept="image/*,video/*" multiple>
+                <p class="mb-1">Foto atau Video (opsional, bisa lebih dari 1):</p>
+                <input type="file" name="media[]" class="form-control mb-3" accept="image/*,video/*" multiple>
 
-            <p class="mb-1">Tulis ulasan (opsional):</p>
-            <textarea name="ulasan" placeholder="Kualitas Gambar:&#10;Kualitas Produk:&#10;Kesegaran:"></textarea>
+                <p class="mb-1">Tulis Ulasan (opsional):</p>
+                <textarea name="ulasan" placeholder="Kualitas produk..."></textarea>
 
-            <button type="submit" class="btn btn-submit mt-3 w-100">Kirim Penilaian</button>
-        </form>
+                <button type="submit" class="btn btn-success mt-3 w-100">Kirim Penilaian</button>
+            </form>
+        </div>
     </div>
   </div>
 </div>
@@ -178,7 +189,7 @@
         });
     });
 
-    // Validasi file media sebelum submit
+    // Validasi file & rating
     document.getElementById('form-penilaian').addEventListener('submit', function(e){
         const fileInput = this.querySelector('input[name="media[]"]');
         if(fileInput.files.length > 0){
@@ -192,7 +203,6 @@
             }
         }
 
-        // Pastikan rating wajib
         if(ratingInput.value === ''){
             alert('Silakan pilih rating minimal 1 bintang.');
             e.preventDefault();

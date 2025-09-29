@@ -6,33 +6,107 @@ use CodeIgniter\Model;
 
 class PesananModel extends Model
 {
-    protected $table = 'pemesanan';
-    protected $primaryKey = 'id_pemesanan';
+    protected $table         = 'pemesanan';
+    protected $primaryKey    = 'id_pemesanan';
     protected $allowedFields = ['id_alamat', 'id_pembayaran', 'id_user', 'status_pemesanan'];
 
+    protected $useTimestamps = true;
+    protected $createdField  = 'created_at';
+    protected $updatedField  = 'updated_at';
+
+    /**
+     * Join pesanan + detail + produk untuk user tertentu.
+     */
     public function getPesananWithProduk($id_user)
     {
         return $this->select('
-                        pemesanan.id_pemesanan, 
-                        produk.nama_produk, 
-                        produk.harga, 
-                        produk.foto, 
-                        detail_pemesanan.jumlah_produk, 
-                        pemesanan.status_pemesanan
-                    ')
-                    ->join('detail_pemesanan', 'detail_pemesanan.id_pemesanan = pemesanan.id_pemesanan')
-                    ->join('produk', 'produk.id_produk = detail_pemesanan.id_produk')
-                    ->where('pemesanan.id_user', $id_user)
-                    ->findAll();
+                    pemesanan.id_pemesanan,
+                    produk.id_produk,
+                    produk.nama_produk,
+                    produk.harga,
+                    produk.foto,
+                    detail_pemesanan.jumlah_produk,
+                    pemesanan.status_pemesanan
+                ')
+                ->join('detail_pemesanan', 'detail_pemesanan.id_pemesanan = pemesanan.id_pemesanan')
+                ->join('produk', 'produk.id_produk = detail_pemesanan.id_produk')
+                ->where('pemesanan.id_user', $id_user)
+                ->findAll();
     }
-    public function getPesananBelumDinilai($idUser)
+
+    /**
+     * Join pesanan + detail + produk untuk user tertentu dengan filter status.
+     */
+    public function getPesananByStatus($id_user, $status)
     {
-        return $this->select('pemesanan.*, pemesanan.quantity AS jumlah_produk, produk.nama_produk, produk.foto, produk.harga')
-                    ->join('produk', 'produk.id_produk = pemesanan.id_produk')
-                    ->where('pemesanan.id_user', $idUser)
-                    ->where('pemesanan.status_pemesanan', 'Selesai')
-                    ->where("pemesanan.id_produk NOT IN (SELECT id_produk FROM penilaian WHERE id_user = $idUser)", null, false)
-                    ->findAll();
+        return $this->select('
+                    pemesanan.id_pemesanan,
+                    produk.id_produk,
+                    produk.nama_produk,
+                    produk.harga,
+                    produk.foto,
+                    detail_pemesanan.jumlah_produk,
+                    pemesanan.status_pemesanan
+                ')
+                ->join('detail_pemesanan', 'detail_pemesanan.id_pemesanan = pemesanan.id_pemesanan')
+                ->join('produk', 'produk.id_produk = detail_pemesanan.id_produk')
+                ->where('pemesanan.id_user', $id_user)
+                ->where('pemesanan.status_pemesanan', $status)
+                ->findAll();
     }
-    
+
+    /**
+     * Produk dari pesanan user yang statusnya 'Selesai' dan belum diberi rating oleh user.
+     * Menggunakan kolom detail_pemesanan.user_rating (NULL/0 = belum dinilai).
+     */
+    public function getPesananBelumDinilai($id_user)
+    {
+        return $this->db->table('pemesanan p')
+            ->select('
+                p.id_pemesanan,
+                dp.id_produk,
+                pr.nama_produk,
+                pr.harga,
+                pr.foto,
+                dp.jumlah_produk,
+                p.status_pemesanan
+            ')
+            ->join('detail_pemesanan dp', 'dp.id_pemesanan = p.id_pemesanan')
+            ->join('produk pr', 'pr.id_produk = dp.id_produk')
+            ->where('p.id_user', $id_user)
+            ->where('p.status_pemesanan', 'Selesai')
+            ->groupStart()
+                ->where('dp.user_rating IS NULL')
+                ->orWhere('dp.user_rating', 0)
+            ->groupEnd()
+            ->get()
+            ->getResultArray();
+    }
+
+    /**
+     * Metrik dashboard: jumlah pesanan yang dibuat hari ini.
+     * (opsional: filter hanya status tertentu)
+     */
+    public function getTransaksiHariIni(): int
+    {
+        return $this->where('DATE(created_at)', date('Y-m-d'))
+                    ->countAllResults();
+    }
+
+    /**
+     * Metrik dashboard: total penjualan (sum total_harga) di bulan berjalan.
+     * Mengandalkan kolom pemesanan.total_harga yang di-update oleh trigger.
+     * (opsional: filter hanya status 'Selesai')
+     */
+    public function getPenjualanBulan(): float
+    {
+        $row = $this->selectSum('total_harga')
+                    ->where('MONTH(created_at)', date('m'))
+                    ->where('YEAR(created_at)', date('Y'))
+                    // ->where('status_pemesanan', 'Selesai') // aktifkan jika hanya hitung order selesai
+                    ->get()
+                    ->getRow();
+
+        return (float) ($row->total_harga ?? 0);
+    }
 }
