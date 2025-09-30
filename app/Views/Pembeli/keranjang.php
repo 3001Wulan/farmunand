@@ -8,7 +8,7 @@
 <style>
   body{background:#f1f3f6;}
   .content{margin-left:250px; padding:30px;}
-  .card-h{background:linear-gradient(90deg,#198754,#20c997); color:#fff; border-radius:12px 12px 0 0; padding:14px 18px; font-weight:600;}
+  .card-h{background:linear-gradient(180deg, #145c32, #198754, #28a745); color:#fff; border-radius:12px 12px 0 0; padding:14px 18px; font-weight:600;}
   .tbl{background:#fff; border-radius:0 0 12px 12px; box-shadow:0 6px 18px rgba(0,0,0,.06); overflow:hidden;}
   .tbl thead th{background:#198754; color:#fff; text-align:center; vertical-align:middle;}
   .tbl td{vertical-align:middle;}
@@ -132,7 +132,7 @@
 
     <div class="d-flex justify-content-between">
       <div>
-        <a href="<?= base_url('/dashboarduser') ?>" class="btn btn-outline-secondary">← Lanjut Belanja</a>
+        <a href="<?= base_url('/dashboarduser') ?>" class="btn btn-outline-secondary">Lanjut Belanja</a>
       </div>
       <div>
         <?php if (!empty($cart)): ?>

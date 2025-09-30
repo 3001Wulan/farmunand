@@ -109,4 +109,18 @@ class PesananModel extends Model
 
         return (float) ($row->total_harga ?? 0);
     }
+
+    public function getFiltered($start = null, $end = null)
+    {
+        $builder = $this->select('pesanan.*, users.nama as nama_pembeli, produk.nama_produk, produk.harga_produk')
+            ->join('users', 'users.id_user = pesanan.id_user')
+            ->join('produk', 'produk.id_produk = pesanan.id_produk');
+
+        if ($start && $end) {
+            $builder->where("DATE(pesanan.created_at) >=", $start)
+                    ->where("DATE(pesanan.created_at) <=", $end);
+        }
+
+        return $builder->findAll();
+    }
 }

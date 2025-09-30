@@ -62,11 +62,16 @@ $routes->get('keranjang/remove/(:num)', 'Keranjang::remove/$1');
 $routes->post('keranjang/clear', 'Keranjang::clear');
 
 
-
+// Fungsional Laporan (Admin)
 $routes->get('/melihatlaporan', 'MelihatLaporan::index');
 $routes->post('/melihatlaporan/filter', 'MelihatLaporan::filter');
 $routes->get('/penilaian/(:num)', 'Penilaian::index/$1');
 $routes->post('/penilaian/simpan/(:num)', 'Penilaian::simpan/$1');
+$routes->get('melihatlaporan', 'MelihatLaporan::index');
+$routes->get('melihatlaporan/exportExcel', 'MelihatLaporan::exportExcel');
+
+
+// Fungsional Penilaian
 $routes->group('penilaian', function($routes) {
     // Halaman daftar pesanan selesai yang belum dinilai
     $routes->get('daftar', 'Penilaian::daftar');
@@ -77,13 +82,24 @@ $routes->group('penilaian', function($routes) {
     // Simpan penilaian
     $routes->post('simpan/(:num)', 'Penilaian::simpan/$1');
 });
+
+// Fungsional Memilih Alamat
 $routes->get('/memilihalamat', 'MemilihAlamat::index');
 $routes->match(['get', 'post'], '/memilihalamat/tambah', 'MemilihAlamat::tambah');
 $routes->match(['get', 'post'], '/memilihalamat/ubah/(:num)', 'MemilihAlamat::ubah/$1');
 $routes->match(['get','post'], '/memilihalamat/tambah', 'MemilihAlamat::tambah');
 
+$routes->get('memilihalamat', 'MemilihAlamat::index');
+$routes->post('memilihalamat/tambah', 'MemilihAlamat::tambah');
+$routes->get('memilihalamat/ubah/(:num)', 'MemilihAlamat::ubah/$1');
+$routes->post('memilihalamat/ubah/(:num)', 'MemilihAlamat::ubah/$1');
+$routes->get('memilihalamat/pilih/(:num)', 'MemilihAlamat::pilih/$1');
+$routes->post('memilihalamat/pilih/(:num)', 'MemilihAlamat::pilih/$1');
+$routes->get('memilihalamat/(:num)', 'MemilihAlamat::index/$1');
 
-// Fungsioanal Admin
+
+
+// Fungsioanal Admin Manajemen Akun User
 $routes->get('/MengelolaRiwayatPesanan', 'MengelolaRiwayatPesanan::index');
 $routes->group('manajemenakunuser', ['namespace' => 'App\Controllers'], function($routes) {
     $routes->get('/', 'ManajemenAkunUser::index');               // list user
@@ -92,9 +108,14 @@ $routes->group('manajemenakunuser', ['namespace' => 'App\Controllers'], function
     $routes->get('edit/(:num)', 'ManajemenAkunUser::edit/$1');   // form edit
     $routes->post('update/(:num)', 'ManajemenAkunUser::update/$1'); // update
     $routes->get('delete/(:num)', 'ManajemenAkunUser::delete/$1');  // hapus
+    $routes->post('delete/(:num)', 'ManajemenAkunUser::delete/$1');
+
 });
 
-
+// Fungsional Admin Konfirmasi Pesanan
+$routes->get('/pesananselesai', 'Pesanan::selesai');
+$routes->get('/pesanandikemas', 'Pesanan::dikemas');
+$routes->get('/pesananbelumbayar', 'Pesanan::belumbayar');
 $routes->group('', ['namespace' => 'App\Controllers'], function($routes) {
     // Halaman daftar pesanan
     $routes->get('konfirmasipesanan', 'KonfirmasiPesanan::index');
@@ -113,14 +134,3 @@ $routes->group('admin', ['filter' => 'auth:admin'], function($routes) {
     $routes->get('produk/delete/(:num)', 'ProdukAdmin::delete/$1');
 });
 
-$routes->get('/pesananselesai', 'Pesanan::selesai');
-$routes->get('/pesanandikemas', 'Pesanan::dikemas');
-$routes->get('/pesananbelumbayar', 'Pesanan::belumbayar');
-
-$routes->get('memilihalamat', 'MemilihAlamat::index');
-$routes->post('memilihalamat/tambah', 'MemilihAlamat::tambah');
-$routes->get('memilihalamat/ubah/(:num)', 'MemilihAlamat::ubah/$1');
-$routes->post('memilihalamat/ubah/(:num)', 'MemilihAlamat::ubah/$1');
-$routes->get('memilihalamat/pilih/(:num)', 'MemilihAlamat::pilih/$1');
-$routes->post('memilihalamat/pilih/(:num)', 'MemilihAlamat::pilih/$1');
-$routes->get('memilihalamat/(:num)', 'MemilihAlamat::index/$1');

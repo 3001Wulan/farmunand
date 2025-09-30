@@ -1,30 +1,33 @@
-<div class="sidebarAdmin">
+<div class="sidebarAdmin d-flex flex-column">
   <!-- Judul -->
   <div class="text-center mb-4 px-3">
-    <h4 class="fw-bold" style="font-size: 24px;">Farm Unand</h4>
+    <h4 class="fw-bold sidebarAdmin-title">Farm <span>Unand</span></h4>
   </div>
 
   <!-- Foto Profil -->
   <div class="text-center mb-4">
-    <img src="<?= base_url('uploads/profile/' . ($user['foto'] ?? 'delfaut.jpeg')) ?>" 
+    <img src="<?= base_url('uploads/profile/' . ($user['foto'] ?? 'default.jpeg')) ?>" 
          alt="Foto Profil" 
          class="profile-photo">
-    <p class="mt-2 mb-0 fw-semibold"><?= esc($user['username']) ?> | <?= esc($user['role']) ?></p>
+    <p class="mt-2 mb-0 fw-semibold">
+      <?= esc($user['username']) ?> | <?= esc($user['role']) ?>
+    </p>
   </div>
 
   <!-- Menu -->
-  <div class="d-grid gap-2 px-3">
+  <div class="d-grid gap-1 px-3 flex-grow-2">
     <a href="/profileadmin" class="sidebar-link <?= (url_is('profileadmin')) ? 'active' : '' ?>">Profil</a>
-    <a href="/dashboard" class="sidebar-link">Dashboard</a>
+    <a href="/dashboard" class="sidebar-link <?= (url_is('dashboard')) ? 'active' : '' ?>">Dashboard</a>
     <a href="<?= base_url('admin/produk') ?>" 
-      class="sidebar-link <?= (url_is('admin/produk*')) ? 'active' : '' ?>">
-      Produk
-    </a>
-
+       class="sidebar-link <?= (url_is('admin/produk*')) ? 'active' : '' ?>">Produk</a>
     <a href="/MengelolaRiwayatPesanan" class="sidebar-link <?= (url_is('pesanan*')) ? 'active' : '' ?>">Pesanan</a>
     <a href="/manajemenakunuser" class="sidebar-link <?= (url_is('manajemenakunuser')) ? 'active' : '' ?>">Manajemen Akun User</a>
     <a href="/melihatlaporan" class="sidebar-link <?= (url_is('laporanpenjualan')) ? 'active' : '' ?>">Laporan Penjualan</a>
-    <a href="/login" class="sidebar-link">Log Out</a>
+  </div>
+
+  <!-- Log Out di bawah -->
+  <div class="mt-auto px-3 mb-3">
+    <a href="/login" class="sidebar-link logout-btn">Log Out</a>
   </div>
 </div>
 
@@ -36,7 +39,7 @@
   left: 0;
   width: 250px;
   height: 100vh;
-  background: #198754; /* biru khas admin */
+  background: linear-gradient(180deg, #145c32, #198754, #28a745);
   color: white;
   overflow-y: auto;
   z-index: 1000;
@@ -44,10 +47,24 @@
   box-shadow: 4px 0 12px rgba(0,0,0,0.15);
 }
 
+/* Judul Farm Unand */
+.sidebarAdmin-title {
+  font-size: 26px;
+  font-weight: 800;
+  background: linear-gradient(90deg, #ffffff, #b6f5c7);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #fff; /* fallback */
+}
+.sidebarAdmin-title span {
+  color: #fff;
+}
+
 /* Foto Profil */
 .sidebarAdmin .profile-photo {
-  width: 120px;
-  height: 120px;
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid #fff;
@@ -73,5 +90,15 @@
 .sidebarAdmin .sidebar-link.active {
   background: #145c32;
   color: white;
+}
+
+/* Tombol Logout khusus */
+.sidebarAdmin .logout-btn {
+  background: #dc3545;
+  color: #fff;
+}
+.sidebarAdmin .logout-btn:hover {
+  background: #a71d2a;
+  color: #fff;
 }
 </style>
