@@ -6,71 +6,136 @@
     <title>Edit Akun User - Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-      /* Konten geser agar tidak tertutup sidebar */
-      .content {
-        padding: 30px;
-        margin-left: 250px;
-      }
-      
-      body {
-        background: #f8f9fa;
-      }
-      .form-container {
-        max-width: 700px;
-        margin: 50px auto;
-        padding: 20px;
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      }
-      h3 {
-        color: #198754;
-      }
-    </style>
+  body {
+    background: #f8f9fa;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  .main-content {
+    margin-left: 250px;
+    padding: 30px;
+  }
+
+  /* Header hijau gradient */
+  .page-header {
+    background: linear-gradient(135deg, #198754, #28a745);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .page-header h3 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Kartu konten */
+  .card-container {
+    background: #fff;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    padding: 20px;
+  }
+
+  label { font-weight: 500; }
+
+  .btn-action {
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: 0.2s;
+  }
+  .btn-primary.btn-action {
+    background: #198754;
+    border: none;
+  }
+  .btn-primary.btn-action:hover {
+    background: #146c43;
+    transform: translateY(-2px);
+  }
+  .btn-secondary.btn-action {
+    background: #6c757d;
+    border: none;
+  }
+  .btn-secondary.btn-action:hover {
+    background: #565e64;
+    transform: translateY(-2px);
+  }
+
+  .btn:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 3px solid #0d6efd;
+    outline-offset: 2px;
+  }
+</style>
   </head>
 
   <body>
     <!-- Sidebar dari layouts -->
     <?= $this->include('layout/sidebarAdmin') ?>
 
-    <div class="container">
-      <div class="form-container">
-        <h3 class="mb-4">Edit Akun User</h3>
-        
-        <form action="<?= base_url('manajemenakunuser/update/' . $user['id_user']); ?>" method="post">
-          <?= csrf_field(); ?>
-          
-          <div class="mb-3">
-            <label for="nama" class="form-label">Nama</label>
-            <input type="text" name="nama" id="nama" class="form-control" 
-                  value="<?= esc($user['nama']); ?>" required>
-          </div>
-          
-          <div class="mb-3">
-            <label for="email" class="form-label">Email</label>
-            <input type="email" name="email" id="email" class="form-control" 
-                  value="<?= esc($user['email']); ?>" required>
-          </div>
-          
-          <div class="mb-3">
-            <label for="no_hp" class="form-label">No. HP</label>
-            <input type="text" name="no_hp" id="no_hp" class="form-control" 
-                  value="<?= esc($user['no_hp']); ?>" required>
-          </div>
-          
-          <div class="mb-3">
-            <label for="status" class="form-label">Status</label>
-            <select name="status" id="status" class="form-select" required>
-              <option value="Aktif" <?= $user['status'] === 'Aktif' ? 'selected' : '' ?>>Aktif</option>
-              <option value="Nonaktif" <?= $user['status'] === 'Nonaktif' ? 'selected' : '' ?>>Nonaktif</option>
-            </select>
-          </div>
-          
-          <button type="submit" class="btn btn-success">Simpan</button>
-          <a href="<?= base_url('Admin/manajemenakunuser'); ?>" class="btn btn-secondary">Batal</a>
-        </form>
-        
+   <div class="main-content">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h3><i class="bi bi-person-lines-fill"></i> Edit Akun User</h3>
+    <a href="<?= base_url('manajemenakunuser'); ?>" class="btn btn-secondary btn-action">Kembali</a>
+  </div>
+
+  <!-- Container -->
+  <div class="card-container">
+
+    <?php if (session()->getFlashdata('success')): ?>
+      <div class="alert alert-success"><?= esc(session()->getFlashdata('success')) ?></div>
+    <?php endif; ?>
+    <?php if (session()->getFlashdata('error')): ?>
+      <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
+    <?php endif; ?>
+
+    <form action="<?= base_url('manajemenakunuser/update/'.($user['id_user'] ?? 0)) ?>" method="post" class="row g-3">
+      <?= csrf_field() ?>
+
+      <div class="col-md-6">
+        <label for="nama" class="form-label">Nama Lengkap</label>
+        <input type="text" name="nama" id="nama" class="form-control"
+               value="<?= esc($user['nama'] ?? '') ?>" required>
       </div>
-    </div>
+
+      <div class="col-md-6">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" name="email" id="email" class="form-control"
+               value="<?= esc($user['email'] ?? '') ?>" required>
+      </div>
+
+      <div class="col-md-6">
+        <label for="no_hp" class="form-label">No. HP</label>
+        <input type="text" name="no_hp" id="no_hp" class="form-control"
+               value="<?= esc($user['no_hp'] ?? '') ?>">
+      </div>
+
+      <div class="col-md-6">
+        <label for="status" class="form-label">Status</label>
+        <select name="status" id="status" class="form-select">
+          <option value="Aktif"    <?= (strtolower($user['status'] ?? '')==='aktif')?'selected':'' ?>>Aktif</option>
+          <option value="Nonaktif" <?= (strtolower($user['status'] ?? '')==='nonaktif')?'selected':'' ?>>Nonaktif</option>
+          <option value="Suspend"  <?= (strtolower($user['status'] ?? '')==='suspend')?'selected':'' ?>>Suspend</option>
+        </select>
+      </div>
+
+      <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+        <a href="<?= base_url('manajemenakunuser'); ?>"
+           class="btn btn-secondary btn-action">Batal</a>
+        <button type="submit"
+                class="btn btn-primary btn-action">Simpan Perubahan</button>
+      </div>
+    </form>
+  </div>
+</div>
   </body>
 </html>

@@ -20,7 +20,7 @@
 
     /* Header hijau */
     .page-header {
-      background: linear-gradient(135deg, #198754, #20c997);
+      background: linear-gradient(180deg, #145c32, #198754, #28a745);
       color: white;
       border-radius: 12px 12px 0 0;
       padding: 18px 25px;
@@ -134,9 +134,9 @@
                   <td><span class="badge bg-success">Rp <?= number_format($p['harga'], 0, ',', '.') ?></span></td>
                   <td><span class="badge bg-secondary"><?= esc($p['stok']) ?></span></td>
                   <td>
-                    <a href="<?= base_url('admin/produk/edit/'.$p['id_produk']) ?>" class="btn btn-sm btn-warning">✏️ Edit</a>
+                    <a href="<?= base_url('admin/produk/edit/'.$p['id_produk']) ?>" class="btn btn-sm btn-warning">Edit</a>
                     <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
-                            data-bs-target="#deleteModal<?= $p['id_produk'] ?>">🗑 Hapus</button>
+                            data-bs-target="#deleteModal<?= $p['id_produk'] ?>">Hapus</button>
 
                     <!-- Modal Konfirmasi -->
                     <div class="modal fade" id="deleteModal<?= $p['id_produk'] ?>" tabindex="-1">

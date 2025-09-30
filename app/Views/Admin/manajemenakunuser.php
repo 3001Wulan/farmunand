@@ -113,48 +113,112 @@
         </div>
 
         <!-- Card Isi -->
-        <div class="card-container">
-          <table class="table table-hover align-middle">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Nama</th>
-                <th>Email</th>
-                <th>No. HP</th>
-                <th>Status</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php if (!empty($users) && is_array($users)): ?>
-                <?php $no = 1; foreach ($users as $user): ?>
-                  <tr>
-                    <td><?= $no++ ?></td>
-                    <td><?= esc($user['nama']) ?></td>
-                    <td><?= esc($user['email']) ?></td>
-                    <td><?= esc($user['no_hp']) ?></td>
-                    <td>
-                      <?php if ($user['status'] === 'Aktif'): ?>
-                        <span class="badge bg-success">Aktif</span>
-                      <?php else: ?>
-                        <span class="badge bg-secondary">Nonaktif</span>
-                      <?php endif; ?>
-                    </td>
-                    <td>
-                      <a href="<?= site_url('manajemenakunuser/edit/'.$user['id_user']) ?>" class="btn btn-warning btn-sm btn-action">✏️ Edit</a>
-                      <a href="<?= site_url('manajemenakunuser/delete/'.$user['id_user']) ?>" onclick="return confirm('Yakin ingin menghapus user ini?')" class="btn btn-danger btn-sm btn-action">🗑 Hapus</a>
-                    </td>
-                  </tr>
-                <?php endforeach; ?>
-              <?php else: ?>
-                <tr>
-                  <td colspan="6" class="text-center text-muted">Belum ada data user.</td>
-                </tr>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
+       <div class="main-content">
+          <?php if (session()->getFlashdata('success')): ?>
+            <div class="alert alert-success" role="alert">
+              <?= esc(session()->getFlashdata('success')) ?>
+            </div>
+          <?php endif; ?>
+          <?php if (session()->getFlashdata('error')): ?>
+            <div class="alert alert-danger" role="alert">
+              <?= esc(session()->getFlashdata('error')) ?>
+            </div>
+          <?php endif; ?>
 
+          <div class="card">
+            <div class="card-body">
+              <form class="row g-2 mb-3" method="get" action="<?= base_url('manajemenakunuser'); ?>">
+                <div class="col-sm-6">
+                  <input type="search"
+                        name="keyword"
+                        class="form-control"
+                        placeholder="Cari nama, email, atau username…"
+                        value="<?= esc((string)($keyword ?? '')) ?>">
+                </div>
+                <div class="col-sm-3">
+                  <select name="role" class="form-select">
+                    <option value="">Semua Role</option>
+                    <option value="admin" <?= (isset($role) && $role==='admin') ? 'selected' : '' ?>>Admin</option>
+                    <option value="user"  <?= (isset($role) && $role==='user')  ? 'selected' : '' ?>>User</option>
+                  </select>
+                </div>
+                <div class="col-sm-3">
+                  <button class="btn btn-secondary w-100" type="submit"
+                          aria-label="Terapkan filter">Filter</button>
+                </div>
+              </form>
+
+              <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                  <thead>
+                    <tr>
+                      <th scope="col">#</th>
+                      <th scope="col">Nama</th>
+                      <th scope="col">Email</th>
+                      <th scope="col">No. HP</th>
+                      <th scope="col">Role</th>
+                      <th scope="col">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php if (!empty($users)): ?>
+                      <?php $i = 1; foreach ($users as $user): ?>
+                        <tr>
+                          <td><?= $i++; ?></td>
+                          <td><?= esc($user['nama'] ?? '-') ?></td>
+                          <td><?= esc($user['email'] ?? '-') ?></td>
+                          <td><?= esc($user['no_hp'] ?? '-') ?></td>
+                          <td>
+                            <span class="badge <?= ($user['role'] ?? '') === 'admin' ? 'bg-primary' : 'bg-secondary' ?>">
+                              <?= esc($user['role'] ?? '-') ?>
+                            </span>
+                          </td>
+                          <td class="text-center">
+                            <!-- Edit (ikon + teks) -->
+                            <a href="<?= base_url('manajemenakunuser/edit/'.($user['id_user'] ?? 0)) ?>"
+                              class="btn btn-sm btn-warning d-inline-flex align-items-center gap-1"
+                              aria-label="Edit akun: <?= esc($user['nama'] ?? 'Tanpa Nama') ?>"
+                              title="Edit akun">
+                              <i class="bi bi-pencil" aria-hidden="true"></i>
+                              <span>Edit</span>
+                            </a>
+
+                            <!-- Hapus: POST + CSRF (ikon + teks) -->
+                            <form action="<?= base_url('manajemenakunuser/delete/'.($user['id_user'] ?? 0)) ?>"
+                                  method="post"
+                                  class="d-inline">
+                              <?= csrf_field() ?>
+                              <button type="submit"
+                                      class="btn btn-sm btn-danger d-inline-flex align-items-center gap-1"
+                                      aria-label="Hapus akun: <?= esc($user['nama'] ?? 'Tanpa Nama') ?>"
+                                      title="Hapus akun"
+                                      onclick="return confirm('Yakin ingin menghapus user ini?')">
+                                <i class="bi bi-trash" aria-hidden="true"></i>
+                                <span>Hapus</span>
+                              </button>
+                            </form>
+                          </td>
+                        </tr>
+                      <?php endforeach; ?>
+                    <?php else: ?>
+                      <tr>
+                        <td colspan="6" class="text-center text-muted">
+                          Belum ada data pengguna.
+                        </td>
+                      </tr>
+                    <?php endif; ?>
+                  </tbody>
+                </table>
+              </div>
+
+              <?php if (isset($pager)) : ?>
+                <div class="mt-3">
+                  <?= $pager->links(); ?>
+                </div>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
