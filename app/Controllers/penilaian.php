@@ -3,7 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\ProdukModel;
-use App\Models\PenilaianModel;
+use App\Models\PenilaianModel; // tetap nama model PenilaianModel
 use App\Models\PesananModel;
 use App\Models\UserModel;
 
@@ -17,11 +17,11 @@ class Penilaian extends BaseController
     public function __construct()
     {
         $this->produkModel    = new ProdukModel();
-        $this->penilaianModel = new PenilaianModel();
+        $this->penilaianModel = new PenilaianModel(); // diarahkan ke tabel detail_pemesanan
         $this->pesananModel   = new PesananModel();
         $this->userModel      = new UserModel();
     }
-    
+
     // Daftar produk yang bisa dinilai
     public function daftar()
     {
@@ -56,40 +56,47 @@ class Penilaian extends BaseController
         ]);
     }
 
-    // Simpan penilaian
-    public function simpan($id_produk)
-    {
-        $validation = \Config\Services::validation();
-        $rules = [
-            'rating'   => 'required|in_list[1,2,3,4,5]',
-            'media.*'  => 'max_size[media,2048]|ext_in[media,jpg,jpeg,png,mp4,mov,avi]'
-        ];
+   // Simpan penilaian sesuai id_pemesanan
+   public function simpan($id_pemesanan)
+   {
+       $validation = \Config\Services::validation();
+       $rules = [
+           'rating'   => 'required|in_list[1,2,3,4,5]',
+           'media.*'  => 'max_size[media,2048]|ext_in[media,jpg,jpeg,png,mp4,mov,avi]'
+       ];
 
-        if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $validation->getErrors());
-        }
+       if (!$this->validate($rules)) {
+           return redirect()->back()->withInput()->with('errors', $validation->getErrors());
+       }
 
-        $uploadedMedia = $this->request->getFiles();
-        $mediaNames = [];
+       // Upload media jika ada
+       $uploadedMedia = $this->request->getFiles();
+       $mediaNames = [];
 
-        if (!empty($uploadedMedia['media'])) {
-            foreach ($uploadedMedia['media'] as $file) {
-                if ($file->isValid() && !$file->hasMoved()) {
-                    $fileName = $file->getRandomName();
-                    $file->move('uploads/penilaian', $fileName);
-                    $mediaNames[] = $fileName;
-                }
-            }
-        }
+       if (!empty($uploadedMedia['media'])) {
+           foreach ($uploadedMedia['media'] as $file) {
+               if ($file->isValid() && !$file->hasMoved()) {
+                   $fileName = $file->getRandomName();
+                   $file->move('uploads/penilaian', $fileName);
+                   $mediaNames[] = $fileName;
+               }
+           }
+       }
 
-        $this->penilaianModel->save([
-            'id_produk' => $id_produk,
-            'id_user'   => session()->get('id_user'),
-            'rating'    => $this->request->getPost('rating'),
-            'ulasan'    => $this->request->getPost('ulasan') ?? null,
-            'media'     => !empty($mediaNames) ? json_encode($mediaNames) : null,
-        ]);
+       // Ambil detail pemesanan sesuai id_pemesanan
+       $detail = $this->penilaianModel->find($id_pemesanan);
+       if (!$detail) {
+           return redirect()->back()->with('error', 'Detail pemesanan tidak ditemukan.');
+       }
 
-        return redirect()->to('/riwayatpesanan')->with('success', 'Penilaian berhasil dikirim');
-    }
+       // Update penilaian
+       $this->penilaianModel->update($id_pemesanan, [
+           'user_rating' => $this->request->getPost('rating'),
+           'user_ulasan' => $this->request->getPost('ulasan') ?? null,
+           'user_media'  => !empty($mediaNames) ? json_encode($mediaNames) : null,
+           'updated_at'  => date('Y-m-d H:i:s'),
+       ]);
+
+       return redirect()->to('/penilaian/daftar')->with('success', 'Penilaian berhasil dikirim');
+   }
 }
