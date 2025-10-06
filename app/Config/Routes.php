@@ -134,3 +134,4 @@ $routes->group('admin', ['filter' => 'auth:admin'], function($routes) {
     $routes->get('produk/delete/(:num)', 'ProdukAdmin::delete/$1');
 });
 
+$routes->post('/pemesanan/simpan', 'MelakukanPemesanan::simpan');
