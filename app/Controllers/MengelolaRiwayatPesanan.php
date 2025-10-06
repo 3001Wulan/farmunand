@@ -19,15 +19,18 @@ class MengelolaRiwayatPesanan extends BaseController
 
     public function index()
     {
+        // Ambil data dari query parameter
         $status  = $this->request->getGet('status_pemesanan');
         $keyword = $this->request->getGet('keyword');
         $sort    = $this->request->getGet('sort') ?? 'DESC';
 
+        // Query untuk mengambil data pesanan
         $builder = $this->pesananModel
             ->select('
                 pemesanan.id_pemesanan,
                 pemesanan.status_pemesanan,
                 pemesanan.created_at,
+                users.id_user, 
                 users.nama AS nama_user,
                 users.foto AS foto_user,
                 produk.nama_produk,
@@ -65,5 +68,27 @@ class MengelolaRiwayatPesanan extends BaseController
             'sort'    => $sort,
             'user'    => $user
         ]);
+    }
+
+    // Fungsi untuk update status pesanan
+    public function updateStatus($id_pemesanan)
+    {
+        // Mengambil status baru dari request
+        $status = $this->request->getPost('status_pemesanan');
+
+        // Pastikan status yang diterima valid
+        if (in_array($status, ['Dikirim', 'Dikemas', 'Selesai', 'Diproses', 'Dibatalkan'])) {
+            // Perbarui status pesanan
+            $update = $this->pesananModel->update($id_pemesanan, ['status_pemesanan' => $status]);
+
+            // Cek apakah update berhasil
+            if ($update) {
+                return redirect()->to('/mengeloririwayatpesanan')->with('success', 'Status pesanan berhasil diperbarui.');
+            } else {
+                return redirect()->to('/mengeloririwayatpesanan')->with('error', 'Gagal memperbarui status.');
+            }
+        } else {
+            return redirect()->to('/mengeloririwayatpesanan')->with('error', 'Status tidak valid.');
+        }
     }
 }
