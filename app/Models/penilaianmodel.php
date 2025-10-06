@@ -1,21 +1,22 @@
 <?php
 
+// file: app/Models/PenilaianModel.php
 namespace App\Models;
 
 use CodeIgniter\Model;
 
 class PenilaianModel extends Model
 {
-    protected $table      = 'detail_pemesanan';
-    protected $primaryKey = 'id_pemesanan';
+    protected $table         = 'detail_pemesanan';
+    protected $primaryKey    = 'id_detail_pemesanan';
+    protected $returnType    = 'array';
+    protected $useTimestamps = false; // kita set updated_at manual
+
+    // Kolom yang diizinkan untuk diupdate saat memberi penilaian
     protected $allowedFields = [
-        'id_pemesanan',
-        'id_produk',
-        'id_user',
-        'user_rating',
-        'user_ulasan',
-        'user_media',
-        'updated_at'
+        'user_rating',   // INT/TINYINT
+        'user_ulasan',   // TEXT
+        'user_media',    // TEXT/VARCHAR (JSON list file)
+        'updated_at',    // DATETIME (opsional)
     ];
-    protected $useTimestamps = false; // karena kita atur manual
 }

@@ -52,7 +52,10 @@
     .review-item:last-child { border-bottom:0; }
     .review-name { font-weight:700; color:#333; }
     .review-date { font-size:12px; color:#6c757d; }
-    .review-stars i { font-size:16px; margin-right:2px; }
+    .stars i,
+    .review-stars i { color: #ffc107; font-size:16px; margin-right:2px; }
+    .stars .bi-star,
+    .review-stars .bi-star { opacity: .5; }
     .review-text { margin-top:6px; white-space:pre-wrap; }
     .review-item img, .review-item video { cursor:pointer; }
 
@@ -148,10 +151,10 @@
       <div class="section-title">Informasi Produk</div>
       <div class="section-body">
         <div class="mb-1"><b>Stok:</b> <?= esc($produk['stok']) ?></div>
-        <div class="mb-1"><b>Kategori:</b> -</div>
-        <div class="mb-0"><b>Alamat Produksi:</b> -</div>
+        <div class="mb-1"><b>Kategori:</b> <?= !empty($produk['kategori']) ? esc($produk['kategori']) : '-' ?></div>
       </div>
     </div>
+
 
     <!-- Penilaian Produk -->
     <div class="section">

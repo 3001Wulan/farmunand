@@ -4,16 +4,19 @@ namespace App\Controllers;
 
 use App\Models\AlamatModel;
 use App\Models\UserModel;
+use App\Models\ProdukModel;
 
 class MemilihAlamat extends BaseController
 {
     protected $alamatModel;
     protected $userModel;
+    protected $produkModel;
 
     public function __construct()
     {
         $this->alamatModel = new AlamatModel();
         $this->userModel   = new UserModel();
+        $this->produkModel = new ProdukModel();
     }
 
     // === Halaman memilih alamat
@@ -86,8 +89,12 @@ class MemilihAlamat extends BaseController
         $this->alamatModel->where('id_user', $idUser)->set(['aktif' => 0])->update();
         $this->alamatModel->update($id_alamat, ['aktif' => 1]);
 
+        // simpan alamat aktif di session
+        session()->set('alamat_aktif', $alamat);
+
         return $this->response->setJSON(['success' => true]);
     }
+
 
     // === Ubah alamat via AJAX
     public function ubah($id_alamat)

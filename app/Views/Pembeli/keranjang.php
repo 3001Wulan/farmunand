@@ -62,43 +62,43 @@
               </td>
               <td>Rp <?= number_format($row['harga'],0,',','.') ?></td>
               <td style="width:220px;">
-  <div class="cart-qty-row" data-id="<?= $row['id_produk'] ?>">
-    <!-- MODE LIHAT -->
-    <div class="view-state d-flex align-items-center justify-content-center gap-2">
-      <span class="badge bg-secondary" id="qtyLabel<?= $row['id_produk'] ?>">
-        <?= (int)$row['qty'] ?>
-      </span>
-      <button type="button" class="btn btn-outline-success btn-sm"
-              onclick="enterEdit(<?= $row['id_produk'] ?>)">
-        Ubah
-      </button>
-    </div>
+              <div class="cart-qty-row" data-id="<?= $row['id_produk'] ?>">
+                <!-- MODE LIHAT -->
+                <div class="view-state d-flex align-items-center justify-content-center gap-2">
+                  <span class="badge bg-secondary" id="qtyLabel<?= $row['id_produk'] ?>">
+                    <?= (int)$row['qty'] ?>
+                  </span>
+                  <button type="button" class="btn btn-outline-success btn-sm"
+                          onclick="enterEdit(<?= $row['id_produk'] ?>)">
+                    Ubah
+                  </button>
+                </div>
 
-    <!-- MODE UBAH -->
-    <form action="<?= base_url('keranjang/update') ?>" method="post" class="edit-state d-none text-center">
-      <?= csrf_field() ?>
-      <input type="hidden" name="id_produk" value="<?= $row['id_produk'] ?>">
+                <!-- MODE UBAH -->
+                <form action="<?= base_url('keranjang/update') ?>" method="post" class="edit-state d-none text-center">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="id_produk" value="<?= $row['id_produk'] ?>">
 
-      <div class="input-group input-group-sm mx-auto" style="max-width:170px;">
-        <button type="button" class="btn btn-outline-secondary" onclick="stepQty(this,-1)">−</button>
-        <input type="number"
-               class="form-control text-center"
-               name="qty"
-               min="0"
-               value="<?= (int)$row['qty'] ?>">
-        <button type="button" class="btn btn-outline-secondary" onclick="stepQty(this,1)">+</button>
-      </div>
+                  <div class="input-group input-group-sm mx-auto" style="max-width:170px;">
+                    <button type="button" class="btn btn-outline-secondary" onclick="stepQty(this,-1)">−</button>
+                    <input type="number"
+                          class="form-control text-center"
+                          name="qty"
+                          min="0"
+                          value="<?= (int)$row['qty'] ?>">
+                    <button type="button" class="btn btn-outline-secondary" onclick="stepQty(this,1)">+</button>
+                  </div>
 
-      <div class="mt-2 d-flex justify-content-center gap-2">
-        <button class="btn btn-success btn-sm">Simpan</button>
-        <button type="button" class="btn btn-light btn-sm"
-                onclick="cancelEdit(<?= $row['id_produk'] ?>)">
-          Batal
-        </button>
-      </div>
-    </form>
-  </div>
-</td>
+                  <div class="mt-2 d-flex justify-content-center gap-2">
+                    <button class="btn btn-success btn-sm">Simpan</button>
+                    <button type="button" class="btn btn-light btn-sm"
+                            onclick="cancelEdit(<?= $row['id_produk'] ?>)">
+                      Batal
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </td>
 
               <td class="fw-semibold">Rp <?= number_format($subtotal,0,',','.') ?></td>
               <td>
@@ -131,18 +131,24 @@
     </div>
 
     <div class="d-flex justify-content-between">
-      <div>
-        <a href="<?= base_url('/dashboarduser') ?>" class="btn btn-outline-secondary">Lanjut Belanja</a>
-      </div>
-      <div>
-        <?php if (!empty($cart)): ?>
-          <form action="<?= base_url('keranjang/clear') ?>" method="post" class="d-inline" onsubmit="return confirm('Kosongkan keranjang?')">
-            <?= csrf_field() ?>
-            <button class="btn btn-outline-danger">Kosongkan</button>
-          </form>
-        <?php endif; ?>
-      </div>
+    <div>
+      <a href="<?= base_url('/dashboarduser') ?>" class="btn btn-outline-secondary">Lanjut Belanja</a>
     </div>
+    <div class="d-flex gap-2">
+      <?php if (!empty($cart)): ?>
+        <form action="<?= base_url('keranjang/checkout-all') ?>" method="post" class="d-inline">
+          <?= csrf_field() ?>
+          <button class="btn btn-secondary">Checkout Semua</button>
+        </form>
+
+        <form action="<?= base_url('keranjang/clear') ?>" method="post" class="d-inline" onsubmit="return confirm('Kosongkan keranjang?')">
+          <?= csrf_field() ?>
+          <button class="btn btn-outline-danger">Kosongkan</button>
+        </form>
+      <?php endif; ?>
+    </div>
+  </div>
+
 
   </div>
 </div>

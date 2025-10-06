@@ -175,4 +175,48 @@ class Keranjang extends BaseController
 
         return redirect()->to('/keranjang')->with('success', 'Keranjang dikosongkan.');
     }
+
+    public function checkoutAll()
+    {
+        if ($redir = $this->ensureLogin()) return $redir;
+
+        $cart = $this->getCart();
+        if (empty($cart)) {
+            return redirect()->to('/keranjang')->with('error', 'Keranjang kosong.');
+        }
+
+        // Normalisasi qty vs stok, dan siapkan payload ringkas
+        $payload = [];
+        $adjusted = false;
+
+        foreach ($cart as $id => $row) {
+            $produk = $this->produkModel->find($id);
+            if (!$produk) continue;
+
+            $stok = (int)($produk['stok'] ?? 0);
+            $qty  = (int)($row['qty'] ?? 0);
+            if ($stok <= 0 || $qty <= 0) continue;
+
+            if ($qty > $stok) { $qty = $stok; $adjusted = true; }
+
+            $payload[] = [
+                'id_produk' => (int)$id,
+                'qty'       => $qty,
+            ];
+        }
+
+        if (empty($payload)) {
+            return redirect()->to('/keranjang')->with('error', 'Tidak ada item yang dapat di-checkout.');
+        }
+
+        // Simpan ke session agar diproses oleh MelakukanPemesanan
+        session()->set('checkout_all', $payload);
+
+        if ($adjusted) {
+            session()->setFlashdata('info', 'Sebagian jumlah menyesuaikan stok tersedia.');
+        }
+
+        // Arahkan ke halaman melakukan pemesanan (tanpa ubah alur)
+        return redirect()->to('/melakukanpemesanan?from=cart_all');
+    }
 }
