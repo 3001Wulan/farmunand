@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\ProdukModel;
 use App\Models\PesananModel;
 use App\Models\UserModel;
+use Config\Database;
 
 class DashboardUser extends BaseController
 {
@@ -16,14 +17,43 @@ class DashboardUser extends BaseController
         }
 
         $userModel    = new UserModel();
-        $produkModel  = new ProdukModel();
         $pesananModel = new PesananModel();
+        $db           = Database::connect();
 
         $user = $userModel->find($userId);
 
-        $pesananSukses = $pesananModel->where('status_pemesanan', 'Selesai')->where('id_user', $userId)->countAllResults();
-        $pesananPending = $pesananModel->where('status_pemesanan', 'Pending')->where('id_user', $userId)->countAllResults();
-        $pesananBatal   = $pesananModel->where('status_pemesanan', 'Batal')->where('id_user', $userId)->countAllResults();
+        // ===== METRIK =====
+        // Sukses = Selesai
+        $pesananSukses = $pesananModel
+            ->where('id_user', $userId)
+            ->where('status_pemesanan', 'Selesai')
+            ->countAllResults();
+
+        // Pending = Dikemas + Dikirim + Belum Bayar
+        $pendingStatuses = ['Dikemas', 'Dikirim', 'Belum Bayar'];
+        $pesananPending = $pesananModel
+            ->where('id_user', $userId)
+            ->whereIn('status_pemesanan', $pendingStatuses)
+            ->countAllResults();
+
+        // Dibatalkan = Dibatalkan
+        $pesananBatal = $pesananModel
+            ->where('id_user', $userId)
+            ->where('status_pemesanan', 'Dibatalkan')
+            ->countAllResults();
+
+        // ===== PRODUK + RATING =====
+        $produk = $db->table('produk pr')
+            ->select("
+                pr.*,
+                COALESCE(AVG(CASE WHEN dp.user_rating > 0 THEN dp.user_rating END), 0) AS avg_rating,
+                SUM(CASE WHEN dp.user_rating > 0 THEN 1 ELSE 0 END)               AS rating_count
+            ")
+            ->join('detail_pemesanan dp', 'dp.id_produk = pr.id_produk', 'left')
+            ->groupBy('pr.id_produk')
+            ->orderBy('pr.created_at', 'DESC')
+            ->get()
+            ->getResultArray();
 
         $data = [
             'title'          => 'Dashboard User',
@@ -33,8 +63,8 @@ class DashboardUser extends BaseController
             'pesanan_sukses' => $pesananSukses,
             'pending'        => $pesananPending,
             'batal'          => $pesananBatal,
-            'produk'         => $produkModel->findAll(),
-            'user'           => $user
+            'produk'         => $produk,
+            'user'           => $user,
         ];
 
         return view('Pembeli/dashboarduser', $data);

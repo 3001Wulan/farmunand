@@ -6,78 +6,27 @@
   <title><?= esc($title) ?> - Admin</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-
   <style>
-    body {
-      background: #f8f9fa;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    :root{ --brand:#198754; --brand2:#28a745; --muted:#f8f9fa; }
+    html,body{height:100%;background:var(--muted)}
+    .content{margin-left:250px;padding:28px}
+    .page-header{
+      background:linear-gradient(135deg,var(--brand),var(--brand2));
+      color:#fff;border-radius:12px;padding:16px 18px;
+      box-shadow:0 6px 14px rgba(0,0,0,.08);margin-bottom:16px;
+      display:flex;justify-content:space-between;align-items:center
     }
-
-    .content {
-      margin-left: 250px;
-      padding: 30px;
-    }
-
-    /* Header hijau */
-    .page-header {
-      background: linear-gradient(180deg, #145c32, #198754, #28a745);
-      color: white;
-      border-radius: 12px 12px 0 0;
-      padding: 18px 25px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .page-header h3 {
-      margin: 0;
-      font-weight: 700;
-      font-size: 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .card-container {
-      background: #fff;
-      border-radius: 0 0 12px 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      padding: 20px;
-    }
-
-    /* Table */
-    .table thead th {
-      background: #198754;
-      color: #fff;
-      text-align: center;
-      border: none;
-    }
-    .table td, .table th {
-      vertical-align: middle;
-      text-align: center;
-    }
-    .table tbody tr:hover {
-      background: #f1fdf6;
-    }
-
-    .table img {
-      border-radius: 8px;
-      border: 2px solid #e9ecef;
-      padding: 2px;
-      transition: 0.3s;
-    }
-    .table img:hover {
-      transform: scale(1.08);
-    }
-
-    /* Tombol */
-    .btn-success {
-      background: #198754;
-      border: none;
-    }
-    .btn-success:hover { background: #157347; transform: translateY(-2px); }
-    .btn-warning:hover, .btn-danger:hover { transform: translateY(-2px); }
-
-    .badge { border-radius: 8px; padding: 6px 12px; }
+    .page-header .btn{background:#fff;color:var(--brand);border:none}
+    .page-header .btn:hover{opacity:.9}
+    .card-wrap{background:#fff;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.06);padding:16px}
+    .table thead th{background:var(--brand);color:#fff;border:none;vertical-align:middle;text-align:center}
+    .table td,.table th{vertical-align:middle;text-align:center}
+    .table tbody tr:hover{background:#f1fdf6}
+    .thumb{width:64px;height:64px;object-fit:cover;border-radius:8px;border:2px solid #e9ecef}
+    .badge-pill{border-radius:999px}
+    .btn-success{background:var(--brand);border:none}
+    .btn-success:hover{background:#145c32}
+    @media(max-width:992px){.content{margin-left:0;padding:18px}}
   </style>
 </head>
 <body>
@@ -85,33 +34,30 @@
   <!-- Sidebar -->
   <?= $this->include('layout/sidebarAdmin') ?>
 
-  <!-- Konten -->
-  <div class="col content">
-
-    <!-- Header hijau -->
+  <!-- Content -->
+  <div class="content">
     <div class="page-header">
-      <h3>📦 <?= esc($title) ?></h3>
-      <a href="<?= base_url('admin/produk/create') ?>" class="btn btn-light btn-sm fw-semibold">➕ Tambah Produk</a>
+      <h6 class="m-0">📦 <?= esc($title) ?></h6>
+      <a href="<?= base_url('admin/produk/create') ?>" class="btn btn-sm fw-semibold rounded-pill">
+        <i class="bi bi-plus-circle"></i> Tambah Produk
+      </a>
     </div>
 
-    <!-- Card Isi -->
-    <div class="card-container">
-
-      <!-- Notifikasi -->
+    <div class="card-wrap">
       <?php if (session()->getFlashdata('success')): ?>
-        <div class="alert alert-success mb-3">
-          ✅ <?= session()->getFlashdata('success') ?>
-        </div>
+        <div class="alert alert-success py-2 mb-3"><?= session()->getFlashdata('success') ?></div>
       <?php endif; ?>
 
-      <!-- Pencarian -->
-      <form method="get" action="<?= base_url('admin/produk') ?>" class="mb-3 d-flex">
-        <input type="text" name="keyword" value="<?= esc($keyword) ?>"
-               class="form-control me-2" placeholder="🔍 Cari produk...">
-        <button type="submit" class="btn btn-success">Cari</button>
+      <form method="get" action="<?= base_url('admin/produk') ?>" class="row g-2 mb-3">
+        <div class="col-md-9">
+          <input type="text" name="keyword" value="<?= esc($keyword ?? '') ?>" class="form-control"
+                 placeholder="🔍 Cari produk…">
+        </div>
+        <div class="col-md-3 d-grid">
+          <button type="submit" class="btn btn-success rounded-pill">Cari</button>
+        </div>
       </form>
 
-      <!-- Tabel Produk -->
       <div class="table-responsive">
         <table class="table table-hover align-middle">
           <thead>
@@ -121,41 +67,52 @@
               <th>Nama Produk</th>
               <th>Harga</th>
               <th>Stok</th>
-              <th>Aksi</th>
+              <th style="width:190px">Aksi</th>
             </tr>
           </thead>
           <tbody>
             <?php if (!empty($produk)): ?>
-              <?php $no = 1; foreach ($produk as $p): ?>
+              <?php $no=1; foreach($produk as $p): ?>
                 <tr>
                   <td><?= $no++ ?></td>
-                  <td><img src="<?= base_url('uploads/produk/'.$p['foto']) ?>" width="60"></td>
-                  <td><?= esc($p['nama_produk']) ?></td>
-                  <td><span class="badge bg-success">Rp <?= number_format($p['harga'], 0, ',', '.') ?></span></td>
-                  <td><span class="badge bg-secondary"><?= esc($p['stok']) ?></span></td>
                   <td>
-                    <a href="<?= base_url('admin/produk/edit/'.$p['id_produk']) ?>" class="btn btn-sm btn-warning">Edit</a>
-                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
-                            data-bs-target="#deleteModal<?= $p['id_produk'] ?>">Hapus</button>
+                    <img class="thumb"
+                         src="<?= !empty($p['foto']) ? base_url('uploads/produk/'.$p['foto']) : base_url('uploads/default.png') ?>"
+                         alt="<?= esc($p['nama_produk']) ?>">
+                  </td>
+                  <td><?= esc($p['nama_produk']) ?></td>
+                  <td><span class="badge bg-success badge-pill">Rp <?= number_format($p['harga'],0,',','.') ?></span></td>
+                  <td><span class="badge bg-secondary badge-pill"><?= (int)$p['stok'] ?></span></td>
+                  <td>
+                    <a href="<?= base_url('admin/produk/edit/'.$p['id_produk']) ?>"
+                       class="btn btn-warning btn-sm rounded-pill me-1">
+                      <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <button type="button" class="btn btn-danger btn-sm rounded-pill" data-bs-toggle="modal"
+                            data-bs-target="#del<?= $p['id_produk'] ?>">
+                      <i class="bi bi-trash"></i> Hapus
+                    </button>
 
-                    <!-- Modal Konfirmasi -->
-                    <div class="modal fade" id="deleteModal<?= $p['id_produk'] ?>" tabindex="-1">
+                    <!-- Modal delete -->
+                    <div class="modal fade" id="del<?= $p['id_produk'] ?>" tabindex="-1" aria-hidden="true">
                       <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content border-0 shadow">
                           <div class="modal-header bg-success text-white">
-                            <h5 class="modal-title">Konfirmasi Hapus</h5>
+                            <h6 class="modal-title">Konfirmasi Hapus</h6>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                           </div>
                           <div class="modal-body text-center">
-                            <p>Apakah yakin ingin menghapus <b><?= esc($p['nama_produk']) ?></b>?</p>
+                            Apakah yakin ingin menghapus <b><?= esc($p['nama_produk']) ?></b>?
                           </div>
-                          <div class="modal-footer d-flex justify-content-center">
-                            <a href="<?= base_url('admin/produk/delete/'.$p['id_produk']) ?>" class="btn btn-danger px-4">Ya, Hapus</a>
-                            <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Batal</button>
+                          <div class="modal-footer justify-content-center">
+                            <a href="<?= base_url('admin/produk/delete/'.$p['id_produk']) ?>"
+                               class="btn btn-danger px-4 rounded-pill">Ya, Hapus</a>
+                            <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">Batal</button>
                           </div>
                         </div>
                       </div>
                     </div>
+                    <!-- /modal -->
                   </td>
                 </tr>
               <?php endforeach; ?>
@@ -165,7 +122,6 @@
           </tbody>
         </table>
       </div>
-
     </div>
   </div>
 

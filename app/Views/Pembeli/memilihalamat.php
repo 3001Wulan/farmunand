@@ -219,6 +219,7 @@ document.getElementById('gunakanAlamatBtn')?.addEventListener('click', function(
     })
     .then(res => res.json())
     .then(data => {
+        // Ganti bagian ini di bawah fetch success
         if(data.success){
             document.querySelectorAll('.active-badge').forEach(b => b.remove());
             document.querySelectorAll('.address-card').forEach(c => c.classList.remove('selected'));
@@ -227,8 +228,12 @@ document.getElementById('gunakanAlamatBtn')?.addEventListener('click', function(
             const rightDiv = card.querySelector('div.d-flex.flex-column');
             rightDiv.insertAdjacentHTML('afterbegin','<span class="badge bg-success active-badge">Aktif</span>');
             showToast('Alamat berhasil dipilih!');
-            setTimeout(()=>{ window.location.href='<?= base_url("melakukanpemesanan") ?>'; }, 1200);
-        } else showToast(data.message || 'Gagal menandai alamat aktif.', 'danger');
+
+            // ✅ ubah redirect
+            setTimeout(() => {
+                window.location.href = '<?= base_url("melakukanpemesanan") ?>?from=alamat';
+            }, 1200);
+        }else showToast(data.message || 'Gagal menandai alamat aktif.', 'danger');
     }).catch(err => { console.error(err); showToast('Terjadi kesalahan saat memilih alamat.', 'danger'); });
 });
 

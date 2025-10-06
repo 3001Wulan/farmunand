@@ -123,4 +123,28 @@ class PesananModel extends Model
 
         return $builder->findAll();
     }
+
+    public function getDetailBelumDinilai(int $idUser): array
+    {
+        return $this->db->table('pemesanan p')
+            ->select('
+                p.id_pemesanan,
+                p.status_pemesanan,
+                p.created_at,
+                dp.id_detail_pemesanan,
+                dp.jumlah_produk,
+                dp.harga_produk AS harga,
+                pr.nama_produk,
+                pr.foto
+            ')
+            ->join('detail_pemesanan dp', 'dp.id_pemesanan = p.id_pemesanan', 'inner')
+            ->join('produk pr', 'pr.id_produk = dp.id_produk', 'left')
+            ->where('p.id_user', $idUser)
+            ->whereIn('p.status_pemesanan', ['Selesai','Dikirim','Diterima','Dikemas'])
+            // penting: raw where untuk IS NULL
+            ->where('(dp.user_rating IS NULL OR dp.user_rating = 0)', null, false)
+            ->orderBy('p.created_at', 'DESC')
+            ->get()->getResultArray();
+    }
+
 }

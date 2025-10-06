@@ -134,26 +134,74 @@
   <div class="section">
     <div class="section-title">Detail Pemesanan</div>
     <div class="section-body">
-      <?php
-        $namaProduk = $checkout['nama_produk'] ?? '-';
-        $deskripsi  = $checkout['deskripsi'] ?? '-';
-        $qty        = $checkout['qty'] ?? 0;
-        $harga      = $checkout['harga'] ?? 0;
-        $subtotal   = $qty * $harga;
-        $fotoPath   = isset($checkout['foto']) ? base_url('uploads/produk/'.$checkout['foto']) : base_url('assets/images/sapi.jpg');
-      ?>
-      <div class="product-wrap">
-        <div class="product-image"><img src="<?= $fotoPath ?>" alt="<?= esc($namaProduk) ?>"></div>
-        <div class="product-info">
-          <div class="name"><?= esc($namaProduk) ?></div>
-          <div class="desc"><?= esc($deskripsi) ?></div>
-          <div class="mt-2">
-            <span class="pill">Harga: Rp <?= number_format($harga, 0, ',', '.') ?></span>
-            <span class="pill">Qty: <?= esc($qty) ?></span>
-          </div>
-          <div class="total">Total: Rp <?= number_format($subtotal, 0, ',', '.') ?></div>
+
+      <?php if (!empty($checkout_multi) && !empty($checkout_multi['items'])): ?>
+        <!-- === MODE MULTI ITEM (Checkout Semua) === -->
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle">
+            <thead class="table-success">
+              <tr>
+                <th>Produk</th>
+                <th class="text-center" style="width:120px;">Qty</th>
+                <th class="text-end" style="width:160px;">Harga</th>
+                <th class="text-end" style="width:180px;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($checkout_multi['items'] as $it): ?>
+                <tr>
+                  <td class="text-start">
+                    <div class="d-flex align-items-center">
+                      <div class="product-image me-2" style="width:60px;height:60px;">
+                        <img src="<?= base_url('uploads/produk/'.($it['foto'] ?? 'default.png')) ?>" alt="<?= esc($it['nama_produk']) ?>">
+                      </div>
+                      <div class="fw-semibold"><?= esc($it['nama_produk']) ?></div>
+                    </div>
+                  </td>
+                  <td class="text-center"><?= (int)$it['qty'] ?></td>
+                  <td class="text-end">Rp <?= number_format((float)$it['harga'], 0, ',', '.') ?></td>
+                  <td class="text-end fw-semibold">Rp <?= number_format((float)$it['subtotal'], 0, ',', '.') ?></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th colspan="3" class="text-end">Total</th>
+                <th class="text-end">Rp <?= number_format((float)($checkout_multi['grandTotal'] ?? 0), 0, ',', '.') ?></th>
+              </tr>
+            </tfoot>
+          </table>
         </div>
-      </div>
+
+        <!-- inject data multi untuk JS -->
+        <script type="application/json" id="checkoutMultiData">
+          <?= json_encode($checkout_multi, JSON_UNESCAPED_UNICODE) ?>
+        </script>
+
+      <?php else: ?>
+        <!-- === MODE SINGLE ITEM === -->
+        <?php
+          $namaProduk = $checkout['nama_produk'] ?? '-';
+          $deskripsi  = $checkout['deskripsi'] ?? '-';
+          $qty        = (int)($checkout['qty'] ?? 0);
+          $harga      = (float)($checkout['harga'] ?? 0);
+          $subtotal   = $qty * $harga;
+          $fotoPath   = isset($checkout['foto']) ? base_url('uploads/produk/'.$checkout['foto']) : base_url('assets/images/sapi.jpg');
+        ?>
+        <div class="product-wrap">
+          <div class="product-image"><img src="<?= $fotoPath ?>" alt="<?= esc($namaProduk) ?>"></div>
+          <div class="product-info">
+            <div class="name"><?= esc($namaProduk) ?></div>
+            <div class="desc"><?= esc($deskripsi) ?></div>
+            <div class="mt-2">
+              <span class="pill">Harga: Rp <?= number_format($harga, 0, ',', '.') ?></span>
+              <span class="pill">Qty: <?= esc($qty) ?></span>
+            </div>
+            <div class="total">Total: Rp <?= number_format($subtotal, 0, ',', '.') ?></div>
+          </div>
+        </div>
+      <?php endif; ?>
+
     </div>
   </div>
 
@@ -174,16 +222,35 @@
       </div>
 
       <div class="footer-actions mt-3">
-        <button class="btn-order" 
-          data-id-produk="<?= $checkout['id_produk'] ?? 0 ?>"
-          data-harga="<?= $harga ?>"
-          data-qty="<?= $qty ?>"
-          data-id-alamat="<?= $alamat[0]['id_alamat'] ?? 0 ?>"
-          data-total="<?= $subtotal ?>"
-          data-has-address="<?= !empty($alamat) ? '1' : '0' ?>"
-          onclick="openConfirmModal(event)">
-          Buat Pesanan
-        </button>
+        <?php
+          $hasAddress = !empty($alamat);
+          $idAlamat   = $alamat[0]['id_alamat'] ?? 0;
+          $isMulti    = !empty($checkout_multi) && !empty($checkout_multi['items']);
+        ?>
+        <?php if ($isMulti): ?>
+          <!-- Tombol untuk mode MULTI -->
+          <button class="btn-order"
+                  data-mode="multi"
+                  data-id-alamat="<?= (int)$idAlamat ?>"
+                  data-total="<?= (float)($checkout_multi['grandTotal'] ?? 0) ?>"
+                  data-has-address="<?= $hasAddress ? '1' : '0' ?>"
+                  onclick="openConfirmModal(event)">
+            Buat Pesanan (Semua)
+          </button>
+        <?php else: ?>
+          <!-- Tombol untuk mode SINGLE -->
+          <button class="btn-order"
+                  data-mode="single"
+                  data-id-produk="<?= (int)($checkout['id_produk'] ?? 0) ?>"
+                  data-harga="<?= (float)($checkout['harga'] ?? 0) ?>"
+                  data-qty="<?= (int)($checkout['qty'] ?? 0) ?>"
+                  data-id-alamat="<?= (int)$idAlamat ?>"
+                  data-total="<?= (float)($subtotal ?? 0) ?>"
+                  data-has-address="<?= $hasAddress ? '1' : '0' ?>"
+                  onclick="openConfirmModal(event)">
+            Buat Pesanan
+          </button>
+        <?php endif; ?>
       </div>
     </div>
   </div>
@@ -240,7 +307,7 @@ document.querySelectorAll('.method-option').forEach(opt => {
 });
 
 function openConfirmModal(e){
-  const btn = e.target;
+  const btn = e.currentTarget; // penting: currentTarget, bukan target (ikonnya)
   const hasAddress = btn.dataset.hasAddress === '1';
   if (!hasAddress) {
     alert('Silakan tambahkan atau aktifkan alamat pengiriman terlebih dahulu.');
@@ -248,15 +315,35 @@ function openConfirmModal(e){
   }
 
   const metode = document.querySelector('.method-option.selected').dataset.method;
-  const total = btn.dataset.total;
+  const mode   = btn.dataset.mode;
 
-  currentData = {
-    idProduk: btn.dataset.idProduk,
-    harga: btn.dataset.harga,
-    qty: btn.dataset.qty,
-    idAlamat: btn.dataset.idAlamat,
-    metode: metode
-  };
+  // rakit data konfirmasi
+  let total = 0;
+  if (mode === 'multi') {
+    const el = document.getElementById('checkoutMultiData');
+    const multi = el ? JSON.parse(el.textContent) : null;
+    if (!multi || !multi.items || !multi.items.length) {
+      alert('Data pesanan tidak ditemukan.');
+      return;
+    }
+    total = Number(btn.dataset.total || multi.grandTotal || 0);
+    currentData = {
+      mode: 'multi',
+      idAlamat: btn.dataset.idAlamat,
+      metode: metode,
+      items: multi.items // [{id_produk, qty, harga, subtotal, ...}]
+    };
+  } else {
+    total = Number(btn.dataset.total || 0);
+    currentData = {
+      mode: 'single',
+      idProduk: btn.dataset.idProduk,
+      harga: btn.dataset.harga,
+      qty: btn.dataset.qty,
+      idAlamat: btn.dataset.idAlamat,
+      metode: metode
+    };
+  }
 
   const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
   document.getElementById('confirmText').innerHTML = `
@@ -274,36 +361,58 @@ function buatPesanan(btn, modal){
   btn.disabled = true;
   btn.textContent = 'Memproses...';
 
-  const formData = new FormData();
-  formData.append('id_produk', currentData.idProduk);
-  formData.append('qty', currentData.qty);
-  formData.append('harga', currentData.harga);
-  formData.append('id_alamat', currentData.idAlamat);
-  formData.append('metode', currentData.metode);
+  const mode = currentData.mode;
+  const endpoint = (mode === 'multi')
+    ? '<?= base_url("pemesanan/simpan-batch") ?>'
+    : '<?= base_url("pemesanan/simpan") ?>';
 
-  fetch('<?= base_url("pemesanan/simpan") ?>', {
-    method: 'POST',
-    body: formData
-  })
-  .then(res => res.json())
-  .then(result => {
-    if (result.success) {
-      const successModal = new bootstrap.Modal(document.getElementById('successModal'));
-      document.getElementById('successText').innerHTML = `
-        Status Pesanan: <b>${result.status}</b><br>
-        Terima kasih telah berbelanja di <b>FarmUnand</b>! 🛒
-      `;
-      successModal.show();
-    } else {
-      alert('❌ Gagal membuat pesanan.');
-    }
-  })
-  .catch(() => alert('Terjadi kesalahan koneksi.'))
-  .finally(() => {
-    btn.disabled = false;
-    btn.textContent = 'Buat Pesanan';
-  });
+  let body, fetchOpts;
+
+  if (mode === 'multi') {
+    // kirim JSON batch: { id_alamat, metode, items: [{id_produk, qty}, ...] }
+    const items = currentData.items.map(it => ({ id_produk: it.id_produk, qty: it.qty }));
+    body = JSON.stringify({
+      id_alamat: currentData.idAlamat,
+      metode: currentData.metode,
+      items: items
+    });
+    fetchOpts = {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: body
+    };
+  } else {
+    // single item pakai FormData (endpoint lama)
+    const formData = new FormData();
+    formData.append('id_produk', currentData.idProduk);
+    formData.append('qty', currentData.qty);
+    formData.append('harga', currentData.harga);
+    formData.append('id_alamat', currentData.idAlamat);
+    formData.append('metode', currentData.metode);
+    fetchOpts = { method: 'POST', body: formData };
+  }
+
+  fetch(endpoint, fetchOpts)
+    .then(res => res.json())
+    .then(result => {
+      if (result && result.success) {
+        const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+        document.getElementById('successText').innerHTML = `
+          Status Pesanan: <b>${result.status ?? 'diproses'}</b><br>
+          Terima kasih telah berbelanja di <b>FarmUnand</b>! 🛒
+        `;
+        successModal.show();
+      } else {
+        alert(result?.message || '❌ Gagal membuat pesanan.');
+      }
+    })
+    .catch(() => alert('Terjadi kesalahan koneksi.'))
+    .finally(() => {
+      btn.disabled = false;
+      btn.textContent = (mode === 'multi') ? 'Buat Pesanan (Semua)' : 'Buat Pesanan';
+    });
 }
 </script>
+
 </body>
 </html>

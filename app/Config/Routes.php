@@ -54,12 +54,20 @@ $routes->post('melakukanpemesanan', 'MelakukanPemesanan::index');
 $routes->get('melakukanpemesanan', 'MelakukanPemesanan::index');        
 $routes->get('melakukanpemesanan/(:num)', 'MelakukanPemesanan::index/$1');
 
+// Batch order (checkout semua)
+// Pemesanan (single & batch)
+$routes->post('pemesanan/simpan', 'MelakukanPemesanan::simpan');
+$routes->post('pemesanan/simpan-batch', 'MelakukanPemesanan::simpanBatch');
+
+
+
 // Keranjang (Cart)
 $routes->get('keranjang', 'Keranjang::index');
 $routes->post('keranjang/add', 'Keranjang::add');
 $routes->post('keranjang/update', 'Keranjang::update');
 $routes->get('keranjang/remove/(:num)', 'Keranjang::remove/$1');
 $routes->post('keranjang/clear', 'Keranjang::clear');
+$routes->post('keranjang/checkout-all', 'Keranjang::checkoutAll');
 
 
 // Fungsional Laporan (Admin)
@@ -81,6 +89,7 @@ $routes->group('penilaian', function($routes) {
 
     // Simpan penilaian
     $routes->post('simpan/(:num)', 'Penilaian::simpan/$1');
+
 });
 
 // Fungsional Memilih Alamat
@@ -97,10 +106,14 @@ $routes->get('memilihalamat/pilih/(:num)', 'MemilihAlamat::pilih/$1');
 $routes->post('memilihalamat/pilih/(:num)', 'MemilihAlamat::pilih/$1');
 $routes->get('memilihalamat/(:num)', 'MemilihAlamat::index/$1');
 
+// Page
+$routes->get('/MengelolaRiwayatPesanan', 'MengelolaRiwayatPesanan::index');
 
+// Update status (POST)
+$routes->post('mengelolariwayatpesanan/updateStatus/(:num)', 'MengelolaRiwayatPesanan::updateStatus/$1');
+// ^ gunakan nama ini persis di form action (tanpa typo)
 
 // Fungsioanal Admin Manajemen Akun User
-$routes->get('/MengelolaRiwayatPesanan', 'MengelolaRiwayatPesanan::index');
 $routes->group('manajemenakunuser', ['namespace' => 'App\Controllers'], function($routes) {
     $routes->get('/', 'ManajemenAkunUser::index');               // list user
     $routes->get('create', 'ManajemenAkunUser::create');         // form tambah
@@ -116,6 +129,7 @@ $routes->group('manajemenakunuser', ['namespace' => 'App\Controllers'], function
 $routes->get('/pesananselesai', 'Pesanan::selesai');
 $routes->get('/pesanandikemas', 'Pesanan::dikemas');
 $routes->get('/pesananbelumbayar', 'Pesanan::belumbayar');
+$routes->get('pesanandibatalkan',  'Pesanan::dibatalkan');
 $routes->group('', ['namespace' => 'App\Controllers'], function($routes) {
     // Halaman daftar pesanan
     $routes->get('konfirmasipesanan', 'KonfirmasiPesanan::index');
@@ -134,4 +148,3 @@ $routes->group('admin', ['filter' => 'auth:admin'], function($routes) {
     $routes->get('produk/delete/(:num)', 'ProdukAdmin::delete/$1');
 });
 
-$routes->post('mengeloririwayatpesanan/updateStatus/(:num)', 'MengelolaRiwayatPesanan::updateStatus/$1');
