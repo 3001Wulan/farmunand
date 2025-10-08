@@ -14,8 +14,6 @@ class PesanModel extends Model
      * Catatan:
      * kolom seperti id_produk/jumlah_produk sebenarnya milik detail_pemesanan,
      * jadi sebaiknya allowedFields untuk tabel pemesanan hanya kolom2 milik pemesanan.
-     * Kalau model ini dipakai untuk INSERT/UPDATE ke "pemesanan", rapikan allowedFields
-     * agar tidak menimbulkan error mass assignment.
      */
     protected $allowedFields = [
         'id_user',
@@ -23,6 +21,11 @@ class PesanModel extends Model
         'id_pembayaran',
         'total_harga',
         'status_pemesanan',
+        // ⬇️ kolom untuk flow konfirmasi user 7 hari
+        'konfirmasi_token',
+        'konfirmasi_expires_at',
+        'confirmed_at',
+        // timestamps
         'created_at',
         'updated_at',
     ];
@@ -61,7 +64,6 @@ class PesanModel extends Model
 
     /**
      * Total penjualan bulan ini (menggunakan created_at & status 'Selesai')
-     * Sesuaikan nama kolom tanggal jika kamu memang memakai kolom lain.
      */
     public function getPenjualanBulan()
     {
@@ -77,6 +79,7 @@ class PesanModel extends Model
     /**
      * Ambil pesanan lengkap dengan detail produk (join detail_pemesanan + produk)
      * Opsional filter status.
+     * ⬇️ Mengikutkan konfirmasi_expires_at & alias 'harga' (dipakai view).
      */
     public function getPesananWithProduk($idUser, $status = null)
     {
@@ -86,12 +89,13 @@ class PesanModel extends Model
                 p.status_pemesanan,
                 p.total_harga,
                 p.created_at,
-                u.nama as nama_user,
+                p.konfirmasi_expires_at,
+                u.nama AS nama_user,
                 pr.nama_produk,
-                pr.harga,
+                pr.harga,               -- alias bawaan produk (jika perlu)
                 pr.foto,
                 dp.jumlah_produk,
-                dp.harga_produk
+                dp.harga_produk AS harga -- dipakai view sebagai unit price
             ')
             ->join('users u', 'u.id_user = p.id_user', 'inner')
             ->join('detail_pemesanan dp', 'dp.id_pemesanan = p.id_pemesanan', 'inner')
@@ -107,40 +111,62 @@ class PesanModel extends Model
     }
 
     /**
-     * Ambil item (per-detail) milik user yang BELUM dinilai.
-     * Dipakai untuk halaman "Berikan Penilaian".
-     * Ubah whereIn jika kamu hanya mau izinkan status "Selesai".
+     * Ambil pesanan user per status (dipakai di Pesanan::selesai(), dikemas(), dll)
+     * ⬇️ Disamakan strukturnya dengan getPesananWithProduk agar view bisa render langsung.
      */
-    public function getDetailBelumDinilai(int $idUser): array
+    public function getPesananByStatus(int $idUser, string $status): array
     {
         return $this->db->table('pemesanan p')
             ->select('
                 p.id_pemesanan,
                 p.status_pemesanan,
+                p.total_harga,
                 p.created_at,
-                dp.id_detail_pemesanan,
-                dp.jumlah_produk,
-                dp.harga_produk AS harga,
+                p.konfirmasi_expires_at,
+                pr.foto,
                 pr.nama_produk,
-                pr.foto
+                dp.jumlah_produk,
+                dp.harga_produk AS harga
             ')
             ->join('detail_pemesanan dp', 'dp.id_pemesanan = p.id_pemesanan', 'inner')
             ->join('produk pr', 'pr.id_produk = dp.id_produk', 'left')
             ->where('p.id_user', $idUser)
-            ->whereIn('p.status_pemesanan', ['Selesai', 'Dikirim', 'Diterima', 'Dikemas'])
-            ->where('(dp.user_rating IS NULL OR dp.user_rating = 0)', null, false)
+            ->where('p.status_pemesanan', $status)
             ->orderBy('p.created_at', 'DESC')
             ->get()->getResultArray();
     }
 
     /**
-     * Shortcut: ambil pesanan by status (tanpa join detail)
+     * (Opsional) Saat admin set ke "Dikirim", generate token + expiry 7 hari.
      */
-    public function getPesananByStatus(int $idUser, string $status): array
+    public function markAsShippedWithToken(int $idPemesanan): bool
     {
-        return $this->where('id_user', $idUser)
-                    ->where('status_pemesanan', $status)
-                    ->orderBy('created_at', 'DESC')
-                    ->findAll();
+        return $this->update($idPemesanan, [
+            'status_pemesanan'      => 'Dikirim',
+            'konfirmasi_token'      => bin2hex(random_bytes(16)),
+            'konfirmasi_expires_at' => date('Y-m-d H:i:s', strtotime('+7 days')),
+            'confirmed_at'          => null,
+            'updated_at'            => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    /**
+     * (Opsional) Auto-close: set Selesai untuk pesanan Dikirim yang lewat 7 hari.
+     * Return: jumlah baris yang diupdate.
+     */
+    public function autoCloseExpired(): int
+    {
+        $builder = $this->builder();
+        $builder->where('status_pemesanan', 'Dikirim')
+                ->where('konfirmasi_expires_at IS NOT NULL', null, false)
+                ->where('confirmed_at IS NULL', null, false)
+                ->where('konfirmasi_expires_at <', date('Y-m-d H:i:s'))
+                ->set([
+                    'status_pemesanan' => 'Selesai',
+                    'updated_at'       => date('Y-m-d H:i:s'),
+                ])
+                ->update();
+
+        return $this->db->affectedRows();
     }
 }

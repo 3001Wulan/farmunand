@@ -108,6 +108,10 @@ $routes->get('memilihalamat/(:num)', 'MemilihAlamat::index/$1');
 
 // Page
 $routes->get('/MengelolaRiwayatPesanan', 'MengelolaRiwayatPesanan::index');
+$routes->get('/konfirmasipesanan', 'Pesanan::konfirmasipesanan');               // halaman Dikirim
+$routes->post('/pesanan/konfirmasi/(:num)', 'Pesanan::konfirmasiSelesai/$1');   // tombol konfirmasi
+
+
 
 // Update status (POST)
 $routes->post('mengelolariwayatpesanan/updateStatus/(:num)', 'MengelolaRiwayatPesanan::updateStatus/$1');
@@ -148,3 +152,11 @@ $routes->group('admin', ['filter' => 'auth:admin'], function($routes) {
     $routes->get('produk/delete/(:num)', 'ProdukAdmin::delete/$1');
 });
 
+// app/Config/Routes.php
+$routes->group('payments', static function($r){
+    $r->post('create', 'Payments::create');   // bikin snapToken
+    $r->post('webhook', 'Payments::webhook'); // terima notifikasi Midtrans
+    $r->get('finish', 'Payments::finish');    // optional landing
+    $r->get('unfinish', 'Payments::unfinish');// optional landing
+    $r->get('error', 'Payments::error');      // optional landing
+});

@@ -22,16 +22,35 @@ class ProdukAdmin extends BaseController
         $userId = session()->get('id_user');
         $user   = $this->userModel->find($userId);
 
-        $keyword = $this->request->getVar('keyword');
-        $produk  = $keyword
-            ? $this->produkModel->searchProduk($keyword)
-            : $this->produkModel->findAll();
+        $keyword  = $this->request->getVar('keyword');
+        $kategori = $this->request->getVar('kategori');
+
+        if ($keyword || $kategori) {
+            // gabungkan pencarian & filter tanpa mengubah method lama
+            $builder = $this->produkModel->builder();
+
+            if (!empty($keyword)) {
+                $builder->groupStart()
+                        ->like('nama_produk', $keyword)
+                        ->orLike('deskripsi', $keyword)
+                        ->groupEnd();
+            }
+            if (!empty($kategori)) {
+                $builder->where('kategori', $kategori);
+            }
+
+            $produk = $builder->get()->getResultArray();
+        } else {
+            $produk = $this->produkModel->findAll();
+        }
 
         $data = [
-            'title'   => 'Manajemen Produk',
-            'produk'  => $produk,
-            'keyword' => $keyword,
-            'user'    => $user
+            'title'        => 'Manajemen Produk',
+            'produk'       => $produk,
+            'keyword'      => $keyword,
+            'kategori'     => $kategori,
+            'kategoriList' => $this->produkModel->getKategoriList(),
+            'user'         => $user
         ];
 
         return view('admin/produk/index', $data);

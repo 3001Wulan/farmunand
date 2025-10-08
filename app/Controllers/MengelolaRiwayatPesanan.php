@@ -24,6 +24,14 @@ class MengelolaRiwayatPesanan extends BaseController
         $keyword = $this->request->getGet('keyword') ?: '';
         $sort    = strtoupper($this->request->getGet('sort') ?? 'DESC');
 
+        // AUTO-CLOSE: yang sudah lewat 7 hari sejak dikirim dan belum dikonfirmasi user
+        $this->pesananModel->where('status_pemesanan', 'Dikirim')
+            ->where('konfirmasi_expires_at IS NOT NULL', null, false)
+            ->where('confirmed_at IS NULL', null, false)
+            ->where('konfirmasi_expires_at <', date('Y-m-d H:i:s'))
+            ->set(['status_pemesanan' => 'Selesai', 'updated_at' => date('Y-m-d H:i:s')])
+            ->update();
+
         $builder = $this->pesananModel
             ->select('
                 pemesanan.id_pemesanan,
@@ -68,15 +76,29 @@ class MengelolaRiwayatPesanan extends BaseController
     {
         $status = $this->request->getPost('status_pemesanan');
 
-        if (!in_array($status, ['Dikemas','Dikirim','Selesai','Diproses','Dibatalkan','Belum Bayar'], true)) {
-            return redirect()->to('/MengelolaRiwayatPesanan')->with('error', 'Status tidak valid.');
+        // Admin TIDAK boleh set 'Selesai'
+        $allowed = ['Belum Bayar','Dikemas','Dikirim','Dibatalkan'];
+        if (!in_array($status, $allowed, true)) {
+            return redirect()->to('/MengelolaRiwayatPesanan')->with('error', 'Status tidak valid untuk admin.');
         }
 
-        $ok = $this->pesananModel->update((int)$id_pemesanan, ['status_pemesanan' => $status]);
+        $data = ['status_pemesanan' => $status];
 
-        if ($ok) {
-            return redirect()->to('/MengelolaRiwayatPesanan')->with('success', 'Status pesanan berhasil diperbarui.');
+        // Jika di-set ke "Dikirim", buat token konfirmasi 7 hari
+        if ($status === 'Dikirim') {
+            $data['konfirmasi_token']      = bin2hex(random_bytes(16));
+            $data['konfirmasi_expires_at'] = date('Y-m-d H:i:s', strtotime('+7 days'));
+            $data['confirmed_at']          = null; // reset
+        } else {
+            // status lain: kosongkan token (opsional)
+            $data['konfirmasi_token']      = null;
+            $data['konfirmasi_expires_at'] = null;
+            // $data['confirmed_at'] tetap apa adanya
         }
-        return redirect()->to('/MengelolaRiwayatPesanan')->with('error', 'Gagal memperbarui status.');
+
+        $ok = $this->pesananModel->update((int)$id_pemesanan, $data);
+
+        return redirect()->to('/MengelolaRiwayatPesanan')
+            ->with($ok ? 'success' : 'error', $ok ? 'Status pesanan berhasil diperbarui.' : 'Gagal memperbarui status.');
     }
 }

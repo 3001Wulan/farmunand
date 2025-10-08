@@ -8,25 +8,16 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
   <style>
-    :root {
-      --brand: #198754;
-      --brand-dark: #145c32;
-      --muted: #f8f9fa;
-    }
+    :root { --brand:#198754; --brand-dark:#145c32; --muted:#f8f9fa; }
     html, body { margin:0; padding:0; height:100%; background:var(--muted); }
     .content { margin-left:250px; padding:30px; }
 
     .page-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
     .page-title { font-weight:700; color:var(--brand); margin:0; }
-    .btn-back {
-      background:white; color:var(--brand); border:1px solid var(--brand);
-    }
-    .btn-back:hover { background:var(--brand); color:white; }
+    .btn-back { background:#fff; color:var(--brand); border:1px solid var(--brand); }
+    .btn-back:hover { background:var(--brand); color:#fff; }
 
-    .section {
-      border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.06);
-      overflow:hidden; margin-bottom:16px; background:#fff;
-    }
+    .section { border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.06); overflow:hidden; margin-bottom:16px; background:#fff; }
     .section-title {
       background: linear-gradient(90deg, var(--brand), #20c997);
       color:#fff; font-weight:700; padding:12px 16px;
@@ -41,17 +32,11 @@
     .ubah-btn:hover { background:rgba(255,255,255,0.15); color:#fff; }
 
     .product-wrap { display:flex; gap:16px; align-items:flex-start; }
-    .product-image {
-      width:150px; height:120px; border-radius:8px; overflow:hidden;
-      border:1px solid #e9ecef; flex-shrink:0; background:#f0f0f0;
-    }
+    .product-image { width:150px; height:120px; border-radius:8px; overflow:hidden; border:1px solid #e9ecef; flex-shrink:0; background:#f0f0f0; }
     .product-image img { width:100%; height:100%; object-fit:cover; }
     .product-info .name { font-size:18px; font-weight:700; color:#333; }
     .product-info .desc { font-size:14px; color:#666; margin-top:6px; }
-    .pill {
-      display:inline-block; padding:2px 10px; border-radius:999px;
-      font-size:13px; margin-right:6px; border:1px solid #e9ecef; background:#f8f9fa;
-    }
+    .pill { display:inline-block; padding:2px 10px; border-radius:999px; font-size:13px; margin-right:6px; border:1px solid #e9ecef; background:#f8f9fa; }
     .total { font-weight:700; color:var(--brand); font-size:16px; margin-top:8px; }
 
     .pay-grid { display:grid; gap:10px; grid-template-columns: 1fr; }
@@ -64,27 +49,17 @@
     .method-text { font-weight:600; color:#333; }
 
     .footer-actions { display:flex; justify-content:flex-end; margin-top:14px; }
-    .btn-order {
-      background:var(--brand); color:white; border:none; padding:10px 20px; border-radius:8px; font-weight:600;
-    }
+    .btn-order { background:var(--brand); color:#fff; border:none; padding:10px 20px; border-radius:8px; font-weight:600; }
     .btn-order:hover { background:var(--brand-dark); }
 
-    /* Modal styling */
-    .modal-confirm .modal-content,
-    .modal-success .modal-content {
-      border-radius:12px; border:none; box-shadow:0 8px 30px rgba(0,0,0,0.2);
-    }
-    .modal-confirm .modal-header, .modal-success .modal-header {
-      border-bottom:none; text-align:center; flex-direction:column;
-    }
+    .modal-confirm .modal-content, .modal-success .modal-content { border-radius:12px; border:none; box-shadow:0 8px 30px rgba(0,0,0,0.2); }
+    .modal-confirm .modal-header, .modal-success .modal-header { border-bottom:none; text-align:center; flex-direction:column; }
     .modal-confirm .icon-circle, .modal-success .icon-circle {
-      width:80px; height:80px; border-radius:50%; display:flex;
-      align-items:center; justify-content:center; font-size:36px; color:white;
-      margin-top:10px;
+      width:80px; height:80px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:36px; color:#fff; margin-top:10px;
     }
     .modal-confirm .icon-circle { background:var(--brand); }
-    .modal-success .icon-circle { background:#28a745; animation:pop 0.4s ease; }
-    @keyframes pop { from {transform:scale(0.5); opacity:0;} to {transform:scale(1); opacity:1;} }
+    .modal-success .icon-circle { background:#28a745; animation:pop .4s ease; }
+    @keyframes pop { from{transform:scale(.5); opacity:0} to{transform:scale(1); opacity:1} }
     .modal-body { text-align:center; }
     .modal-footer { border:none; justify-content:center; gap:10px; padding-bottom:25px; }
 
@@ -175,7 +150,7 @@
 
         <!-- inject data multi untuk JS -->
         <script type="application/json" id="checkoutMultiData">
-          <?= json_encode($checkout_multi, JSON_UNESCAPED_UNICODE) ?>
+          <?= json_encode($checkout_multi, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) ?>
         </script>
 
       <?php else: ?>
@@ -213,11 +188,8 @@
         <div class="method-option selected" data-method="cod">
           <div class="method-text">💵 COD (Cash on Delivery)</div>
         </div>
-        <div class="method-option" data-method="transfer">
-          <div class="method-text">🏦 Transfer Bank</div>
-        </div>
-        <div class="method-option" data-method="ewallet">
-          <div class="method-text">📱 E-Wallet</div>
+        <div class="method-option" data-method="online">
+          <div class="method-text">💳 Bayar Online (Midtrans)</div>
         </div>
       </div>
 
@@ -228,7 +200,6 @@
           $isMulti    = !empty($checkout_multi) && !empty($checkout_multi['items']);
         ?>
         <?php if ($isMulti): ?>
-          <!-- Tombol untuk mode MULTI -->
           <button class="btn-order"
                   data-mode="multi"
                   data-id-alamat="<?= (int)$idAlamat ?>"
@@ -238,7 +209,6 @@
             Buat Pesanan (Semua)
           </button>
         <?php else: ?>
-          <!-- Tombol untuk mode SINGLE -->
           <button class="btn-order"
                   data-mode="single"
                   data-id-produk="<?= (int)($checkout['id_produk'] ?? 0) ?>"
@@ -275,7 +245,7 @@
   </div>
 </div>
 
-<!-- Modal Sukses -->
+<!-- Modal Sukses (untuk COD) -->
 <div class="modal fade modal-success" id="successModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content text-center">
@@ -295,6 +265,10 @@
   </div>
 </div>
 
+<!-- Snap.js (pakai CLIENT KEY dari .env) -->
+<script src="https://app.sandbox.midtrans.com/snap/snap.js"
+        data-client-key="<?= esc(env('MIDTRANS_CLIENT_KEY')) ?>"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 let currentData = {};
@@ -307,17 +281,16 @@ document.querySelectorAll('.method-option').forEach(opt => {
 });
 
 function openConfirmModal(e){
-  const btn = e.currentTarget; // penting: currentTarget, bukan target (ikonnya)
+  const btn = e.currentTarget;
   const hasAddress = btn.dataset.hasAddress === '1';
   if (!hasAddress) {
     alert('Silakan tambahkan atau aktifkan alamat pengiriman terlebih dahulu.');
     return;
   }
 
-  const metode = document.querySelector('.method-option.selected').dataset.method;
+  const metode = document.querySelector('.method-option.selected').dataset.method; // 'cod' | 'online'
   const mode   = btn.dataset.mode;
 
-  // rakit data konfirmasi
   let total = 0;
   if (mode === 'multi') {
     const el = document.getElementById('checkoutMultiData');
@@ -331,7 +304,7 @@ function openConfirmModal(e){
       mode: 'multi',
       idAlamat: btn.dataset.idAlamat,
       metode: metode,
-      items: multi.items // [{id_produk, qty, harga, subtotal, ...}]
+      items: multi.items // [{id_produk, qty, ...}]
     };
   } else {
     total = Number(btn.dataset.total || 0);
@@ -348,7 +321,7 @@ function openConfirmModal(e){
   const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
   document.getElementById('confirmText').innerHTML = `
     Apakah Anda yakin ingin memesan dengan metode 
-    <b>${metode.toUpperCase()}</b>?<br>
+    <b>${metode === 'online' ? 'Bayar Online (Midtrans)' : 'COD'}</b>?<br>
     Total Pembayaran: <b>Rp ${new Intl.NumberFormat('id-ID').format(total)}</b>
   `;
   modal.show();
@@ -356,49 +329,90 @@ function openConfirmModal(e){
   document.getElementById('confirmYesBtn').onclick = function(){ buatPesanan(btn, modal); };
 }
 
+/** Jalankan flow Midtrans (Snap) */
+async function startMidtransFlow(idAlamat, mode, dataState, enabledPayments) {
+  let items;
+  if (mode === 'multi') {
+    items = (dataState.items || []).map(it => ({ id_produk: Number(it.id_produk), qty: Number(it.qty) }));
+  } else {
+    items = [{ id_produk: Number(dataState.idProduk), qty: Number(dataState.qty) }];
+  }
+
+  const res = await fetch('<?= base_url('payments/create') ?>', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      id_alamat: Number(idAlamat),
+      items: items,
+      enabled_payments: enabledPayments || null
+    })
+  });
+  const data = await res.json();
+  if (!data?.success) {
+    alert(data?.message || 'Gagal membuat transaksi Midtrans');
+    return;
+  }
+
+  window.snap.pay(data.snapToken, {
+    onSuccess:   function(){ window.location.href = '<?= base_url('payments/finish') ?>'; },
+    onPending:   function(){ window.location.href = '<?= base_url('payments/unfinish') ?>'; },
+    onError:     function(){ window.location.href = '<?= base_url('payments/error') ?>'; },
+    onClose:     function(){ /* user menutup popup, tidak lakukan apa-apa */ }
+  });
+}
+
 function buatPesanan(btn, modal){
   modal.hide();
   btn.disabled = true;
   btn.textContent = 'Memproses...';
 
-  const mode = currentData.mode;
+  const mode    = currentData.mode;
+  const metode  = currentData.metode; // 'cod' | 'online'
+  const idAlamat = currentData.idAlamat || currentData.id_alamat;
+
+  // === Jalur MIDTRANS (online) ===
+  if (metode === 'online') {
+    // kalau ingin batasi kanal, isi enabledPayments (null = semua kanal yang aktif)
+    const enabledPayments = null;
+    startMidtransFlow(idAlamat, mode, currentData, enabledPayments)
+      .catch(()=> alert('Koneksi gagal.'))
+      .finally(() => {
+        btn.disabled = false;
+        btn.textContent = (mode === 'multi') ? 'Buat Pesanan (Semua)' : 'Buat Pesanan';
+      });
+    return;
+  }
+
+  // === Jalur COD (tetap pakai endpoint existing) ===
   const endpoint = (mode === 'multi')
     ? '<?= base_url("pemesanan/simpan-batch") ?>'
     : '<?= base_url("pemesanan/simpan") ?>';
 
-  let body, fetchOpts;
-
+  let fetchOpts;
   if (mode === 'multi') {
-    // kirim JSON batch: { id_alamat, metode, items: [{id_produk, qty}, ...] }
     const items = currentData.items.map(it => ({ id_produk: it.id_produk, qty: it.qty }));
-    body = JSON.stringify({
-      id_alamat: currentData.idAlamat,
-      metode: currentData.metode,
-      items: items
-    });
     fetchOpts = {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: body
+      body: JSON.stringify({ id_alamat: idAlamat, metode: 'cod', items })
     };
   } else {
-    // single item pakai FormData (endpoint lama)
     const formData = new FormData();
     formData.append('id_produk', currentData.idProduk);
     formData.append('qty', currentData.qty);
     formData.append('harga', currentData.harga);
-    formData.append('id_alamat', currentData.idAlamat);
-    formData.append('metode', currentData.metode);
+    formData.append('id_alamat', idAlamat);
+    formData.append('metode', 'cod');
     fetchOpts = { method: 'POST', body: formData };
   }
 
   fetch(endpoint, fetchOpts)
     .then(res => res.json())
     .then(result => {
-      if (result && result.success) {
+      if (result?.success) {
         const successModal = new bootstrap.Modal(document.getElementById('successModal'));
         document.getElementById('successText').innerHTML = `
-          Status Pesanan: <b>${result.status ?? 'diproses'}</b><br>
+          Status Pesanan: <b>${result.status ?? 'Dikemas'}</b><br>
           Terima kasih telah berbelanja di <b>FarmUnand</b>! 🛒
         `;
         successModal.show();
@@ -413,6 +427,5 @@ function buatPesanan(btn, modal){
     });
 }
 </script>
-
 </body>
 </html>
