@@ -143,7 +143,7 @@
                   </select>
                 </div>
                 <div class="col-sm-3">
-                  <button class="btn btn-secondary w-100" type="submit"
+                  <button class="btn btn-success w-100" type="submit"
                           aria-label="Terapkan filter">Filter</button>
                 </div>
               </form>

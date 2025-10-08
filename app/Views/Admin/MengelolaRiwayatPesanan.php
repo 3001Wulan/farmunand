@@ -52,7 +52,7 @@
               <select name="status" class="form-select">
                 <option value="">Semua Status</option>
                 <?php
-                  $opsi = ['Belum Bayar','Diproses','Dikemas','Dikirim','Selesai','Dibatalkan'];
+                  $opsi = ['Belum Bayar','Dikemas','Dikirim','Selesai','Dibatalkan'];
                   foreach($opsi as $st):
                 ?>
                   <option value="<?= $st ?>" <?= (!empty($status) && $status===$st)?'selected':''; ?>><?= $st ?></option>
@@ -69,6 +69,21 @@
               <button type="submit" class="btn btn-success w-100">Filter</button>
             </div>
           </form>
+          
+          <?php
+          if (!function_exists('status_badge')) {
+            function status_badge(?string $s): string {
+              switch ($s) {
+                case 'Belum Bayar': return 'bg-secondary';
+                case 'Dikemas':     return 'bg-warning text-dark';
+                case 'Dikirim':     return 'bg-primary';
+                case 'Selesai':     return 'bg-success';
+                case 'Dibatalkan':  return 'bg-danger';
+                default:            return 'bg-light text-dark';
+              }
+            }
+          }
+          ?>
 
           <!-- Tabel -->
           <div class="table-responsive">
@@ -98,10 +113,11 @@
                     <td class="text-center"><?= $qty ?></td>
                     <td>Rp <?= number_format($total, 0, ',', '.') ?></td>
                     <td>
-                      <span class="badge <?= ($row['status_pemesanan']??'')==='Dibatalkan'?'bg-danger':'bg-success' ?>">
+                      <span class="badge <?= status_badge($row['status_pemesanan'] ?? '') ?>">
                         <?= esc($row['status_pemesanan'] ?? '-') ?>
                       </span>
                     </td>
+
                     <td>
                       <form action="<?= site_url('mengelolariwayatpesanan/updateStatus/' . $row['id_pemesanan']) ?>" method="post">
                         <?= csrf_field() ?>

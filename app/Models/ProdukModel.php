@@ -48,4 +48,19 @@ class ProdukModel extends Model
             ->orLike('deskripsi', $keyword)
             ->findAll();
     }
+
+    public function getKategoriList(): array
+{
+    // ambil kategori yang sudah ada di data (kalau ada)
+    $fromData = $this->select('kategori')
+        ->groupBy('kategori')
+        ->findColumn('kategori') ?? [];
+
+    // tiga opsi baku sesuai ENUM di DB
+    $enum = ['Makanan','Minuman','Lainnya'];
+
+    // gabungkan, hilangkan duplikat, pertahankan urutan enum
+    return array_values(array_unique(array_merge($enum, $fromData)));
+}
+
 }

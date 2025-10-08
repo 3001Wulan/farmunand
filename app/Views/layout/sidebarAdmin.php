@@ -15,15 +15,26 @@
   </div>
 
   <!-- Menu -->
-  <div class="d-grid gap-1 px-3 flex-grow-2">
-    <a href="/profileadmin" class="sidebar-link <?= (url_is('profileadmin')) ? 'active' : '' ?>">Profil</a>
-    <a href="/dashboard" class="sidebar-link <?= (url_is('dashboard')) ? 'active' : '' ?>">Dashboard</a>
-    <a href="<?= base_url('admin/produk') ?>" 
-       class="sidebar-link <?= (url_is('admin/produk*')) ? 'active' : '' ?>">Produk</a>
-    <a href="/MengelolaRiwayatPesanan" class="sidebar-link <?= (url_is('pesanan*')) ? 'active' : '' ?>">Pesanan</a>
-    <a href="/manajemenakunuser" class="sidebar-link <?= (url_is('manajemenakunuser')) ? 'active' : '' ?>">Manajemen Akun User</a>
-    <a href="/melihatlaporan" class="sidebar-link <?= (url_is('laporanpenjualan')) ? 'active' : '' ?>">Laporan Penjualan</a>
-  </div>
+<div class="d-grid gap-1 px-3 flex-grow-2">
+  <a href="<?= base_url('profileadmin') ?>"
+     class="sidebar-link <?= url_is('profileadmin*') ? 'active' : '' ?>">Profil</a>
+
+  <a href="<?= base_url('dashboard') ?>"
+     class="sidebar-link <?= url_is('dashboard*') ? 'active' : '' ?>">Dashboard</a>
+
+  <a href="<?= base_url('admin/produk') ?>"
+     class="sidebar-link <?= url_is('admin/produk*') ? 'active' : '' ?>">Produk</a>
+
+  <a href="<?= base_url('MengelolaRiwayatPesanan') ?>"
+     class="sidebar-link <?= url_is('MengelolaRiwayatPesanan*') ? 'active' : '' ?>">Pesanan</a>
+
+  <a href="<?= base_url('manajemenakunuser') ?>"
+     class="sidebar-link <?= url_is('manajemenakunuser*') ? 'active' : '' ?>">Manajemen Akun User</a>
+
+  <a href="<?= base_url('melihatlaporan') ?>"
+     class="sidebar-link <?= url_is('melihatlaporan*') ? 'active' : '' ?>">Laporan Penjualan</a>
+</div>
+
 
   <!-- Log Out di bawah -->
   <div class="mt-auto px-3 mb-3">
