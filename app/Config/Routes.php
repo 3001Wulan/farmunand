@@ -161,7 +161,3 @@ $routes->group('payments', static function($r){
     $r->get('unfinish', 'Payments::unfinish');
     $r->get('error',    'Payments::error');
 });
-
-
-
-
