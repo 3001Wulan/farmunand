@@ -146,7 +146,7 @@ class Pesanan extends BaseController
         return view('pembeli/pesananbelumbayar', $data);
     }
 
-    // === Pesanan Dibatalkan (BARU) ===
+    // === Pesanan Dibatalkan ===
     public function dibatalkan()
     {
         $user = $this->getUserData();

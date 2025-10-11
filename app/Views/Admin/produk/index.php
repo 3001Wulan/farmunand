@@ -26,12 +26,27 @@
       .badge-pill{border-radius:999px}
       .btn-success{background:var(--brand);border:none}
       .btn-success:hover{background:#145c32}
-      @media(max-width:992px){.content{margin-left:0;padding:18px}}
+      .filter-rect{
+        border-radius: 12px !important;
+        height: 44px;                
+        padding-inline: 14px;          
+      }
+      .filter-rect.form-select{
+        padding-top: .45rem;
+        padding-bottom: .45rem;
+      }
+      .btn-rect{
+        border-radius: 12px !important;
+        height: 44px;
+        background: #198754;   
+        border: none;
+        color: #fff;
+      }
+      .btn-rect:hover{ background:#157347; }
     </style>
   </head>
-  
-  <body>
 
+  <body>
     <!-- Sidebar -->
     <?= $this->include('layout/sidebarAdmin') ?>
 
@@ -39,7 +54,7 @@
     <div class="content">
       <div class="page-header">
         <h6 class="m-0">📦 <?= esc($title) ?></h6>
-        <a href="<?= base_url('admin/produk/create') ?>" class="btn btn-sm fw-semibold rounded-pill">
+      <a href="<?= base_url('admin/produk/create') ?>" class="btn btn-sm fw-semibold">
           <i class="bi bi-plus-circle"></i> Tambah Produk
         </a>
       </div>
@@ -49,28 +64,28 @@
           <div class="alert alert-success py-2 mb-3"><?= session()->getFlashdata('success') ?></div>
         <?php endif; ?>
 
+        <!-- Filter: Cari + Kategori (keduanya PILl) -->
         <form method="get" action="<?= base_url('admin/produk') ?>" class="row g-2 mb-3">
           <div class="col-md-7">
-            <input type="text" name="keyword" value="<?= esc($keyword ?? '') ?>" class="form-control"
-                  placeholder="🔍 Cari produk…">
+            <input type="text" name="keyword"
+                  value="<?= esc($keyword ?? '') ?>"
+                  class="form-control filter-rect"
+                  placeholder="Cari produk…">
           </div>
 
-          <!-- Dropdown kategori (baru) -->
           <div class="col-md-3">
-            <select name="kategori" class="form-select">
+            <select name="kategori" class="form-select filter-rect">
               <option value="">Semua Kategori</option>
-              <?php if (!empty($kategoriList)): ?>
-                <?php foreach ($kategoriList as $k): ?>
-                  <option value="<?= esc($k) ?>" <?= (!empty($kategori) && $kategori === $k) ? 'selected' : '' ?>>
-                    <?= esc($k) ?>
-                  </option>
-                <?php endforeach; ?>
-              <?php endif; ?>
+              <?php foreach (($kategoriList ?? []) as $k): ?>
+                <option value="<?= esc($k) ?>" <?= (!empty($kategori) && $kategori === $k) ? 'selected' : '' ?>>
+                  <?= esc($k) ?>
+                </option>
+              <?php endforeach; ?>
             </select>
           </div>
 
           <div class="col-md-2 d-grid">
-            <button type="submit" class="btn btn-success rounded-pill">Cari</button>
+            <button type="submit" class="btn btn-rect">Filter</button>
           </div>
         </form>
 
@@ -129,7 +144,6 @@
                           </div>
                         </div>
                       </div>
-                      <!-- /modal -->
                     </td>
                   </tr>
                 <?php endforeach; ?>
@@ -141,7 +155,6 @@
         </div>
       </div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

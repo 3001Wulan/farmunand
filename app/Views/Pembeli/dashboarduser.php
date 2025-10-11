@@ -54,7 +54,6 @@
       }
     </style>
   </head>
-
   <body>
     <?= $this->include('layout/sidebar') ?>
 

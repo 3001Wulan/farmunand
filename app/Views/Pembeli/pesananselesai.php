@@ -31,7 +31,7 @@
 </style>
 </head>
 <body>
-
+<!-- Sidebar -->
 <?= $this->include('layout/sidebar') ?>
 
 <div class="content">

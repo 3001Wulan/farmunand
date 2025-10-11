@@ -154,9 +154,14 @@ $routes->group('admin', ['filter' => 'auth:admin'], function($routes) {
 
 // app/Config/Routes.php
 $routes->group('payments', static function($r){
-    $r->post('create', 'Payments::create');   // bikin snapToken
-    $r->post('webhook', 'Payments::webhook'); // terima notifikasi Midtrans
-    $r->get('finish', 'Payments::finish');    // optional landing
-    $r->get('unfinish', 'Payments::unfinish');// optional landing
-    $r->get('error', 'Payments::error');      // optional landing
+    $r->post('create',  'Payments::create');   // buat order & token
+    $r->post('resume/(:segment)', 'Payments::resume/$1'); // ambil token utk order lama (atau bikin retry)
+    $r->post('webhook', 'Payments::webhook');  // notifikasi dari Midtrans
+    $r->get('finish',   'Payments::finish');
+    $r->get('unfinish', 'Payments::unfinish');
+    $r->get('error',    'Payments::error');
 });
+
+
+
+
