@@ -15,45 +15,67 @@ class PesananModel extends Model
     protected $updatedField  = 'updated_at';
 
     /**
-     * Join pesanan + detail + produk untuk user tertentu.
-     */
-    public function getPesananWithProduk($id_user)
-    {
-        return $this->select('
-                    pemesanan.id_pemesanan,
-                    produk.id_produk,
-                    produk.nama_produk,
-                    produk.harga,
-                    produk.foto,
-                    detail_pemesanan.jumlah_produk,
-                    pemesanan.status_pemesanan
-                ')
-                ->join('detail_pemesanan', 'detail_pemesanan.id_pemesanan = pemesanan.id_pemesanan')
-                ->join('produk', 'produk.id_produk = detail_pemesanan.id_produk')
-                ->where('pemesanan.id_user', $id_user)
-                ->findAll();
-    }
-
     /**
-     * Join pesanan + detail + produk untuk user tertentu dengan filter status.
-     */
-    public function getPesananByStatus($id_user, $status)
-    {
-        return $this->select('
-                    pemesanan.id_pemesanan,
-                    produk.id_produk,
-                    produk.nama_produk,
-                    produk.harga,
-                    produk.foto,
-                    detail_pemesanan.jumlah_produk,
-                    pemesanan.status_pemesanan
-                ')
-                ->join('detail_pemesanan', 'detail_pemesanan.id_pemesanan = pemesanan.id_pemesanan')
-                ->join('produk', 'produk.id_produk = detail_pemesanan.id_produk')
-                ->where('pemesanan.id_user', $id_user)
-                ->where('pemesanan.status_pemesanan', $status)
-                ->findAll();
-    }
+ * Join pesanan + detail + produk + pembayaran untuk user tertentu (tanpa filter status).
+ * Hasil sudah memuat order_id & snap_token agar view bisa render tombol "Lanjutkan Pembayaran".
+ */
+public function getPesananWithProduk(int $idUser): array
+{
+    return $this->db->table('pemesanan p')
+        ->select(
+            'p.id_pemesanan,' .
+            'p.status_pemesanan,' .
+            'p.total_harga,' .
+            'p.created_at,' .
+            'p.konfirmasi_expires_at,' .
+            'pr.id_produk,' .
+            'pr.nama_produk,' .
+            'pr.foto,' .
+            'dp.jumlah_produk,' .
+            'dp.harga_produk AS harga,' .
+            'b.order_id,' .
+            'b.transaction_status AS mid_status,' .
+            'b.snap_token'
+        )
+        ->join('detail_pemesanan dp', 'dp.id_pemesanan = p.id_pemesanan', 'inner')
+        ->join('produk pr', 'pr.id_produk = dp.id_produk', 'left')
+        ->join('pembayaran b', 'b.id_pembayaran = p.id_pembayaran', 'left')
+        ->where('p.id_user', $idUser)
+        ->orderBy('p.created_at', 'DESC')
+        ->get()->getResultArray();
+}
+
+/**
+ * Join pesanan + detail + produk + pembayaran untuk user tertentu dengan filter status.
+ * Dipakai di halaman Belum Bayar/Dikemas/Dikirim/Selesai/Dibatalkan.
+ */
+public function getPesananByStatus(int $idUser, string $status): array
+{
+    return $this->db->table('pemesanan p')
+        ->select(
+            'p.id_pemesanan,' .
+            'p.status_pemesanan,' .
+            'p.total_harga,' .
+            'p.created_at,' .
+            'p.konfirmasi_expires_at,' .
+            'pr.foto,' .
+            'pr.nama_produk,' .
+            'dp.jumlah_produk,' .
+            'dp.harga_produk AS harga,' .
+            'b.order_id,' .
+            'b.transaction_status AS mid_status,' .
+            'b.snap_token'
+        )
+        ->join('detail_pemesanan dp', 'dp.id_pemesanan = p.id_pemesanan', 'inner')
+        ->join('produk pr', 'pr.id_produk = dp.id_produk', 'left')
+        ->join('pembayaran b', 'b.id_pembayaran = p.id_pembayaran', 'left')
+        ->where('p.id_user', $idUser)
+        ->where('p.status_pemesanan', $status)
+        ->orderBy('p.created_at', 'DESC')
+        ->get()->getResultArray();
+}
+
+
 
     /**
      * Produk dari pesanan user yang statusnya 'Selesai' dan belum diberi rating oleh user.
@@ -147,4 +169,5 @@ class PesananModel extends Model
             ->get()->getResultArray();
     }
 
+    
 }

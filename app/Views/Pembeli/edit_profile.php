@@ -1,71 +1,54 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= esc($title) ?></title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: #f8f9fa;
-    }
-
-    .content { margin-left: 240px; padding: 30px; }
-
-    .profile-card {
-      border-radius: 15px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      overflow: hidden;
-      border: none;
-    }
-
-    .profile-header {
-      background: linear-gradient(135deg, #198754, #28a745);
-      color: white;
-      padding: 25px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .profile-header h4 {
-      margin: 0;
-      font-weight: bold;
-    }
-
-    .profile-body { padding: 25px; }
-
-    .form-label { font-weight: 500; color: #198754; }
-
-    .btn-save {
-      background: #198754;
-      border: none;
-    }
-    .btn-save:hover {
-      background: #145c32;
-    }
-
-    .btn-cancel {
-      background: #6c757d;
-      border: none;
-    }
-    .btn-cancel:hover {
-      background: #5a6268;
-    }
-
-    .preview-img {
-      width: 120px;
-      height: 120px;
-      object-fit: cover;
-      border-radius: 50%;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    }
-  </style>
-</head>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= esc($title) ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #f8f9fa;}
+      .content { margin-left: 240px; padding: 30px; }
+      .profile-card {
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        overflow: hidden;
+        border: none;}
+      .profile-header {
+        background: linear-gradient(135deg, #198754, #28a745);
+        color: white;
+        padding: 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;}
+      .profile-header h4 {
+        margin: 0;
+        font-weight: bold;}
+      .profile-body { padding: 25px; }
+      .form-label { font-weight: 500; color: #198754; }
+      .btn-save {
+        background: #198754;
+        border: none;}
+      .btn-save:hover {
+        background: #145c32;}
+      .btn-cancel {
+        background: #6c757d;
+        border: none;}
+      .btn-cancel:hover {
+        background: #5a6268;}
+      .preview-img {
+        width: 120px;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 50%;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);}
+    </style>
+  </head>
+  
   <body>
     <!-- Sidebar -->
     <?= $this->include('layout/sidebar') ?>

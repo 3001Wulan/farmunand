@@ -12,8 +12,6 @@
       .form-label { font-weight: 600; color: #198754; }
       .btn-primary { background: #198754; border: none; }
       .btn-primary:hover { background: #145c32; }
-
-      /* Konten geser agar tidak tertutup sidebar */
       .content {
         padding: 30px;
         margin-left: 250px;
@@ -24,7 +22,8 @@
   <body>
     <!-- Sidebar dari layouts -->
     <?= $this->include('layout/sidebarAdmin') ?>
-
+    
+    <!-- Content -->
     <div class="content">
       <div class="card">
         <div class="card-header">Edit Profil Admin</div>

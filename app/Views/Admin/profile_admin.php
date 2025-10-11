@@ -7,19 +7,35 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-      .content { margin-left: 240px; padding: 30px; }
-      .profile-card { border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: none; overflow: hidden; }
-      .profile-header { background: linear-gradient(135deg, #198754, #28a745); color: white; padding: 25px 30px; display: flex; align-items: center; justify-content: space-between; }
-      .profile-header h2 { margin: 0; font-weight: bold; font-size: 28px; }
-      .profile-header p { font-size: 16px; margin: 5px 0 0; }
-      .profile-photo { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-      .profile-body { padding: 25px 30px; }
-      .info-box { border: 1px solid #dee2e6; border-radius: 10px; padding: 12px 20px; margin-bottom: 10px; background: #fff; display: flex; justify-content: space-between; align-items: center; }
-      .info-box strong { color: #198754; font-weight: 600; font-size: 16px; }
-      .info-box span { font-size: 16px; }
-      .btn-edit { background: #198754; border: none; font-size: 16px; padding: 10px 22px; }
-      .btn-edit:hover { background: #145c32; }
-      .summary-title { font-weight: 600; color: #198754; margin-top: 20px; margin-bottom: 10px; }
+      .content { margin-left: 240px; padding: 30px; 
+      }
+      .profile-card { border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: none; overflow: hidden;
+       }
+      .profile-header { background: linear-gradient(135deg, #198754, #28a745); color: white; padding: 25px 30px; display: flex; align-items: center; justify-content: space-between; 
+      }
+      .profile-header h2 { margin: 0; font-weight: bold; font-size: 28px; 
+      }
+      .profile-header p { font-size: 16px; margin: 5px 0 0; 
+      }
+      .profile-photo { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
+      }
+      .profile-body { padding: 25px 30px;
+      }
+      .info-box { border: 1px solid #dee2e6; border-radius: 10px; padding: 12px 20px; margin-bottom: 10px; background: #fff; display: flex; justify-content: space-between; align-items: center; 
+      }
+      .info-box strong { color: #198754; font-weight: 600; font-size: 16px; 
+      }
+      .info-box span { font-size: 16px; 
+      }
+      .btn-edit { background: #198754; border: none; font-size: 16px; padding: 10px 22px; 
+        border-radius: 8px; transition: background 0.3s, transform 0.2s; 
+      }
+      .btn-edit:hover { background: #145c32; 
+        transform: translateY(-2px); 
+      }
+      .summary-title { font-weight: 600; color: #198754; margin-top: 20px; margin-bottom: 10px; 
+        font-size: 18px; 
+      }
     </style>
   </head>
 
