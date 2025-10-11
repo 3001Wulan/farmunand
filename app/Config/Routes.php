@@ -160,3 +160,4 @@ $routes->group('payments', static function($r){
     $r->get('unfinish', 'Payments::unfinish');// optional landing
     $r->get('error', 'Payments::error');      // optional landing
 });
+$routes->get('konfirmasipesanan/selesai/(:num)', 'KonfirmasiPesanan::selesai/$1');

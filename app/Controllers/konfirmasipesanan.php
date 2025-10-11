@@ -38,10 +38,10 @@ class KonfirmasiPesanan extends BaseController
     public function selesai($id_pemesanan)
     {
         $this->pesanModel->update($id_pemesanan, [
-            'status_pemesanan' => 'selesai' // konsisten lowercase
+            'status_pemesanan' => 'Selesai' // konsisten lowercase
         ]);
 
-        return redirect()->to('/konfirmasipesanan')
+        return redirect()->to('/riwayatpesanan')
                          ->with('success', 'Pesanan berhasil dikonfirmasi!');
     }
 }

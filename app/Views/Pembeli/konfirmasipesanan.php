@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pesanan Saya - FarmUnand</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     body{background:#f8f9fa;}
@@ -65,11 +67,9 @@
         <?php foreach ($pesanan as $p): ?>
           <?php
             $qty    = (int)($p['jumlah_produk'] ?? 0);
-            $harga  = (int)($p['harga'] ?? 0); // dp.harga_produk (alias 'harga')
+            $harga  = (int)($p['harga'] ?? 0);
             $total  = $qty * $harga;
             $status = $p['status_pemesanan'] ?? '-';
-            // Catatan: item yang sudah lewat 7 hari seharusnya tidak ada di sini
-            // karena controller sudah meng-auto-close ke 'Selesai' sebelum render.
           ?>
           <div class="card order-card">
             <div class="card-body d-flex flex-wrap justify-content-between align-items-center">
@@ -91,14 +91,12 @@
                   <span class="fw-bold">Rp <?= number_format($total,0,',','.'); ?></span>
                 </p>
 
-                <!-- SELALU bisa konfirmasi segera setelah 'Dikirim' -->
                 <?php if ($status === 'Dikirim'): ?>
-                  <form action="<?= site_url('pesanan/konfirmasi/'.$p['id_pemesanan']) ?>" method="post" class="d-inline" onsubmit="this.querySelector('button[type=submit]').disabled=true;">
-                    <?= csrf_field() ?>
-                    <button type="submit" class="btn btn-sm btn-success btn-filter">
-                      Pesanan Selesai
-                    </button>
-                  </form>
+                  <button 
+                    class="btn btn-sm btn-success btn-filter"
+                    onclick="konfirmasiSelesai('<?= site_url('konfirmasipesanan/selesai/'.$p['id_pemesanan']) ?>')">
+                    Pesanan Selesai
+                  </button>
                 <?php elseif ($status === 'Selesai'): ?>
                   <button class="btn btn-sm btn-outline-success" disabled>Sudah Selesai</button>
                 <?php endif; ?>
@@ -113,5 +111,21 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- SweetAlert2 Popup -->
+  <script>
+    function konfirmasiSelesai(url) {
+      Swal.fire({
+        title: 'Pesanan Telah Selesai',
+        text: 'Terima kasih telah berbelanja di FarmUnand!',
+        icon: 'success',
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true
+      }).then(() => {
+        window.location.href = url;
+      });
+    }
+  </script>
 </body>
 </html>
