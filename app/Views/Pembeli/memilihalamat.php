@@ -106,7 +106,6 @@
     <div class="modal fade" id="tambahAlamatModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
-          <!-- CSRF DIHAPUS -->
           <form action="<?= base_url('/memilihalamat/tambah') ?>" method="post">
             <div class="modal-header">
               <h5 class="modal-title">Tambah Alamat</h5>

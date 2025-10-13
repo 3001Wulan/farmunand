@@ -106,7 +106,6 @@
 
               <!-- Form aksi -->
               <form id="actionForm" method="post" class="d-inline">
-                <?= csrf_field() ?>
                 <input type="hidden" name="id_produk" value="<?= $produk['id_produk'] ?>">
 
                 <div class="input-group input-group-sm" style="width:180px;">

@@ -94,7 +94,6 @@
                 <!-- SELALU bisa konfirmasi segera setelah 'Dikirim' -->
                 <?php if ($status === 'Dikirim'): ?>
                   <form action="<?= site_url('pesanan/konfirmasi/'.$p['id_pemesanan']) ?>" method="post" class="d-inline" onsubmit="this.querySelector('button[type=submit]').disabled=true;">
-                    <?= csrf_field() ?>
                     <button type="submit" class="btn btn-sm btn-success btn-filter">
                       Pesanan Selesai
                     </button>

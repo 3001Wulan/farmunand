@@ -63,7 +63,7 @@ class Payments extends BaseController
 
         $db->transStart();
 
-        // (A) pembayaran (pending)
+        // (A) pembayaran
         $db->table('pembayaran')->insert([
             'gateway'            => 'midtrans',
             'order_id'           => null,
@@ -77,7 +77,7 @@ class Payments extends BaseController
         ]);
         $idPembayaran = $db->insertID();
 
-        // (B) pemesanan (Belum Bayar)
+        // (B) pemesanan
         $db->table('pemesanan')->insert([
             'id_user'          => $idUser,
             'id_alamat'        => $idAlamat,
@@ -101,7 +101,7 @@ class Payments extends BaseController
             ]);
         }
 
-        // (C2) KURANGI STOK (guarded, sama seperti COD)
+        // (C2) kurangi stok (guarded)
         foreach ($detailRows as $d) {
             $db->query(
                 "UPDATE produk SET stok = stok - ? WHERE id_produk = ? AND stok >= ?",
@@ -128,14 +128,13 @@ class Payments extends BaseController
             return $this->response->setJSON(['success'=>false,'message'=>'Gagal membuat transaksi.']);
         }
 
-        // [BERSIHKAN KERANJANG] – sama seperti jalur COD
+        // bersihkan keranjang
         $session  = session();
         $cartKey  = 'cart_u_' . $idUser;
         $countKey = 'cart_count_u_' . $idUser;
         $session->remove([$cartKey, $countKey, 'checkout_all', 'checkout_data_multi', 'checkout_data']);
-        // Jika keranjang disimpan di DB, hapus juga di sini.
 
-        // (E) Panggil Snap
+        // (E) Snap
         $this->midtransInit();
         $snapItems = array_map(static function($d){
             return [
@@ -151,9 +150,10 @@ class Payments extends BaseController
                 'order_id'     => $orderId,
                 'gross_amount' => $grossAmount
             ],
-            'item_details'     => $snapItems,
-            'customer_details' => ['first_name' => 'User-' . $idUser],
-            'callbacks'        => [
+            'item_details'      => $snapItems,
+            'customer_details'  => ['first_name' => 'User-' . $idUser],
+            'callbacks'         => [
+                // Midtrans akan menambahkan order_id, transaction_status, dll sebagai query string
                 'finish'   => base_url('payments/finish'),
                 'unfinish' => base_url('payments/unfinish'),
                 'error'    => base_url('payments/error'),
@@ -164,7 +164,6 @@ class Payments extends BaseController
         $snapToken   = $snap->token ?? null;
         $redirectUrl = $snap->redirect_url ?? null;
 
-        // simpan token utk resume
         $db->table('pembayaran')->where('id_pembayaran', $idPembayaran)->update([
             'snap_token'   => $snapToken,
             'redirect_url' => $redirectUrl,
@@ -177,69 +176,54 @@ class Payments extends BaseController
             'redirect_url' => $redirectUrl,
             'order_id'     => $orderId,
             'id_pemesanan' => (int)$idPemesanan,
-            // agar halaman Belum Bayar auto-open Snap
-            'redirect'     => base_url('pesananbelumbayar?order='.rawurlencode($orderId).'&autopay=1'),
+            // tetap arahkan ke Belum Bayar & auto-open popup
+            'redirect'     => base_url('pesananbelumbayar?order='.$orderId.'&autopay=1'),
         ]);
     }
 
-    /* ------------ 2a) Resume by ORDER ID (untuk tombol “Lanjutkan Pembayaran”) ------------ */
+    /* ------------ 2a) Resume by ORDER ID ------------ */
     public function resume(string $orderId)
     {
         $db = Database::connect();
-
         $row = $db->table('pembayaran b')
             ->select('b.id_pembayaran, b.snap_token, b.order_id, p.id_pemesanan')
             ->join('pemesanan p', 'p.id_pembayaran = b.id_pembayaran', 'left')
             ->where('b.order_id', $orderId)
             ->get()->getRowArray();
 
-        if (!$row) {
-            return $this->response->setStatusCode(404)->setJSON([
-                'success'=>false,'message'=>'Transaksi tidak ditemukan'
-            ]);
-        }
+        if (!$row) return $this->response->setStatusCode(404)->setJSON(['success'=>false,'message'=>'Transaksi tidak ditemukan']);
 
         if (!empty($row['snap_token'])) {
             return $this->response->setJSON(['success'=>true,'snapToken'=>$row['snap_token']]);
         }
 
-        // token kosong/expired → generate token retry
         $retry = $this->regenerateToken((int)$row['id_pemesanan'], $orderId);
-        if (!$retry['success']) {
-            return $this->response->setStatusCode(500)->setJSON($retry);
-        }
-        return $this->response->setJSON([
-            'success'=>true,'snapToken'=>$retry['snapToken'],'order_id'=>$retry['order_id']
-        ]);
+        if (!$retry['success']) return $this->response->setStatusCode(500)->setJSON($retry);
+
+        return $this->response->setJSON(['success'=>true,'snapToken'=>$retry['snapToken'],'order_id'=>$retry['order_id']]);
     }
 
-    /* ------------ 2b) Kompatibilitas lama (by id_pemesanan) ------------ */
+    /* ------------ 2b) Kompat by id_pemesanan ------------ */
     public function tokenByOrder(int $idPemesanan)
     {
         $db = Database::connect();
-
         $row = $db->table('pemesanan p')
             ->select('b.snap_token, b.order_id, b.id_pembayaran')
             ->join('pembayaran b', 'b.id_pembayaran = p.id_pembayaran', 'left')
             ->where('p.id_pemesanan', $idPemesanan)
             ->get()->getRowArray();
 
-        if (!$row) {
-            return $this->response->setStatusCode(404)->setJSON(['success'=>false,'message'=>'Pesanan tidak ditemukan']);
-        }
+        if (!$row) return $this->response->setStatusCode(404)->setJSON(['success'=>false,'message'=>'Pesanan tidak ditemukan']);
 
-        if (!empty($row['snap_token'])) {
-            return $this->response->setJSON(['success'=>true,'snapToken'=>$row['snap_token']]);
-        }
+        if (!empty($row['snap_token'])) return $this->response->setJSON(['success'=>true,'snapToken'=>$row['snap_token']]);
 
         $new = $this->regenerateToken($idPemesanan, $row['order_id'] ?: null);
-        if (!$new['success']) {
-            return $this->response->setStatusCode(500)->setJSON($new);
-        }
+        if (!$new['success']) return $this->response->setStatusCode(500)->setJSON($new);
+
         return $this->response->setJSON(['success'=>true,'snapToken'=>$new['snapToken']]);
     }
 
-    /** Buat token ulang */
+    /* ------------ util regenerate token ------------ */
     private function regenerateToken(int $idPemesanan, ?string $baseOrderId = null): array
     {
         $db = Database::connect();
@@ -263,8 +247,7 @@ class Payments extends BaseController
 
         $this->midtransInit();
 
-        $gross = 0;
-        $snapItems = [];
+        $gross = 0; $snapItems = [];
         foreach ($detail as $d) {
             $harga  = (int)$d['harga_produk'];
             $qty    = (int)$d['jumlah_produk'];
@@ -281,8 +264,11 @@ class Payments extends BaseController
         $newOrderId = $root . '-R' . time();
 
         $params = [
-            'transaction_details' => ['order_id'=>$newOrderId, 'gross_amount'=>$gross],
-            'item_details'        => $snapItems
+            'transaction_details' => [
+                'order_id'     => $newOrderId,
+                'gross_amount' => $gross
+            ],
+            'item_details' => $snapItems
         ];
 
         $snap        = \Midtrans\Snap::createTransaction($params);
@@ -303,11 +289,10 @@ class Payments extends BaseController
     /* ------------ 3) Webhook Midtrans ------------ */
     public function webhook()
     {
-        helper('text');
         $raw   = $this->request->getBody();
         $notif = json_decode($raw, true);
 
-        // Signature validation (longgar utk sandbox)
+        // (opsional) validasi signature dilonggarkan di sandbox
         $serverKey   = env('MIDTRANS_SERVER_KEY');
         $orderId     = $notif['order_id']     ?? '';
         $statusCode  = $notif['status_code']  ?? '';
@@ -320,11 +305,11 @@ class Payments extends BaseController
             log_message('warning', '[MIDTRANS] Signature mismatch', compact('orderId','statusCode','grossAmount'));
         }
 
-        $statusMid  = $notif['transaction_status'] ?? 'pending';
-        $paymentType= $notif['payment_type']       ?? null;
-        $fraud      = $notif['fraud_status']       ?? null;
-        $va         = $notif['va_numbers'][0]['va_number'] ?? ($notif['permata_va_number'] ?? null);
-        $pdfUrl     = $notif['pdf_url'] ?? null;
+        $statusMid   = $notif['transaction_status'] ?? 'pending'; // settlement|capture|pending|deny|cancel|expire|refund
+        $paymentType = $notif['payment_type']       ?? null;
+        $fraud      =  $notif['fraud_status']       ?? null;
+        $va         =  $notif['va_numbers'][0]['va_number'] ?? ($notif['permata_va_number'] ?? null);
+        $pdfUrl     =  $notif['pdf_url'] ?? null;
 
         $db  = Database::connect();
         $now = date('Y-m-d H:i:s');
@@ -370,66 +355,119 @@ class Payments extends BaseController
         if (!$db->transStatus()) {
             return $this->response->setStatusCode(500)->setBody('DB error');
         }
+
+        // 👉 Tambahan penting:
+        // Kalau status gagal/expired → langsung restock + hapus pesanan dari "Belum Bayar"
+        if (in_array($statusMid, ['cancel','deny','expire'], true)) {
+            $this->cancelOrderAndRestock($orderId);
+        }
+
         return $this->response->setStatusCode(200)->setBody('OK');
     }
 
-    /* ------------ Callback landing pages ------------ */
-
-    /** sukses → arahkan ke Dikemas */
-    public function finish()
-    {
-        return redirect()->to('/pesanandikemas')
-            ->with('success', 'Pembayaran berhasil. Jika daftar belum berubah, tunggu 1–2 detik sampai notifikasi masuk.');
-    }
-
-    /**
-     * belum selesai / ditutup / expired
-     * - kembalikan stok & hapus pesanan pending
-     * - arahkan ke dashboarduser
-     */
-    public function unfinish()
-    {
-        $orderId = (string) $this->request->getGet('order_id'); // Midtrans mengirim ?order_id=
-        if ($orderId !== '') {
-            $this->cancelAndRestock($orderId);
-        }
-        return redirect()->to('/pesananbelumbayar')
-            ->with('info', 'Transaksi tidak selesai/expired. Pesanan dibatalkan dan stok dikembalikan.');
-    }
-
-    /** error → kembali ke Belum Bayar */
-    public function error()
-    {
-        return redirect()->to('/pesananbelumbayar')
-            ->with('error', 'Terjadi kesalahan saat memproses pembayaran. Coba lagi ya.');
-    }
-
-    /**
-     * Hapus pesanan “Belum Bayar” + kembalikan stok (idempoten aman dipanggil berulang)
-     */
-    private function cancelAndRestock(string $orderId): void
+    /* ------------ util: batalkan & kembalikan stok ------------ */
+    private function cancelOrderAndRestock(string $orderId): void
     {
         $db = Database::connect();
+        $now = date('Y-m-d H:i:s');
+
         $db->transStart();
 
-        $row = $db->table('pemesanan p')
-            ->select('p.id_pemesanan, p.status_pemesanan, b.id_pembayaran')
-            ->join('pembayaran b','b.id_pembayaran = p.id_pembayaran','left')
-            ->where('b.order_id',$orderId)->get()->getRowArray();
+        // Ambil id_pemesanan & id_pembayaran
+        $row = $db->table('pembayaran b')
+            ->select('b.id_pembayaran, p.id_pemesanan')
+            ->join('pemesanan p', 'p.id_pembayaran = b.id_pembayaran', 'left')
+            ->where('b.order_id', $orderId)
+            ->get()->getRowArray();
 
-        if ($row && $row['status_pemesanan'] === 'Belum Bayar') {
-            $detail = $db->table('detail_pemesanan')->where('id_pemesanan',$row['id_pemesanan'])->get()->getResultArray();
-            foreach ($detail as $d) {
-                $db->query("UPDATE produk SET stok = stok + ? WHERE id_produk = ?", [(int)$d['jumlah_produk'], (int)$d['id_produk']]);
+        if ($row && $row['id_pemesanan']) {
+            $details = $db->table('detail_pemesanan')
+                ->where('id_pemesanan', $row['id_pemesanan'])
+                ->get()->getResultArray();
+
+            // kembalikan stok
+            foreach ($details as $d) {
+                $db->query("UPDATE produk SET stok = stok + ? WHERE id_produk = ?",
+                    [(int)$d['jumlah_produk'], (int)$d['id_produk']]);
             }
-            // hapus detail & header + baris pembayaran
-            $db->table('detail_pemesanan')->where('id_pemesanan',$row['id_pemesanan'])->delete();
-            $db->table('pemesanan')->where('id_pemesanan',$row['id_pemesanan'])->delete();
-            if (!empty($row['id_pembayaran'])) {
-                $db->table('pembayaran')->where('id_pembayaran',$row['id_pembayaran'])->delete();
-            }
+
+            // hapus detail & pesanan (supaya tidak nongol lagi di Belum Bayar)
+            $db->table('detail_pemesanan')->where('id_pemesanan', $row['id_pemesanan'])->delete();
+            $db->table('pemesanan')->where('id_pemesanan', $row['id_pemesanan'])->delete();
+        }
+
+        // tandai pembayaran cancel (jika belum)
+        if (!empty($row['id_pembayaran'])) {
+            $db->table('pembayaran')->where('id_pembayaran', $row['id_pembayaran'])->update([
+                'transaction_status' => 'cancel',
+                'updated_at'         => $now
+            ]);
         }
 
         $db->transComplete();
+        // (sengaja tidak return pesan; bila gagal akan ada log DB)
     }
+
+    /* ------------ 4) Landing callbacks dari Midtrans ------------ */
+    // --- helper kecil biar ga duplikatif ---
+    private function currentUserForView(): array
+    {
+        return [
+            'id_user'  => session()->get('id_user'),
+            'username' => session()->get('username') ?? 'Pengguna',
+            'role'     => session()->get('role') ?? 'User',
+            'foto'     => session()->get('foto') ?? 'default.jpeg',
+        ];
+    }
+
+    /**
+     * Sukses bayar (settlement/capture).
+     * Midtrans akan redirect ke URL ini. Kita tampilkan view finish milik kita sendiri.
+     * Catatan: status di DB tetap di-update oleh webhook; di sini hanya tampilan.
+     */
+    public function finish()
+    {
+        $user    = $this->currentUserForView();
+        // kadang Midtrans mengirim ?order_id=..., kita teruskan ke view kalau mau ditampilkan
+        $orderId = $this->request->getGet('order_id');
+
+        return view('payments/finish', [
+            'user'     => $user,
+            'order_id' => $orderId,
+        ]);
+    }
+
+    /**
+     * Transaksi belum selesai / ditutup user (onClose atau unfinish).
+     * Tampilkan halaman unfinish (kalau sudah punya), atau pakai view sederhana.
+     */
+    public function unfinish()
+    {
+        $user    = $this->currentUserForView();
+        $orderId = $this->request->getGet('order_id');
+
+        // jika kamu belum punya view 'payments/unfinish', buat cepatnya mirip 'error' tapi dengan pesan "belum selesai"
+        return view('payments/unfinish', [
+            'user'     => $user,
+            'order_id' => $orderId,
+            'message'  => 'Transaksi belum selesai. Kamu bisa lanjutkan dari menu "Belum Bayar".'
+        ]);
+    }
+
+    /**
+     * Error saat proses pembayaran (onError).
+     * Tampilkan halaman error milik kita.
+     */
+    public function error()
+    {
+        $user    = $this->currentUserForView();
+        $orderId = $this->request->getGet('order_id');
+
+        return view('payments/error', [
+            'user'     => $user,
+            'order_id' => $orderId,
+            'message'  => 'Terjadi kesalahan saat memproses pembayaran. Coba lagi ya.'
+        ]);
+    }
+
 }
