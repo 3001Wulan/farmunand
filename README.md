@@ -24,45 +24,254 @@ to your `app` folder. The affected files can be copied or merged from
 `vendor/codeigniter4/framework/app`.
 
 ## Setup
+# FarmUnand — Aplikasi CodeIgniter 4
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+Aplikasi e-commerce sederhana berbasis **CodeIgniter 4** dengan fitur:
 
-## Important Change with index.php
+* Pembayaran online via **Midtrans Snap**
+* Email development (lupa password) via **Mailtrap**
+* Utilitas **Dompdf** & **PhpSpreadsheet** (opsional)
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+## 1) Kebutuhan Sistem
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+* **PHP 8.1+** dengan ekstensi: `intl`, `mbstring`, `json`, `curl`, dan (jika MySQL) `mysqlnd`
+* **Composer**
+* **MySQL/MariaDB**
+* **ngrok** (opsional, untuk menerima notifikasi Midtrans di lokal)
 
-**Please** read the user guide for a better explanation of how CI4 works!
+> Paket composer inti yang digunakan: `codeigniter4/framework`, `midtrans/midtrans-php`, `dompdf/dompdf`, `phpoffice/phpspreadsheet` (+ beberapa dev packages untuk testing).
 
-## Repository Management
+---
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+## 2) Instalasi
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+```bash
+# clone repo
+git clone <URL-REPO-ANDA>
+cd <nama-folder-repo>
 
-## Server Requirements
+# install dependency PHP
+composer install
+```
 
-PHP version 8.1 or higher is required, with the following extensions installed:
+---
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+## 3) Konfigurasi Lingkungan (.env)
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - If you are still using PHP 7.4 or 8.0, you should upgrade immediately.
-> - The end of life date for PHP 8.1 will be December 31, 2025.
+Salin file contoh lalu sesuaikan:
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+```bash
+cp env .env
+```
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+Edit `.env` sesuai lingkungan Anda. Contoh yang penting:
+
+**URL Aplikasi / Port**
+
+```
+app.baseURL = 'http://localhost:8080/'
+```
+
+**Database**
+
+```
+database.default.hostname = localhost
+database.default.database = farmunand
+database.default.username = root
+database.default.password =
+database.default.DBDriver  = MySQLi
+database.default.port      = 3306
+```
+
+**Midtrans (Sandbox)**
+
+```
+MIDTRANS_IS_PRODUCTION=false
+MIDTRANS_SERVER_KEY=Mid-server-xxxxxxxx
+MIDTRANS_CLIENT_KEY=SB-Mid-client-xxxxxxxx
+```
+
+**Mail (Mailtrap)**
+
+```
+email.protocol   = smtp
+email.SMTPHost   = sandbox.smtp.mailtrap.io
+email.SMTPUser   = xxxxxxxx
+email.SMTPPass   = "yyyyyyyy"
+email.SMTPPort   = 2525
+email.SMTPCrypto = tls
+email.fromEmail  = noreply@farmunand.dev
+email.fromName   = "FarmUnand App"
+email.mailType   = html
+```
+
+> Tip: untuk lokal, biarkan `CI_ENVIRONMENT = development`.
+
+---
+
+## 4) Database
+
+1. Buat database sesuai nama di `.env` (misal `farmunand`).
+2. Jalankan migration/seeder jika ada, atau impor dump SQL milik Anda.
+
+---
+
+## 5) Menjalankan Aplikasi (Lokal)
+
+```bash
+# akan berjalan di http://localhost:8080
+php spark serve --port 8080
+```
+
+---
+
+## 6) Midtrans (Sandbox)
+
+Aplikasi memanggil **Midtrans Snap** via `midtrans/midtrans-php` menggunakan key dari `.env`.
+
+### Rute yang digunakan
+
+* Buat transaksi (online): **POST** `/payments/create`
+  (membuat `pemesanan`, `pembayaran`, panggil Snap, simpan `snap_token` & `redirect_url`)
+* Lanjutkan pembayaran berdasarkan **order_id**: **POST** `/payments/resume/{order_id}`
+* Webhook/Notifikasi: **POST** `/payments/webhook`
+* Halaman redirect hasil Snap:
+
+  * `/payments/finish`  → redirect ke daftar **Dikemas**
+  * `/payments/unfinish` → redirect ke **Belum Bayar**
+  * `/payments/error`   → redirect ke **Belum Bayar**
+
+### Notification URL (WAJIB diisi)
+
+Pada **Midtrans Dashboard** → *Settings* → *Configuration* → **Payment Notification URL**, set ke:
+
+```
+https://<URL-PUBLIK-ANDA>/payments/webhook
+```
+
+> Saat lokal, gunakan **ngrok** untuk URL publik (lihat bagian ngrok).
+
+---
+
+## 7) Mailtrap (Email Lupa Password)
+
+1. Buat **Inbox** di Mailtrap (Email Testing).
+2. Salin kredensial SMTP (User/Pass/Host/Port) ke `.env` (bagian email di atas).
+3. Saat mengirim email lupa password, pesan akan tertangkap di Inbox Mailtrap (tidak terkirim ke email real).
+
+---
+
+## 8) Membuka Akses Lokal untuk Webhook Midtrans (ngrok)
+
+**Install ngrok**: [https://ngrok.com/download](https://ngrok.com/download)
+Login & set auth token:
+
+```bash
+ngrok config add-authtoken <AUTH_TOKEN_ANDA>
+```
+
+Jalankan tunnel ke server lokal:
+
+```bash
+# jika app berjalan di http://localhost:8080
+ngrok http 8080
+# atau:
+ngrok http http://localhost:8080
+```
+
+Anda akan memperoleh URL publik, misalnya:
+
+```
+https://nama-acak.ngrok-free.app -> http://localhost:8080
+```
+
+Salin URL **https** tersebut ke **Payment Notification URL** Midtrans:
+
+```
+https://nama-acak.ngrok-free.app/payments/webhook
+```
+
+> Biarkan terminal ngrok tetap terbuka saat pengujian. Jika URL ngrok berubah, jangan lupa update lagi di Midtrans.
+
+---
+
+## 9) Alur Checkout Singkat
+
+1. User menambahkan produk ke **Keranjang**.
+2. Halaman **Pemesanan**:
+
+   * **COD** → buat pesanan langsung (stok berkurang, keranjang dibersihkan).
+   * **Bayar Online (Midtrans)** → server membuat transaksi Midtrans, kirim balik `snapToken`, Snap popup dibuka.
+3. Di Snap:
+
+   * **Berhasil** → redirect ke **/pesanandikemas** (status order “Dikemas” setelah webhook masuk).
+   * **Pending/Unfinish** → tetap di **Belum Bayar**, pengguna bisa klik **Lanjutkan Pembayaran**.
+   * **Error/Expired** → status jadi **Dibatalkan**, (opsional) arahkan ke **Dashboard** untuk order ulang.
+
+---
+
+## 10) Catatan Produksi
+
+* Ubah ke **Production**:
+
+  ```
+  MIDTRANS_IS_PRODUCTION=true
+  MIDTRANS_SERVER_KEY=Mid-server-<prod>
+  MIDTRANS_CLIENT_KEY=Mid-client-<prod>
+  ```
+* Gunakan domain **HTTPS** & set `app.baseURL` ke domain produksi.
+* Konfigurasi web server agar document root mengarah ke folder **/public**.
+
+---
+
+## 11) Troubleshooting
+
+* **Webhook Midtrans tidak masuk**
+
+  * Pastikan ngrok aktif & URL di Midtrans sesuai.
+  * Cek ngrok inspector: [http://127.0.0.1:4040](http://127.0.0.1:4040)
+
+* **Lambat saat ngrok aktif**
+
+  * ngrok hanya diperlukan saat menguji webhook. Matikan ngrok saat tidak diperlukan.
+
+* **Stok/Keranjang tidak sinkron**
+
+  * Jalur **COD** & **Online** sama-sama mengurangi stok dan membersihkan keranjang saat create order.
+
+---
+
+## 12) Testing & Skrip Composer
+
+Menjalankan test (bila disiapkan):
+
+```bash
+composer test
+```
+
+---
+
+## 13) Ringkasan Cepat (TL;DR)
+
+```bash
+# 1) Install dep
+composer install
+
+# 2) Konfigurasi
+cp env .env
+# edit DB, MIDTRANS_* dan Mailtrap
+
+# 3) Jalankan server lokal
+php spark serve --port 8080
+
+# 4) Buka akses webhook
+ngrok http 8080
+# lalu set: https://<ngrok>/payments/webhook di Midtrans
+
+# 5) Coba transaksi sandbox
+# lakukan checkout online, selesaikan di Snap, periksa DB berubah lewat webhook
+```
+
+---
+
+**Lisensi:** MIT (mengikuti CodeIgniter App Starter)
