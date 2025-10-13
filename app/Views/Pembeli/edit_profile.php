@@ -72,7 +72,6 @@
           <?php endif; ?>
 
           <form action="<?= base_url('profile/update') ?>" method="post" enctype="multipart/form-data">
-            <?= csrf_field() ?>
 
             <div class="mb-3 text-center">
               <img src="<?= base_url('uploads/profile/' . ($user['foto'] ?? 'default.png')) ?>" 

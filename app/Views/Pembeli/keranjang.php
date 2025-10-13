@@ -90,9 +90,7 @@
 
                       <!-- MODE UBAH -->
                       <form action="<?= base_url('keranjang/update') ?>" method="post" class="edit-state d-none text-center">
-                        <?= csrf_field() ?>
                         <input type="hidden" name="id_produk" value="<?= $row['id_produk'] ?>">
-
                         <div class="input-group input-group-sm mx-auto" style="max-width:170px;">
                           <button type="button" class="btn btn-outline-secondary" onclick="stepQty(this,-1)">−</button>
                           <input type="number"

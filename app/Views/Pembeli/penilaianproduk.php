@@ -115,7 +115,6 @@
           </div>
           <div class="modal-body">
             <form id="form-penilaian" method="post" enctype="multipart/form-data">
-              <?= csrf_field() ?>
               <p class="mb-1 mt-2">Rating (wajib):</p>
               <div class="stars mb-3">
                 <?php for($i=1;$i<=5;$i++): ?>

@@ -126,7 +126,6 @@
 
                       <td>
                         <form action="<?= site_url('mengelolariwayatpesanan/updateStatus/' . $row['id_pemesanan']) ?>" method="post">
-                          <?= csrf_field() ?>
                           <select name="status_pemesanan" class="form-select" onchange="this.form.submit()">
                             <?php foreach ($opsi as $st): ?>
                               <option value="<?= $st ?>" <?= (($row['status_pemesanan'] ?? '')===$st)?'selected':''; ?>>

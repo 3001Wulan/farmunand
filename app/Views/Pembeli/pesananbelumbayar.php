@@ -87,49 +87,44 @@
     <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="<?= esc(env('MIDTRANS_CLIENT_KEY')) ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      /* ===== CSRF helpers ===== */
-      function getCsrf() {
-        const token  = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-        const header = document.querySelector('meta[name="csrf-header"]')?.getAttribute('content') || 'X-CSRF-TOKEN';
-        return { token, header };
-      }
+    // helper ambil query param
+    function getParam(name){ return new URLSearchParams(location.search).get(name); }
 
-      function withCsrf(headers = {}) {
-        const { token, header } = getCsrf();
-        return Object.assign({}, headers, { [header]: token });
-      }
+    // buka Snap berdasarkan ORDER ID (tanpa header/token CSRF)
+    async function lanjutkanPembayaranByOrder(orderId){
+      try{
+        const res  = await fetch('<?= site_url('payments/resume') ?>/' + encodeURIComponent(orderId), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+          // tidak perlu credentials / header CSRF
+        });
 
-      // helper ambil query param
-      function getParam(name){ return new URLSearchParams(location.search).get(name); }
-
-      // buka Snap berdasarkan ORDER ID
-      async function lanjutkanPembayaranByOrder(orderId){
-        try{
-          const res  = await fetch('<?= site_url('payments/resume') ?>/' + encodeURIComponent(orderId), {
-            method: 'POST',
-            headers: withCsrf({ 'Content-Type': 'application/json' }),
-            credentials: 'same-origin'
-          });
-            
-          const data = await res.json();
-          if(!data.success){ alert(data.message || 'Token tidak tersedia'); return; }
-            window.snap.pay(data.snapToken, {
-              onSuccess: () => location.href = '<?= site_url('payments/finish') ?>',
-              onPending: () => location.href = '<?= site_url('payments/unfinish') ?>',
-              onError:   () => location.href = '<?= site_url('payments/error') ?>',
-              onClose:   () => {} // popup ditutup → tetap di Belum Bayar
-            });
-          }catch(e){ alert('Gagal mengambil token Midtrans.'); }
+        const data = await res.json();
+        if(!data.success){
+          alert(data.message || 'Token tidak tersedia');
+          return;
         }
 
-      // auto-open kalau datang dari checkout online
-      (function(){
-        const autopay = getParam('autopay');
-        const orderId = getParam('order');
-        if (autopay === '1' && orderId) {
-          lanjutkanPembayaranByOrder(orderId);
-        }
-      })();
+        window.snap.pay(data.snapToken, {
+          onSuccess: () => location.href = '<?= site_url('payments/finish') ?>',
+          onPending: () => location.href = '<?= site_url('payments/unfinish') ?>',
+          onError:   () => location.href = '<?= site_url('payments/error') ?>',
+          onClose:   () => {} // popup ditutup → tetap di Belum Bayar
+        });
+      }catch(e){
+        alert('Gagal mengambil token Midtrans.');
+      }
+    }
+
+    // auto-open kalau datang dari checkout online
+    (function(){
+      const autopay = getParam('autopay');
+      const orderId = getParam('order');
+      if (autopay === '1' && orderId) {
+        lanjutkanPembayaranByOrder(orderId);
+      }
+    })();
     </script>
+
   </body>
 </html>
