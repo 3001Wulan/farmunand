@@ -72,38 +72,42 @@ class ManajemenAkunUser extends BaseController
         return redirect()->to('/manajemenakunuser')->with('success', 'User diperbarui.');
     }
 
-    // Hapus user (aman dan kompatibel)
     public function delete($id_user)
     {
-        $model = new UserModel();
-        $id    = (int) $id_user;
-
+        $userModel = new UserModel();
+        $id = (int) $id_user;
+    
         if ($id <= 0) {
             return redirect()->back()->with('error', 'ID tidak valid.');
         }
-
+    
         // Cegah hapus diri sendiri
         if ((int) session()->get('id_user') === $id) {
             return redirect()->back()->with('error', 'Tidak bisa menghapus akun sendiri.');
         }
-
-        // Terima POST/DELETE (aman). Jika masih ada route GET lama → fallback (tetap jalan, sambil beri peringatan).
+    
+        // 🔹 Gunakan fungsi dari model
+        if ($userModel->hasPendingOrders($id)) {
+            return redirect()->back()->with('error', 'User masih memiliki pesanan yang belum diselesaikan. Hapus dibatalkan.');
+        }
+    
+        // Terima POST/DELETE (aman)
         $method = strtolower($this->request->getMethod());
         if (!in_array($method, ['post', 'delete'], true)) {
-            // Fallback agar tidak error pada setup lama (GET)
-            // Kamu tetap disarankan pindah ke POST + CSRF dari view.
-            $model->delete($id);
+            if (!$userModel->find($id)) {
+                return redirect()->back()->with('error', 'User tidak ditemukan.');
+            }
+    
+            $userModel->delete($id);
             return redirect()->to('/manajemenakunuser')->with('success', 'User dihapus (gunakan POST agar lebih aman).');
         }
-
-        // Jika user tidak ditemukan
-        if (!$model->find($id)) {
+    
+        if (!$userModel->find($id)) {
             return redirect()->back()->with('error', 'User tidak ditemukan.');
         }
-
-        // Eksekusi hapus
-        $model->delete($id);
-
+    
+        $userModel->delete($id);
         return redirect()->to('/manajemenakunuser')->with('success', 'User dihapus.');
     }
+    
 }

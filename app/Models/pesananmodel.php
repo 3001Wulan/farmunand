@@ -121,16 +121,16 @@ public function getPesananByStatus(int $idUser, string $status): array
      * (opsional: filter hanya status 'Selesai')
      */
     public function getPenjualanBulan(): float
-    {
-        $row = $this->selectSum('total_harga')
-                    ->where('MONTH(created_at)', date('m'))
-                    ->where('YEAR(created_at)', date('Y'))
-                    // ->where('status_pemesanan', 'Selesai') // aktifkan jika hanya hitung order selesai
-                    ->get()
-                    ->getRow();
+{
+    $row = $this->selectSum('total_harga')
+                ->where('MONTH(created_at)', date('m'))
+                ->where('YEAR(created_at)', date('Y'))
+                ->where('status_pemesanan', 'Selesai') // hanya hitung pesanan selesai
+                ->get()
+                ->getRow();
 
-        return (float) ($row->total_harga ?? 0);
-    }
+    return (float) ($row->total_harga ?? 0);
+}
 
     public function getFiltered($start = null, $end = null)
     {
@@ -162,7 +162,7 @@ public function getPesananByStatus(int $idUser, string $status): array
             ->join('detail_pemesanan dp', 'dp.id_pemesanan = p.id_pemesanan', 'inner')
             ->join('produk pr', 'pr.id_produk = dp.id_produk', 'left')
             ->where('p.id_user', $idUser)
-            ->whereIn('p.status_pemesanan', ['Selesai','Dikirim','Diterima','Dikemas'])
+            ->whereIn('p.status_pemesanan', ['Selesai'])
             // penting: raw where untuk IS NULL
             ->where('(dp.user_rating IS NULL OR dp.user_rating = 0)', null, false)
             ->orderBy('p.created_at', 'DESC')

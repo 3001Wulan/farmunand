@@ -58,7 +58,7 @@
                 <select name="status" class="form-select">
                   <option value="">Semua Status</option>
                   <?php
-                    $opsi = ['Belum Bayar','Dikemas','Dikirim','Selesai','Dibatalkan'];
+                    $opsi = ['Dikemas','Dikirim','Selesai','Dibatalkan'];
                     foreach($opsi as $st):
                   ?>
                     <option value="<?= $st ?>" <?= (!empty($status) && $status===$st)?'selected':''; ?>><?= $st ?></option>
@@ -80,7 +80,6 @@
             if (!function_exists('status_badge')) {
               function status_badge(?string $s): string {
                 switch ($s) {
-                  case 'Belum Bayar': return 'bg-secondary';
                   case 'Dikemas':     return 'bg-warning text-dark';
                   case 'Dikirim':     return 'bg-primary';
                   case 'Selesai':     return 'bg-success';

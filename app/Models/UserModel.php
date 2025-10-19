@@ -28,4 +28,18 @@ class UserModel extends Model
     {
         return $this->countAllResults();
     }
+
+    public function hasPendingOrders(int $id_user): bool
+{
+    $pemesananModel = new \App\Models\PesananModel();
+
+    // Hitung jumlah pesanan user yang belum selesai
+    $jumlah = $pemesananModel
+        ->where('id_user', $id_user)
+        ->where('status_pemesanan !=', 'Selesai')
+        ->countAllResults();
+
+    return $jumlah > 0;
+}
+
 }
