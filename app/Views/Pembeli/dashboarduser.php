@@ -7,7 +7,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-      html, body { margin:0; padding:0; height:100%; background:#f8f9fa; }
+      body {
+        background: linear-gradient(135deg, #e6f4ea, #c0e0cc);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        min-height: 100vh;
+        margin: 0;
+      }
       .content { margin-left: 240px; padding: 30px; }
 
       .welcome-card {

@@ -470,4 +470,54 @@ class Payments extends BaseController
         ]);
     }
 
+    public function cancelByUser()
+    {
+        $idUser = session()->get('id_user');
+        if (!$idUser) {
+            return $this->response->setStatusCode(401)->setJSON(['success' => false, 'message' => 'Unauthorized']);
+        }
+
+        // Ambil order_id dari JSON body atau form
+        $payload  = $this->request->getJSON(true) ?: $this->request->getPost();
+        $orderId  = trim((string)($payload['order_id'] ?? ''));
+
+        if ($orderId === '') {
+            return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'order_id diperlukan']);
+        }
+
+        $db = Database::connect();
+
+        // Ambil data pemesanan + pembayaran untuk verifikasi kepemilikan & status
+        $row = $db->table('pembayaran b')
+            ->select('p.id_pemesanan, p.id_user, p.status_pemesanan, b.transaction_status')
+            ->join('pemesanan p', 'p.id_pembayaran = b.id_pembayaran', 'left')
+            ->where('b.order_id', $orderId)
+            ->get()->getRowArray();
+
+        if (!$row) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Pesanan tidak ditemukan']);
+        }
+
+        // Verifikasi pemilik
+        if ((int)$row['id_user'] !== (int)$idUser) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Tidak diizinkan']);
+        }
+
+        // Hanya boleh batal jika status pesanan masih "Belum Bayar"
+        if (($row['status_pemesanan'] ?? '') !== 'Belum Bayar') {
+            return $this->response->setStatusCode(422)->setJSON(['success' => false, 'message' => 'Pesanan tidak dapat dibatalkan (bukan Menunggu Pembayaran).']);
+        }
+
+        // (opsional) pastikan payment masih pending
+        $trx = $row['transaction_status'] ?? 'pending';
+        if (!in_array($trx, ['pending', 'challenge', null, ''], true)) {
+            return $this->response->setStatusCode(422)->setJSON(['success' => false, 'message' => 'Transaksi tidak bisa dibatalkan pada tahap ini.']);
+        }
+
+        // Jalankan util yang sudah ada untuk restock + hapus pesanan + tandai cancel
+        $this->cancelOrderAndRestock($orderId);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Pesanan berhasil dibatalkan.']);
+    }
+
 }

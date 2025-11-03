@@ -74,31 +74,88 @@ class MengelolaRiwayatPesanan extends BaseController
 
     public function updateStatus($id_pemesanan)
     {
-        $status = $this->request->getPost('status_pemesanan');
+        $target = (string) $this->request->getPost('status_pemesanan');
 
-        // Admin TIDAK boleh set 'Selesai'
-        $allowed = ['Belum Bayar','Dikemas','Dikirim','Dibatalkan'];
-        if (!in_array($status, $allowed, true)) {
-            return redirect()->to('/MengelolaRiwayatPesanan')->with('error', 'Status tidak valid untuk admin.');
+        // Admin TIDAK boleh set 'Selesai' manual
+        $allowedTargets = ['Belum Bayar','Dikemas','Dikirim','Dibatalkan'];
+        if (!in_array($target, $allowedTargets, true)) {
+            return redirect()->to('/MengelolaRiwayatPesanan')
+                ->with('error', 'Status tidak valid untuk admin.');
         }
 
-        $data = ['status_pemesanan' => $status];
+        // Ambil status saat ini
+        $row = $this->pesananModel
+            ->select('status_pemesanan')
+            ->find((int) $id_pemesanan);
 
-        // Jika di-set ke "Dikirim", buat token konfirmasi 7 hari
-        if ($status === 'Dikirim') {
+        if (!$row) {
+            return redirect()->to('/MengelolaRiwayatPesanan')->with('error', 'Pesanan tidak ditemukan.');
+        }
+
+        $current = (string) ($row['status_pemesanan'] ?? '');
+
+        // Jika sama, tidak perlu update
+        if ($current === $target) {
+            return redirect()->to('/MengelolaRiwayatPesanan')
+                ->with('success', 'Status pesanan tidak berubah (sama dengan sebelumnya).');
+        }
+
+        // ==========
+        // Aturan transisi (state machine)
+        // ==========
+        $allowedByCurrent = [
+            // 1) Selesai -> tidak bisa diubah ke mana pun
+            'Selesai'     => [],
+            // 2) Dikemas -> hanya boleh ke Dikirim
+            'Dikemas'     => ['Dikirim'],
+            // 3) Dikirim -> tidak bisa diubah (menunggu konfirmasi user -> otomatis Selesai)
+            'Dikirim'     => [],
+            // 4) Belum Bayar -> hanya boleh ke Dikemas atau Dibatalkan
+            'Belum Bayar' => ['Dikemas', 'Dibatalkan'],
+            // 5) Dibatalkan -> tidak bisa diubah lagi
+            'Dibatalkan'  => [],
+        ];
+
+        $allowedByCurrent = [
+            'Selesai'     => [],            // lock
+            'Dikemas'     => ['Dikirim'],   // hanya ke Dikirim
+            'Dikirim'     => [],            // lock (tunggu konfirmasi user)
+            'Belum Bayar' => [],            // ⬅️ sekarang TIDAK BISA diubah oleh admin
+            'Dibatalkan'  => [],            // lock
+        ];
+
+        $allowedNext = $allowedByCurrent[$current] ?? [];
+
+        if (!in_array($target, $allowedNext, true)) {
+            // Pesan spesifik biar jelas
+            $msg = 'Transisi status tidak diizinkan.';
+            if ($current === 'Selesai')       $msg = 'Pesanan sudah "Selesai" dan tidak bisa diubah lagi.';
+            if ($current === 'Dikemas')       $msg = 'Dari "Dikemas" hanya bisa diubah ke "Dikirim".';
+            if ($current === 'Dikirim')       $msg = 'Pesanan "Dikirim" tidak dapat diubah lagi. Menunggu konfirmasi user.';
+            if ($current === 'Belum Bayar')   $msg = 'Pesanan "Menunggu Pembayaran" tidak dapat diubah oleh admin.';
+            if ($current === 'Dibatalkan')    $msg = 'Pesanan yang "Dibatalkan" tidak bisa diubah lagi.';
+
+            return redirect()->to('/MengelolaRiwayatPesanan')->with('error', $msg);
+        }
+
+        // Bangun data update
+        $data = ['status_pemesanan' => $target];
+
+        // Jika di-set ke "Dikirim": buat token konfirmasi 7 hari
+        if ($target === 'Dikirim') {
             $data['konfirmasi_token']      = bin2hex(random_bytes(16));
             $data['konfirmasi_expires_at'] = date('Y-m-d H:i:s', strtotime('+7 days'));
-            $data['confirmed_at']          = null; // reset
+            $data['confirmed_at']          = null;
         } else {
             // status lain: kosongkan token (opsional)
             $data['konfirmasi_token']      = null;
             $data['konfirmasi_expires_at'] = null;
-            // $data['confirmed_at'] tetap apa adanya
+            // $data['confirmed_at'] biarkan apa adanya
         }
 
-        $ok = $this->pesananModel->update((int)$id_pemesanan, $data);
+        $ok = $this->pesananModel->update((int) $id_pemesanan, $data);
 
         return redirect()->to('/MengelolaRiwayatPesanan')
             ->with($ok ? 'success' : 'error', $ok ? 'Status pesanan berhasil diperbarui.' : 'Gagal memperbarui status.');
     }
-}
+    }

@@ -7,6 +7,10 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'Home::index');
 
+// =======================
+// Auth Routes
+// =======================
+
 // LOGIN
 $routes->get('/login', 'Auth::login');
 $routes->post('/auth/doLogin', 'Auth::doLogin');
@@ -35,48 +39,63 @@ $routes->post('/profileadmin/update', 'ProfileAdmin::update');
 $routes->get('/logout', 'Auth::logout');
 
 
+
+
+// =======================
+// Dashboard & Produk
+// =======================
+
 // Dashboard Admin & User
 $routes->get('/dashboard', 'Dashboard::index');
 $routes->get('/dashboarduser', 'DashboardUser::index');
 
-// Fungsional User
-$routes->get('/riwayatpesanan', 'Pesanan::index');
-//$routes->get('/detailproduk', 'DetailProduk::index');
+// Detail Produk User
 $routes->get('/detailproduk/(:num)', 'DetailProduk::index/$1');
 
-// Detail produk (GET)
-$routes->get('detail-produk/(:num)', 'DetailProduk::index/$1');
+// Fungsional Admin Mengelola Produk
+$routes->group('admin', ['filter' => 'auth:admin'], function($routes) {
+    $routes->get('produk', 'ProdukAdmin::index');
+    $routes->get('produk/create', 'ProdukAdmin::create');
+    $routes->post('produk/store', 'ProdukAdmin::store');
+    $routes->get('produk/edit/(:num)', 'ProdukAdmin::edit/$1');
+    $routes->post('produk/update/(:num)', 'ProdukAdmin::update/$1');
+    $routes->post('produk/delete/(:num)', 'ProdukAdmin::delete/$1');
+});
 
-// Melakukan pemesanan (POST direkomendasikan)
-$routes->post('melakukanpemesanan', 'MelakukanPemesanan::index');
 
-// Kompatibilitas lama (GET + segment)
-$routes->get('melakukanpemesanan', 'MelakukanPemesanan::index');        
-$routes->get('melakukanpemesanan/(:num)', 'MelakukanPemesanan::index/$1');
 
-// Batch order (checkout semua)
+// =======================
+// Melakukan Pemesanan
+// =======================
+$routes->post('melakukanpemesanan', 'MelakukanPemesanan::index', ['filter' => 'authActive']);
+$routes->get('melakukanpemesanan', 'MelakukanPemesanan::index', ['filter' => 'authActive']);
+$routes->get('melakukanpemesanan/(:num)', 'MelakukanPemesanan::index/$1', ['filter' => 'authActive']);
+
+// =======================
 // Pemesanan (single & batch)
-$routes->post('pemesanan/simpan', 'MelakukanPemesanan::simpan');
-$routes->post('pemesanan/simpan-batch', 'MelakukanPemesanan::simpanBatch');
+// =======================
+$routes->group('pemesanan', function($routes) {
+    $routes->post('simpan', 'MelakukanPemesanan::simpan', ['filter' => 'authActive']);
+    $routes->post('simpan-batch', 'MelakukanPemesanan::simpanBatch', ['filter' => 'authActive']);
+});
 
-
-
+// =======================
 // Keranjang (Cart)
-$routes->get('keranjang', 'Keranjang::index');
-$routes->post('keranjang/add', 'Keranjang::add');
-$routes->post('keranjang/update', 'Keranjang::update');
-$routes->get('keranjang/remove/(:num)', 'Keranjang::remove/$1');
-$routes->post('keranjang/clear', 'Keranjang::clear');
-$routes->post('keranjang/checkout-all', 'Keranjang::checkoutAll');
+// =======================
+
+// Lihat keranjang → hanya butuh login
+$routes->get('keranjang', 'Keranjang::index', ['filter' => 'auth']);
+
+// Ubah keranjang & checkout → wajib user aktif
+$routes->post('keranjang/add', 'Keranjang::add', ['filter' => 'authActive']);
+$routes->post('keranjang/update', 'Keranjang::update', ['filter' => 'authActive']);
+$routes->get('keranjang/remove/(:num)', 'Keranjang::remove/$1', ['filter' => 'authActive']);
+$routes->post('keranjang/clear', 'Keranjang::clear', ['filter' => 'authActive']);
+$routes->post('keranjang/checkout-all', 'Keranjang::checkoutAll', ['filter' => 'authActive']);
 
 
-// Fungsional Laporan (Admin)
-$routes->get('/melihatlaporan', 'MelihatLaporan::index');
-$routes->post('/melihatlaporan/filter', 'MelihatLaporan::filter');
-$routes->get('/penilaian/(:num)', 'Penilaian::index/$1');
-$routes->post('/penilaian/simpan/(:num)', 'Penilaian::simpan/$1');
-$routes->get('melihatlaporan', 'MelihatLaporan::index');
-$routes->get('melihatlaporan/exportExcel', 'MelihatLaporan::exportExcel');
+
+
 
 
 // Fungsional Penilaian
@@ -112,22 +131,12 @@ $routes->get('/konfirmasipesanan', 'Pesanan::konfirmasipesanan');               
 $routes->post('/pesanan/konfirmasi/(:num)', 'Pesanan::konfirmasiSelesai/$1');   // tombol konfirmasi
 
 
+// Fungsional User
+$routes->get('/riwayatpesanan', 'Pesanan::index');
 
 // Update status (POST)
 $routes->post('mengelolariwayatpesanan/updateStatus/(:num)', 'MengelolaRiwayatPesanan::updateStatus/$1');
 // ^ gunakan nama ini persis di form action (tanpa typo)
-
-// Fungsioanal Admin Manajemen Akun User
-$routes->group('manajemenakunuser', ['namespace' => 'App\Controllers'], function($routes) {
-    $routes->get('/', 'ManajemenAkunUser::index');               // list user
-    $routes->get('create', 'ManajemenAkunUser::create');         // form tambah
-    $routes->post('store', 'ManajemenAkunUser::store');          // simpan
-    $routes->get('edit/(:num)', 'ManajemenAkunUser::edit/$1');   // form edit
-    $routes->post('update/(:num)', 'ManajemenAkunUser::update/$1'); // update
-    $routes->get('delete/(:num)', 'ManajemenAkunUser::delete/$1');  // hapus
-    $routes->post('delete/(:num)', 'ManajemenAkunUser::delete/$1');
-
-});
 
 // Fungsional Admin Konfirmasi Pesanan
 $routes->get('/pesananselesai', 'Pesanan::selesai');
@@ -141,24 +150,36 @@ $routes->group('', ['namespace' => 'App\Controllers'], function($routes) {
     // Aksi konfirmasi selesai pesanan (pakai id pesanan)
     $routes->get('konfirmasipesanan/selesai/(:num)', 'KonfirmasiPesanan::selesai/$1');
 });
-
-// Admin Mengelola Produk
-$routes->group('admin', ['filter' => 'auth:admin'], function($routes) {
-    $routes->get('produk', 'ProdukAdmin::index');
-    $routes->get('produk/create', 'ProdukAdmin::create');
-    $routes->post('produk/store', 'ProdukAdmin::store');
-    $routes->get('produk/edit/(:num)', 'ProdukAdmin::edit/$1');
-    $routes->post('produk/update/(:num)', 'ProdukAdmin::update/$1');
-    $routes->get('produk/delete/(:num)', 'ProdukAdmin::delete/$1');
-});
-
-// app/Config/Routes.php
-$routes->group('payments', static function($r){
-    $r->post('create',  'Payments::create');   // buat order & token
-    $r->post('resume/(:segment)', 'Payments::resume/$1'); // ambil token utk order lama (atau bikin retry)
-    $r->post('webhook', 'Payments::webhook');  // notifikasi dari Midtrans
-    $r->get('finish',   'Payments::finish');
-    $r->get('unfinish', 'Payments::unfinish');
-    $r->get('error',    'Payments::error');
-});
 $routes->get('pesanan/konfirmasi/(:num)', 'KonfirmasiPesanan::selesai/$1');
+
+
+
+
+
+// Fungsioanal Admin Manajemen Akun User
+$routes->group('manajemenakunuser', ['namespace' => 'App\Controllers'], function($routes) {
+    $routes->get('/', 'ManajemenAkunUser::index');
+    $routes->get('edit/(:num)', 'ManajemenAkunUser::edit/$1');
+    $routes->post('update/(:num)', 'ManajemenAkunUser::update/$1');
+    $routes->post('delete/(:num)', 'ManajemenAkunUser::delete/$1');
+});
+
+// Fungsional Admin Melihat Laporan
+$routes->get('/melihatlaporan', 'MelihatLaporan::index');
+$routes->post('/melihatlaporan/filter', 'MelihatLaporan::filter');
+$routes->get('/penilaian/(:num)', 'Penilaian::index/$1');
+$routes->post('/penilaian/simpan/(:num)', 'Penilaian::simpan/$1');
+$routes->get('melihatlaporan', 'MelihatLaporan::index');
+$routes->get('melihatlaporan/exportExcel', 'MelihatLaporan::exportExcel');
+
+// Fungsional User Memproses Pembayaran via Midtrans
+$routes->group('payments', static function($r){
+    $r->post('create',            'Payments::create');              // buat order & token
+    $r->post('resume/(:segment)', 'Payments::resume/$1');           // ambil token utk order lama (atau bikin retry)
+    $r->post('webhook',           'Payments::webhook');             // notifikasi dari Midtrans
+    $r->post('cancel',            'Payments::cancelByUser');        // ← user membatalkan pesanan "Belum Bayar"
+    $r->get('finish',             'Payments::finish');
+    $r->get('unfinish',           'Payments::unfinish');
+    $r->get('error',              'Payments::error');
+});
+

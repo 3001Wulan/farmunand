@@ -1,71 +1,195 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= esc($title) ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-      .content { margin-left: 240px; padding: 30px; 
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title><?= esc($title) ?></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body {
+      background: linear-gradient(135deg, #e6f4ea, #c0e0cc);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .content {
+      margin-left: 250px;
+      padding: 30px 40px;
+    }
+    .page-header {
+      background: linear-gradient(135deg, #198754, #20c997);
+      color: white;
+      border-radius: 12px;
+      padding: 20px 30px;
+      margin-bottom: 30px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-weight: 700;
+      font-size: 1.5rem;
+      box-shadow: 0 6px 18px rgba(25, 135, 84, 0.45);
+      user-select: none;
+    }
+    .profile-card {
+      border-radius: 18px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+      border: none;
+      overflow: hidden;
+      background: white;
+      max-width: 720px;
+      margin: auto;
+      user-select: none;
+    }
+    .profile-header {
+      background: linear-gradient(135deg, #198754, #28a745);
+      color: white;
+      padding: 30px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 25px;
+    }
+    .profile-header h2 {
+      margin: 0;
+      font-weight: 800;
+      font-size: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .profile-header p {
+      font-size: 1.1rem;
+      margin: 6px 0 0;
+      letter-spacing: 0.025em;
+      opacity: 0.85;
+    }
+    .profile-photo {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 5px solid white;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+      flex-shrink: 0;
+      background: #fff;
+    }
+    .profile-body {
+      padding: 36px 40px;
+    }
+    .info-box {
+      border: 1px solid #dee2e6;
+      border-radius: 12px;
+      padding: 16px 28px;
+      margin-bottom: 16px;
+      background: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #198754;
+      letter-spacing: 0.015em;
+      box-shadow: 0 3px 8px rgba(25, 135, 84, 0.1);
+      transition: background-color 0.3s ease;
+    }
+    .info-box span {
+      font-weight: 500;
+      color: #444;
+    }
+    .info-box:hover {
+      background-color: #e6f4ea;
+    }
+    .btn-edit {
+      background: linear-gradient(135deg, #198754, #28a745);
+      border: none;
+      font-size: 1.1rem;
+      padding: 12px 28px;
+      border-radius: 12px;
+      color: white;
+      font-weight: 700;
+      transition: background 0.3s ease, transform 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      text-decoration: none;
+    }
+    .btn-edit:hover {
+      background: linear-gradient(135deg, #28a745, #198754);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 18px rgba(25, 135, 84, 0.45);
+    }
+    @media (max-width: 768px) {
+      .content {
+        margin-left: 0;
+        padding: 20px;
       }
-      .profile-card { border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: none; overflow: hidden;
-       }
-      .profile-header { background: linear-gradient(135deg, #198754, #28a745); color: white; padding: 25px 30px; display: flex; align-items: center; justify-content: space-between; 
+      .profile-card {
+        margin: 0 12px;
       }
-      .profile-header h2 { margin: 0; font-weight: bold; font-size: 28px; 
+      .profile-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 18px;
+        padding: 25px 25px;
       }
-      .profile-header p { font-size: 16px; margin: 5px 0 0; 
+      .profile-photo {
+        width: 120px;
+        height: 120px;
       }
-      .profile-photo { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
+      .profile-body {
+        padding: 25px 20px;
       }
-      .profile-body { padding: 25px 30px;
+      .info-box {
+        font-size: 1rem;
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+        padding: 12px 18px;
       }
-      .info-box { border: 1px solid #dee2e6; border-radius: 10px; padding: 12px 20px; margin-bottom: 10px; background: #fff; display: flex; justify-content: space-between; align-items: center; 
+      .btn-edit {
+        width: 100%;
+        justify-content: center;
+        font-size: 1rem;
+        padding: 10px 0;
       }
-      .info-box strong { color: #198754; font-weight: 600; font-size: 16px; 
-      }
-      .info-box span { font-size: 16px; 
-      }
-      .btn-edit { background: #198754; border: none; font-size: 16px; padding: 10px 22px; 
-        border-radius: 8px; transition: background 0.3s, transform 0.2s; 
-      }
-      .btn-edit:hover { background: #145c32; 
-        transform: translateY(-2px); 
-      }
-      .summary-title { font-weight: 600; color: #198754; margin-top: 20px; margin-bottom: 10px; 
-        font-size: 18px; 
-      }
-    </style>
-  </head>
-
-  <body>
-    <?= $this->include('layout/sidebarAdmin') ?>
-    <div class="content">
-      <div class="card profile-card">
-        
-        <div class="profile-header">
-          <div>
-            <h2><i class="bi bi-person-badge-fill me-2"></i>Profil Admin</h2>
-            <p><?= esc($user['username']) ?> | <?= esc($user['role']) ?></p>
-          </div>
-          <img src="<?= base_url('uploads/profile/' . ($user['foto'] ?? 'default.png')) ?>" alt="Foto Profil" class="profile-photo">
+    }
+  </style>
+</head>
+<body>
+  <?= $this->include('layout/sidebarAdmin') ?>
+  <div class="content" role="main">
+    <div class="card profile-card" tabindex="0" aria-label="Profil Admin">
+      <div class="profile-header">
+        <div>
+          <h2><i class="bi bi-person-badge-fill"></i> Profil Admin</h2>
+          <p><?= esc($user['username']) ?> | <?= esc($user['role']) ?></p>
         </div>
-
-        <div class="profile-body">
-          <!-- Data admin -->
-          <div class="info-box"><strong>Username:</strong><span><?= esc($user['username']) ?></span></div>
-          <div class="info-box"><strong>Nama:</strong><span><?= esc($user['nama'] ?? '-') ?></span></div>
-          <div class="info-box"><strong>Email:</strong><span><?= esc($user['email']) ?></span></div>
-          <div class="info-box"><strong>No HP:</strong><span><?= esc($user['no_hp'] ?? '-') ?></span></div>
-
-          <!-- Tombol Edit -->
-          <div class="mt-4 text-center">
-            <a href="<?= base_url('profileadmin/edit') ?>" class="btn btn-edit text-white"><i class="bi bi-pencil-square me-1"></i> Edit Profil</a>
-          </div>
+        <img src="<?= base_url('uploads/profile/' . ($user['foto'] ?? 'default.png')) ?>" alt="Foto Profil Admin" class="profile-photo" />
+      </div>
+      <div class="profile-body">
+        <div class="info-box" tabindex="0">
+          <strong>Username:</strong><span><?= esc($user['username']) ?></span>
         </div>
-
+        <div class="info-box" tabindex="0">
+          <strong>Nama:</strong><span><?= esc($user['nama'] ?? '-') ?></span>
+        </div>
+        <div class="info-box" tabindex="0">
+          <strong>Email:</strong><span><?= esc($user['email']) ?></span>
+        </div>
+        <div class="info-box" tabindex="0">
+          <strong>No HP:</strong><span><?= esc($user['no_hp'] ?? '-') ?></span>
+        </div>
+        <div class="mt-4 text-center">
+          <a href="<?= base_url('profileadmin/edit') ?>" class="btn btn-edit" aria-label="Edit Profil Admin">
+            <i class="bi bi-pencil-square"></i> Edit Profil
+          </a>
+        </div>
       </div>
     </div>
-  </body>
+  </div>
+</body>
 </html>

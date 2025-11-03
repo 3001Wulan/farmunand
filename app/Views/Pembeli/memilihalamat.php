@@ -8,7 +8,12 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
       :root{ --brand:#198754; --brand-dark:#145c32; --muted:#f8f9fa; }
-      html,body{margin:0; padding:0; height:100%; background:var(--muted); font-family:'Segoe UI',sans-serif;}
+      body {
+        background: linear-gradient(135deg, #e6f4ea, #c0e0cc);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        min-height: 100vh;
+        margin: 0;
+      }
       .main-content{ margin-left:250px; padding:30px; min-height:100vh; }
       .page-header{
         background:linear-gradient(135deg,#198754,#28a745);
