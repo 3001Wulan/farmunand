@@ -6,7 +6,12 @@
   <title>Pesanan Dibatalkan - FarmUnand</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-      body{background:#f8f9fa;}
+      body {
+        background: linear-gradient(135deg, #e6f4ea, #c0e0cc);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        min-height: 100vh;
+        margin: 0;
+      }
       .content{margin-left:250px; padding:30px;}
       .page-header{
         background:linear-gradient(135deg,#198754,#28a745);

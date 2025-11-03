@@ -8,7 +8,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <style>
       :root{ --brand:#198754; --brand-dark:#145c32; --muted:#f8f9fa; }
-      html,body{height:100%;background:var(--muted)}
+      body {
+        background: linear-gradient(135deg, #e6f4ea, #c0e0cc);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        min-height: 100vh;
+        margin: 0;
+      }
       .main-content{ margin-left:250px; padding:28px; min-height:100vh; }
       .card.form-card{ border:none; border-radius:12px; box-shadow:0 8px 24px rgba(6,50,20,.06); overflow:hidden; }
       .form-header{

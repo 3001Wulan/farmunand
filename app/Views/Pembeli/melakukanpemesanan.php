@@ -8,7 +8,12 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     :root { --brand:#198754; --brand-dark:#145c32; --muted:#f8f9fa; }
-    html, body { margin:0; padding:0; height:100%; background:var(--muted); }
+    body {
+      background: linear-gradient(135deg, #e6f4ea, #c0e0cc);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+    }
     .content { margin-left:250px; padding:30px; }
     .page-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
     .page-title { font-weight:700; color:var(--brand); margin:0; }

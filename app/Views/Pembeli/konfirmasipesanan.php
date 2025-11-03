@@ -8,7 +8,12 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
-    body{background:#f8f9fa;}
+    body {
+      background: linear-gradient(135deg, #e6f4ea, #c0e0cc);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+    }
     .content{margin-left:250px; padding:30px;}
     .page-header{
       background:linear-gradient(135deg,#198754,#28a745);
