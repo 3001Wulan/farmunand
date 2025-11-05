@@ -520,4 +520,119 @@ class Payments extends BaseController
         return $this->response->setJSON(['success' => true, 'message' => 'Pesanan berhasil dibatalkan.']);
     }
 
+    // ====== TAMBAHAN BARU: endpoint batal tapi simpan record ======
+    public function cancelByUserKeep()
+    {
+        $idUser = session()->get('id_user');
+        if (!$idUser) {
+            return $this->response->setStatusCode(401)->setJSON([
+                'success' => false, 'message' => 'Unauthorized'
+            ]);
+        }
+
+        $payload = $this->request->getJSON(true) ?: $this->request->getPost();
+        $orderId = trim((string)($payload['order_id'] ?? ''));
+
+        if ($orderId === '') {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false, 'message' => 'order_id diperlukan'
+            ]);
+        }
+
+        $db = \Config\Database::connect();
+
+        // Verifikasi kepemilikan & status
+        $row = $db->table('pembayaran b')
+            ->select('p.id_pemesanan, p.id_user, p.status_pemesanan, b.transaction_status')
+            ->join('pemesanan p', 'p.id_pembayaran = b.id_pembayaran', 'left')
+            ->where('b.order_id', $orderId)
+            ->get()->getRowArray();
+
+        if (!$row) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false, 'message' => 'Pesanan tidak ditemukan'
+            ]);
+        }
+        if ((int)$row['id_user'] !== (int)$idUser) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false, 'message' => 'Tidak diizinkan'
+            ]);
+        }
+        if (($row['status_pemesanan'] ?? '') !== 'Belum Bayar') {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false, 'message' => 'Pesanan bukan Menunggu Pembayaran'
+            ]);
+        }
+
+        // Jalankan versi "keep record"
+        $ok = $this->cancelOrderAndMarkKeep($orderId);
+        if (!$ok) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false, 'message' => 'Gagal membatalkan pesanan.'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true, 'message' => 'Pesanan dibatalkan dan dipindah ke tab Dibatalkan.'
+        ]);
+    }
+
+    // ====== TAMBAHAN BARU: util batal + restock TANPA menghapus record ======
+    private function cancelOrderAndMarkKeep(string $orderId): bool
+{
+    $db  = \Config\Database::connect();
+    $now = date('Y-m-d H:i:s');
+
+    $db->transStart();
+
+    // Ambil pemesanan & pembayaran
+    $row = $db->table('pembayaran b')
+        ->select('b.id_pembayaran, p.id_pemesanan')
+        ->join('pemesanan p', 'p.id_pembayaran = b.id_pembayaran', 'left')
+        ->where('b.order_id', $orderId)
+        ->get()->getRowArray();
+
+    if (!$row || empty($row['id_pemesanan'])) {
+        log_message('error', 'cancelOrderAndMarkKeep: order not found for {orderId}', ['orderId' => $orderId]);
+        $db->transRollback();
+        return false;
+    }
+
+    // Kembalikan stok
+    $details = $db->table('detail_pemesanan')
+        ->where('id_pemesanan', $row['id_pemesanan'])
+        ->get()->getResultArray();
+
+    foreach ($details as $d) {
+        $db->query(
+            "UPDATE produk SET stok = stok + ? WHERE id_produk = ?",
+            [(int)$d['jumlah_produk'], (int)$d['id_produk']]
+        );
+    }
+
+    // Tandai pembayaran cancel (tanpa kolom status_bayar)
+    if (!empty($row['id_pembayaran'])) {
+        $db->table('pembayaran')->where('id_pembayaran', $row['id_pembayaran'])->update([
+            'transaction_status' => 'cancel',
+            'updated_at'         => $now,
+        ]);
+    }
+
+    // Update status pemesanan → Dibatalkan (TIDAK dihapus)
+    $db->table('pemesanan')->where('id_pemesanan', $row['id_pemesanan'])->update([
+        'status_pemesanan' => 'Dibatalkan',
+        'updated_at'       => $now,
+    ]);
+
+    $db->transComplete();
+
+    if (!$db->transStatus()) {
+        log_message('error', 'cancelOrderAndMarkKeep: DB transaction failed for {orderId}', ['orderId' => $orderId]);
+        return false;
+    }
+
+    return true;
+}
+
+
 }

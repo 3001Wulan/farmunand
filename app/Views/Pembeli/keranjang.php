@@ -117,9 +117,17 @@
                     </div>
 
                     <td class="fw-semibold">Rp <?= number_format($subtotal,0,',','.') ?></td>
-                    <td>
-                      <a href="<?= base_url('keranjang/remove/'.$row['id_produk']) ?>" class="btn btn-outline-danger btn-sm"
-                        onclick="return confirm('Hapus item ini dari keranjang?')">Hapus</a>
+                    <td class="text-center">
+                      <!-- Tombol Hapus -> buka modal -->
+                      <button type="button"
+                              class="btn btn-sm btn-danger d-inline-flex align-items-center gap-1 btn-delete-item"
+                              aria-label="Hapus item: <?= esc($row['nama_produk']) ?>"
+                              title="Hapus item"
+                              data-produkid="<?= esc($row['id_produk']) ?>"
+                              data-produkname="<?= esc($row['nama_produk']) ?>"
+                              data-deleteurl="<?= base_url('keranjang/remove/'. $row['id_produk']) ?>">
+                        <i class="bi bi-trash" aria-hidden="true"></i> Hapus
+                      </button>
 
                       <!-- Checkout 1 produk (POST ke MelakukanPemesanan) -->
                       <form action="<?= base_url('melakukanpemesanan') ?>" method="post" class="d-inline">
@@ -129,7 +137,6 @@
                         <button class="btn btn-info btn-sm text-white">Checkout</button>
                       </form>
                     </td>
-
                   </tr>
                 <?php endforeach; ?>
               <?php else: ?>
@@ -168,6 +175,88 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Konfirmasi Hapus Item Keranjang -->
+    <div class="modal fade" id="deleteCartItemModal" tabindex="-1" aria-labelledby="deleteCartItemModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+          <form id="form-delete-cart-item" method="post" action="">
+            <?= csrf_field() ?>
+            <input type="hidden" name="id_produk" id="modalProdukId" value="">
+            <div class="modal-header bg-danger text-white">
+              <h5 class="modal-title d-flex align-items-center gap-2" id="deleteCartItemModalLabel">
+                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                Konfirmasi Hapus
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body">
+              <p class="mb-1">Anda yakin ingin menghapus item berikut dari keranjang?</p>
+              <p class="mb-0">
+                Produk: <strong id="modalProdukName"></strong>
+              </p>
+              <div class="alert alert-warning mt-3 mb-0" role="alert">
+                Tindakan ini hanya menghapus dari keranjang (tidak membatalkan pesanan).
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Batal</button>
+              <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash" aria-hidden="true"></i> Ya, Hapus
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+<!-- Pastikan Bootstrap JS bundle & Bootstrap Icons ada -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  (function () {
+    const modalEl = document.getElementById('deleteCartItemModal');
+    const formEl  = document.getElementById('form-delete-cart-item');
+    const nameEl  = document.getElementById('modalProdukName');
+    const idEl    = document.getElementById('modalProdukId');
+
+    // Delegasi klik tombol "Hapus"
+    document.addEventListener('click', function(e) {
+      const btn = e.target.closest('.btn-delete-item');
+      if (!btn) return;
+
+      const pid   = btn.getAttribute('data-produkid');
+      const pname = btn.getAttribute('data-produkname');
+      const durl  = btn.getAttribute('data-deleteurl');
+
+      // Isi konten modal
+      nameEl.textContent = pname || 'Tanpa Nama';
+      idEl.value = pid || '';
+
+      // Set action form -> arahkan ke endpoint hapus
+      // NOTE:
+      // - Jika route hapus Anda menerima POST, biarkan method="post".
+      // - Jika route hapus Anda hanya GET, ganti form submit menjadi redirect di bawah.
+      formEl.setAttribute('action', durl);
+
+      // Tampilkan modal
+      const m = new bootstrap.Modal(modalEl);
+      m.show();
+
+      // Simpan URL untuk fallback GET (kalau diperlukan)
+      formEl.dataset.geturl = durl;
+    });
+
+    // Jika route hapus masih GET saja, uncomment blok berikut:
+    // formEl.addEventListener('submit', function(ev) {
+    //   ev.preventDefault();
+    //   // Redirect GET
+    //   const url = formEl.dataset.geturl;
+    //   if (url) window.location.href = url;
+    // });
+  })();
+</script>
 
     <script>
       function enterEdit(id){

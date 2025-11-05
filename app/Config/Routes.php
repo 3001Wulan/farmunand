@@ -89,7 +89,7 @@ $routes->get('keranjang', 'Keranjang::index', ['filter' => 'auth']);
 // Ubah keranjang & checkout → wajib user aktif
 $routes->post('keranjang/add', 'Keranjang::add', ['filter' => 'authActive']);
 $routes->post('keranjang/update', 'Keranjang::update', ['filter' => 'authActive']);
-$routes->get('keranjang/remove/(:num)', 'Keranjang::remove/$1', ['filter' => 'authActive']);
+$routes->post('keranjang/remove/(:num)', 'Keranjang::remove/$1', ['filter' => 'authActive']);
 $routes->post('keranjang/clear', 'Keranjang::clear', ['filter' => 'authActive']);
 $routes->post('keranjang/checkout-all', 'Keranjang::checkoutAll', ['filter' => 'authActive']);
 
@@ -178,6 +178,7 @@ $routes->group('payments', static function($r){
     $r->post('resume/(:segment)', 'Payments::resume/$1');           // ambil token utk order lama (atau bikin retry)
     $r->post('webhook',           'Payments::webhook');             // notifikasi dari Midtrans
     $r->post('cancel',            'Payments::cancelByUser');        // ← user membatalkan pesanan "Belum Bayar"
+    $r->post('cancel_keep',       'Payments::cancelByUserKeep');
     $r->get('finish',             'Payments::finish');
     $r->get('unfinish',           'Payments::unfinish');
     $r->get('error',              'Payments::error');

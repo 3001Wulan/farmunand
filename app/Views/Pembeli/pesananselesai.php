@@ -82,6 +82,10 @@
                   Rp <?= number_format(($order['harga'] ?? 0) * ($order['jumlah_produk'] ?? 0), 0, ',', '.'); ?>
                 </span>
               </p>
+              <p class="mb-0 text-muted small">
+                <i class="bi bi-clock me-1"></i> 
+                <?= date('d/m/Y H:i', strtotime($order['created_at'])) ?> WIB
+              </p>
             </div>
           </div>
         </div>

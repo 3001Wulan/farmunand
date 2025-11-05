@@ -12,7 +12,7 @@
   <div class="text-center mb-4 px-3">
     <img src="<?= base_url('uploads/profile/' . ($user['foto'] ?? 'default.jpeg')) ?>" 
          alt="Foto Profil" 
-         class="profile-photo mb-2 rounded-circle border-3 border-white shadow-sm" 
+         class="profile-photo mb-2 rounded-circle border-3 border-white shadow-sm " 
          style="width: 140px; height: 140px; object-fit: cover;">
     <p class="mb-0 fw-bold text-white"><?= esc($user['username']) ?> | <?= esc($user['role']) ?></p>
   </div>
@@ -46,6 +46,15 @@
 </div>
 
 <style>
+  .profile-photo {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid white;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    flex-shrink: 0;
+  }
   .sidebarAdmin {
     width: 250px;
   }

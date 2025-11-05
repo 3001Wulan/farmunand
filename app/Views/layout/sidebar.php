@@ -50,6 +50,15 @@
 </div>
 
 <style>
+  .profile-photo {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid white;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    flex-shrink: 0;
+  }
   .sidebarUser { width: 250px; }
   .sidebar-link{
     display:flex; align-items:center;

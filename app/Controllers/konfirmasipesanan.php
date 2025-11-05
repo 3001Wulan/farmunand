@@ -2,46 +2,66 @@
 
 namespace App\Controllers;
 
-use App\Models\PesanModel; 
+use App\Models\PesananModel;
 use App\Models\UserModel;
 
 class KonfirmasiPesanan extends BaseController
 {
-    protected $pesanModel;
+    protected $pesananModel;
     protected $userModel;
 
     public function __construct()
     {
-        $this->pesanModel = new PesanModel();
-        $this->userModel  = new UserModel();
+        $this->pesananModel = new PesananModel();
+        $this->userModel    = new UserModel();
     }
 
     public function index()
-{
-    $idUser = session()->get('id_user');
-    if (!$idUser) {
-        return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
+    {
+        $idUser = session()->get('id_user');
+        if (!$idUser) {
+            return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
+        }
+
+        // Ambil hanya pesanan berstatus Dikirim (sudah otomatis orderBy created_at DESC dari model)
+        $pesananUser = $this->pesananModel->getPesananByStatus((int)$idUser, 'Dikirim');
+
+        $data = [
+            'pesanan' => $pesananUser,
+            'user'    => $this->userModel->find($idUser),
+        ];
+
+        return view('pembeli/konfirmasipesanan', $data);
     }
 
-    // ✅ Ambil langsung hanya yang status = dikirim
-    $pesananUser = $this->pesanModel->getPesananWithProduk($idUser, 'dikirim');
-
-    $data = [
-        'pesanan' => $pesananUser,
-        'user'    => $this->userModel->find($idUser),
-    ];
-
-    return view('pembeli/konfirmasipesanan', $data);
-}
-
-    
     public function selesai($id_pemesanan)
     {
-        $this->pesanModel->update($id_pemesanan, [
-            'status_pemesanan' => 'Selesai' // konsisten lowercase
+        $idUser = session()->get('id_user');
+        if (!$idUser) {
+            return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
+        }
+
+        // Pastikan pesanan milik user & sedang Dikirim
+        $row = $this->pesananModel
+            ->where('id_pemesanan', (int)$id_pemesanan)
+            ->where('id_user', (int)$idUser)
+            ->first();
+
+        if (!$row) {
+            return redirect()->back()->with('error', 'Pesanan tidak ditemukan.');
+        }
+
+        if (($row['status_pemesanan'] ?? '') !== 'Dikirim') {
+            return redirect()->back()->with('error', 'Pesanan ini tidak dalam status Dikirim.');
+        }
+
+        $ok = $this->pesananModel->update((int)$id_pemesanan, [
+            'status_pemesanan' => 'Selesai',
+            'confirmed_at'     => date('Y-m-d H:i:s'),
+            'konfirmasi_token' => null
         ]);
 
-        return redirect()->to('/riwayatpesanan')
-                         ->with('success', 'Pesanan berhasil dikonfirmasi!');
+        return redirect()->to('/pesananselesai')
+                         ->with($ok ? 'success' : 'error', $ok ? 'Pesanan berhasil dikonfirmasi!' : 'Gagal mengonfirmasi pesanan.');
     }
 }

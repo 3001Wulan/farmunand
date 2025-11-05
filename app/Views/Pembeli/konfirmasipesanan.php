@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pesanan Saya - FarmUnand</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
@@ -43,13 +44,13 @@
 
     <div class="card-container">
       <div class="mb-3 d-flex flex-wrap tabs-wrap">
-        <a href="/riwayatpesanan"     class="btn btn-sm btn-outline-success btn-filter">Semua</a>
-        <a href="/pesananbelumbayar"  class="btn btn-sm btn-outline-success btn-filter">Belum Bayar</a>
-        <a href="/pesanandikemas"     class="btn btn-sm btn-outline-success btn-filter">Dikemas</a>
-        <a href="/konfirmasipesanan"  class="btn btn-sm btn-success btn-filter active">Dikirim</a>
-        <a href="/pesananselesai"     class="btn btn-sm btn-outline-success btn-filter">Selesai</a>
-        <a href="/pesanandibatalkan"  class="btn btn-sm btn-outline-success btn-filter">Dibatalkan</a>
-        <a href="<?= base_url('penilaian/daftar') ?>" class="btn btn-sm btn-outline-success btn-filter">Berikan Penilaian</a>
+        <a href="<?= base_url('riwayatpesanan') ?>"     class="btn btn-sm btn-outline-success btn-filter">Semua</a>
+        <a href="<?= base_url('pesananbelumbayar') ?>"  class="btn btn-sm btn-outline-success btn-filter">Belum Bayar</a>
+        <a href="<?= base_url('pesanandikemas') ?>"     class="btn btn-sm btn-outline-success btn-filter">Dikemas</a>
+        <a href="<?= base_url('konfirmasipesanan') ?>"  class="btn btn-sm btn-success btn-filter active">Dikirim</a>
+        <a href="<?= base_url('pesananselesai') ?>"     class="btn btn-sm btn-outline-success btn-filter">Selesai</a>
+        <a href="<?= base_url('pesanandibatalkan') ?>"  class="btn btn-sm btn-outline-success btn-filter">Dibatalkan</a>
+        <a href="<?= base_url('penilaian/daftar') ?>"   class="btn btn-sm btn-outline-success btn-filter">Berikan Penilaian</a>
       </div>
 
       <?php
@@ -70,40 +71,61 @@
       <?php if (!empty($pesanan)) : ?>
         <?php foreach ($pesanan as $p): ?>
           <?php
-            $qty    = (int)($p['jumlah_produk'] ?? 0);
-            $harga  = (int)($p['harga'] ?? 0);
-            $total  = $qty * $harga;
-            $status = $p['status_pemesanan'] ?? '-';
+            $qty       = (int)($p['jumlah_produk'] ?? 0);
+            $harga     = (float)($p['harga'] ?? 0);
+            $total     = $p['total_harga'] ?? ($qty * $harga);
+            $status    = $p['status_pemesanan'] ?? '-';
+            $foto      = $p['foto'] ?? 'default.png';
+            $created   = $p['created_at'] ?? null;
+
+            // Format waktu WIB dengan fallback
+            $waktuWIB = '-';
+            if ($created) {
+              if (class_exists('\CodeIgniter\I18n\Time')) {
+                try {
+                  // Jika data lama tersimpan UTC, ubah ke Asia/Jakarta. Kalau sudah lokal, tetap aman.
+                  $t = \CodeIgniter\I18n\Time::parse($created, 'Asia/Jakarta')
+                        ->setTimezone('Asia/Jakarta');
+                  $waktuWIB = $t->toLocalizedString('dd/MM/yyyy HH:mm');
+                } catch (\Throwable $e) {
+                  $waktuWIB = date('d/m/Y H:i', strtotime($created));
+                }
+              } else {
+                $waktuWIB = date('d/m/Y H:i', strtotime($created));
+              }
+            }
           ?>
           <div class="card order-card">
             <div class="card-body d-flex flex-wrap justify-content-between align-items-center">
               <div class="d-flex align-items-center">
-                <img src="<?= base_url('uploads/produk/'.$p['foto']); ?>" class="order-img" alt="produk">
+                <img src="<?= base_url('uploads/produk/'.$foto) ?>" class="order-img" alt="<?= esc($p['nama_produk'] ?? 'Produk') ?>">
                 <div class="ms-3">
-                  <h6 class="fw-bold mb-1"><?= esc($p['nama_produk']); ?></h6>
-                  <p class="mb-0">Jumlah: <?= esc($qty); ?></p>
-                  <p class="mb-0">Harga: Rp <?= number_format($harga,0,',','.'); ?></p>
+                  <h6 class="fw-bold mb-1"><?= esc($p['nama_produk'] ?? 'Produk') ?></h6>
+                  <p class="mb-0 small text-muted">Jumlah: <?= esc($qty) ?></p>
+                  <p class="mb-0 small text-muted">Harga: Rp <?= number_format($harga,0,',','.') ?></p>
                 </div>
               </div>
 
               <div class="text-end mt-3 mt-md-0">
-                <p class="mb-2">
-                  <span class="badge <?= status_badge($status) ?>"><?= esc($status); ?></span>
+                <p class="mb-1">
+                  <span class="badge <?= status_badge($status) ?>"><?= esc($status) ?></span>
                 </p>
-                <p class="mb-2">
+                <p class="mb-0">
                   Total Pesanan
-                  <span class="fw-bold">Rp <?= number_format($total,0,',','.'); ?></span>
+                  <span class="fw-bold">Rp <?= number_format((float)$total,0,',','.') ?></span>
+                </p>
+                <p class="mb-0 text-muted small">
+                  <i class="bi bi-clock me-1"></i><?= $waktuWIB ?> WIB
                 </p>
 
-                <!-- Tombol konfirmasi dengan popup -->
                 <?php if ($status === 'Dikirim'): ?>
-                  <a href="javascript:void(0);" 
-                     onclick="konfirmasiSelesai('<?= site_url('pesanan/konfirmasi/'.$p['id_pemesanan']); ?>')" 
-                     class="btn btn-sm btn-success btn-filter">
+                  <a href="javascript:void(0);"
+                     onclick="konfirmasiSelesai('<?= site_url('pesanan/konfirmasi/'.(int)$p['id_pemesanan']) ?>')"
+                     class="btn btn-sm btn-success btn-filter mt-2">
                      Pesanan Selesai
                   </a>
                 <?php elseif ($status === 'Selesai'): ?>
-                  <button class="btn btn-sm btn-outline-success" disabled>Sudah Selesai</button>
+                  <button class="btn btn-sm btn-outline-success mt-2" disabled>Sudah Selesai</button>
                 <?php endif; ?>
               </div>
             </div>
@@ -120,16 +142,16 @@
   <!-- Popup Konfirmasi SweetAlert2 -->
   <script>
   function konfirmasiSelesai(url) {
-      Swal.fire({
-          title: 'Pesanan Telah Selesai',
-          text: 'Terima kasih telah berbelanja di FarmUnand!',
-          icon: 'success',
-          showConfirmButton: false,
-          timer: 2000,
-          timerProgressBar: true
-      }).then(() => {
-          window.location.href = url;
-      });
+    Swal.fire({
+      title: 'Pesanan Telah Selesai',
+      text: 'Terima kasih telah berbelanja di FarmUnand!',
+      icon: 'success',
+      showConfirmButton: false,
+      timer: 1600,
+      timerProgressBar: true
+    }).then(() => {
+      window.location.href = url;
+    });
   }
   </script>
 
