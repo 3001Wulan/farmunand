@@ -24,20 +24,20 @@ class DashboardUser extends BaseController
 
         // ===== METRIK =====
         // Sukses = Selesai
-        $pesananSukses = $pesananModel
+        $pesananSukses = (new PesananModel())
             ->where('id_user', $userId)
             ->where('status_pemesanan', 'Selesai')
             ->countAllResults();
 
         // Pending = Dikemas + Dikirim + Belum Bayar
         $pendingStatuses = ['Dikemas', 'Dikirim', 'Belum Bayar'];
-        $pesananPending = $pesananModel
+        $pesananPending = (new PesananModel())
             ->where('id_user', $userId)
             ->whereIn('status_pemesanan', $pendingStatuses)
             ->countAllResults();
 
-        // Dibatalkan = Dibatalkan
-        $pesananBatal = $pesananModel
+        // Dibatalkan
+        $pesananBatal = (new PesananModel())
             ->where('id_user', $userId)
             ->where('status_pemesanan', 'Dibatalkan')
             ->countAllResults();
@@ -57,9 +57,9 @@ class DashboardUser extends BaseController
 
         $data = [
             'title'          => 'Dashboard User',
-            'username'       => $user['username'],
-            'role'           => $user['role'],
-            'foto'           => $user['foto'],
+            'username'       => $user['username'] ?? '',
+            'role'           => $user['role'] ?? '',
+            'foto'           => $user['foto'] ?? null,
             'pesanan_sukses' => $pesananSukses,
             'pending'        => $pesananPending,
             'batal'          => $pesananBatal,

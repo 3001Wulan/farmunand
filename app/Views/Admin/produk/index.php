@@ -280,19 +280,21 @@
                   <td><?= esc($p['nama_produk']) ?></td>
                   <td><span class="badge bg-success">Rp <?= number_format($p['harga'],0,',','.') ?></span></td>
                   <td><span class="badge bg-secondary"><?= (int)$p['stok'] ?></span></td>
-                  <td>
+
+
+                  <td class="text-center"> 
                     <a href="<?= base_url('admin/produk/edit/'.$p['id_produk']) ?>"
-                      class="btn-action btn-warning me-1"
+                      class="btn btn-sm btn-warning d-inline-flex align-items-center gap-1"
                       aria-label="Edit produk <?= esc($p['nama_produk']) ?>">
-                      <i class="bi bi-pencil"></i> Edit
+                      <i class="bi bi-pencil" aria-hidden="true"></i> Edit
                     </a>
-                    <button type="button" class="btn-action btn-danger btn-delete-product"
+                    <button type="button" class="btn btn-sm btn-danger d-inline-flex align-items-center gap-1 btn-delete-product"
                             data-productid="<?= $p['id_produk'] ?>"
                             data-productname="<?= esc($p['nama_produk']) ?>"
                             aria-label="Hapus produk <?= esc($p['nama_produk']) ?>">
-                      <i class="bi bi-trash"></i> Hapus
+                      <i class="bi bi-trash" aria-hidden="true"></i> Hapus
                     </button>
-                    </td>
+                  </td>
                 </tr>
               <?php endforeach; ?>
             <?php else: ?>

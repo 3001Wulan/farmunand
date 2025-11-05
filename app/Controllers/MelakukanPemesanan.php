@@ -167,73 +167,139 @@ class MelakukanPemesanan extends BaseController
     // 🧩 Simpan pesanan ke database
     public function simpan()
     {
-        $idUser   = session()->get('id_user');
+        $session = session();
+        $idUser  = (int) $session->get('id_user');
         if (!$idUser) {
             return $this->response->setJSON(['success' => false, 'message' => 'User belum login']);
         }
 
-        $db = \Config\Database::connect();
+        // Ambil input
+        $idProduk = (int) $this->request->getPost('id_produk');
+        $idAlamat = (int) $this->request->getPost('id_alamat');
+        $qty      = max(1, (int) $this->request->getPost('qty'));
+        $metode   = strtolower(trim((string) $this->request->getPost('metode')) ?: 'cod');
 
-        $idProduk = $this->request->getPost('id_produk');
-        $idAlamat = $this->request->getPost('id_alamat');
-        $qty      = (int)$this->request->getPost('qty');
-        $harga    = (float)$this->request->getPost('harga');
-        $metode   = $this->request->getPost('metode');
-
-        if (!$idProduk || !$idAlamat || $qty <= 0) {
+        if ($idProduk <= 0 || $idAlamat <= 0) {
             return $this->response->setJSON(['success' => false, 'message' => 'Data pesanan tidak lengkap.']);
         }
 
-        $total = $qty * $harga;
-        $status = ($metode === 'cod') ? 'Dikemas' : 'Menunggu Pembayaran';
+        // Ambil produk dari DB (jangan percaya harga dari client)
+        $produk = $this->produkModel->find($idProduk);
+        if (!$produk) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Produk tidak ditemukan.']);
+        }
+
+        $stok  = (int) ($produk['stok'] ?? 0);
+        $harga = (float) ($produk['harga'] ?? 0);
+
+        if ($stok <= 0) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Stok produk habis.']);
+        }
+        if ($qty > $stok) {
+            // Boleh hard-fail, atau auto-sesuaikan. Di sini hard-fail biar jelas.
+            return $this->response->setJSON(['success' => false, 'message' => 'Jumlah melebihi stok tersedia.']);
+        }
+
+        $isCOD  = ($metode === 'cod');
+        $status = $isCOD ? 'Dikemas' : 'Menunggu Pembayaran';
+        $total  = $harga * $qty;
+
+        $db  = \Config\Database::connect();
+        $now = date('Y-m-d H:i:s');
 
         $db->transStart();
 
-        // insert ke tabel pembayaran jika bukan COD
+        // 1) pembayaran (khusus non-COD)
         $idPembayaran = null;
-        if ($metode !== 'cod') {
+        if (!$isCOD) {
             $db->table('pembayaran')->insert([
-                'metode' => ucfirst($metode),
+                'metode'       => ucfirst($metode),   // mis. Transfer/Ewallet
                 'status_bayar' => 'Belum Bayar',
+                'created_at'   => $now,
+                'updated_at'   => $now,
             ]);
             $idPembayaran = $db->insertID();
         }
 
-        // insert ke tabel pemesanan
+        // 2) pemesanan (header)
         $db->table('pemesanan')->insert([
-            'id_user' => $idUser,
-            'id_alamat' => $idAlamat,
-            'id_pembayaran' => $idPembayaran,
+            'id_user'          => $idUser,
+            'id_alamat'        => $idAlamat,
+            'id_pembayaran'    => $idPembayaran,
             'status_pemesanan' => $status,
-            'total_harga' => $total
+            'total_harga'      => $total,
+            'created_at'       => $now,
+            'updated_at'       => $now,
         ]);
-        $idPemesanan = $db->insertID();
+        $idPemesanan = (int) $db->insertID();
 
-        // insert ke tabel detail_pemesanan
+        // 3) detail_pemesanan
         $db->table('detail_pemesanan')->insert([
-            'id_pemesanan' => $idPemesanan,
-            'id_produk' => $idProduk,
+            'id_pemesanan'  => $idPemesanan,
+            'id_produk'     => $idProduk,
             'jumlah_produk' => $qty,
-            'harga_produk' => $harga
+            'harga_produk'  => $harga,
+            'created_at'    => $now,
+            'updated_at'    => $now,
         ]);
 
-        // kurangi stok produk
-        $produk = $this->produkModel->find($idProduk);
-        if ($produk && isset($produk['stok'])) {
-            $stokBaru = max(0, $produk['stok'] - $qty);
-            $this->produkModel->update($idProduk, ['stok' => $stokBaru]);
+        // 4) pengurangan stok ATOMIK (guard race condition)
+        $db->query(
+            "UPDATE produk SET stok = stok - ? WHERE id_produk = ? AND stok >= ?",
+            [$qty, $idProduk, $qty]
+        );
+        if ($db->affectedRows() === 0) {
+            // stok berubah sebelum commit
+            $db->transRollback();
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Stok berubah, silakan ulangi checkout.'
+            ]);
         }
 
         $db->transComplete();
-
-        if ($db->transStatus() === false) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Gagal menyimpan pesanan.']);
+        if (!$db->transStatus()) {
+            $err = $db->error();
+            return $this->response->setJSON([
+                'success'  => false,
+                'message'  => 'Gagal menyimpan pesanan.',
+                'db_error' => $err['message'] ?? null
+            ]);
         }
 
+        // === BERESKAN KERANJANG & CONTEXT CHECKOUT ===
+        // Hapus item ini dari keranjang user (jika ada)
+        $cartKey  = 'cart_u_' . $idUser;
+        $countKey = 'cart_count_u_' . $idUser;
+        $cart     = $session->get($cartKey) ?? [];
+
+        if (isset($cart[$idProduk])) {
+            unset($cart[$idProduk]);
+
+            // Simpan kembali cart & hitung ulang badge count
+            $session->set($cartKey, $cart);
+            $count = 0;
+            foreach ($cart as $row) {
+                $count += (int)($row['qty'] ?? 0);
+            }
+            $session->set($countKey, $count);
+
+            // Jika keranjang kosong, bersihkan key sekalian
+            if ($count === 0) {
+                $session->remove([$cartKey, $countKey]);
+            }
+        }
+
+        // Bersihkan context checkout single
+        $session->remove(['checkout_data']);
+
         return $this->response->setJSON([
-            'success' => true,
-            'status' => $status,
-            'message' => 'Pesanan berhasil dibuat'
+            'success'      => true,
+            'status'       => $status,
+            'id_pemesanan' => $idPemesanan,
+            'total'        => $total,
+            // optional hint ke FE kalau perlu redirect ke halaman status
+            // 'redirect'   => $isCOD ? base_url('pesanandikemas') : base_url('pesananbelumbayar'),
         ]);
     }
 

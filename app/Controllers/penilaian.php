@@ -80,24 +80,31 @@ class Penilaian extends BaseController
             return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
-        // Validasi input
+        $id_detail_pemesanan = (int) $id_detail_pemesanan;
+
+        // ===== Validasi input rating/ulasan + file =====
         $validation = \Config\Services::validation();
         $rules = [
-            'rating'  => 'required|in_list[1,2,3,4,5]',
-            'media.*' => 'permit_empty|max_size[media,4096]|ext_in[media,jpg,jpeg,png,gif,mp4,webm,ogg]' 
+            'rating'        => 'required|in_list[1,2,3,4,5]',
+            'ulasan'        => 'permit_empty|max_length[1000]',
+            // Catatan: pakai permit_empty agar upload opsional.
+            // Validasi per-file akan dicek manual juga.
+            'media.*'       => 'permit_empty|max_size[media,4096]|ext_in[media,jpg,jpeg,png,gif,mp4,webm,ogg]',
         ];
+
         if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()
+            return redirect()->back()
+                ->withInput()
                 ->with('errors', $validation->getErrors());
         }
 
-        // Ambil detail + pastikan milik user ini
+        // ===== Ambil detail + pastikan milik user ini + status Selesai =====
         $db = \Config\Database::connect();
         $detail = $db->table('detail_pemesanan dp')
-            ->select('dp.*, p.id_user, pr.nama_produk')
+            ->select('dp.*, p.id_user, p.status_pemesanan, pr.nama_produk')
             ->join('pemesanan p', 'p.id_pemesanan = dp.id_pemesanan', 'inner')
             ->join('produk pr', 'pr.id_produk = dp.id_produk', 'left')
-            ->where('dp.id_detail_pemesanan', (int)$id_detail_pemesanan)
+            ->where('dp.id_detail_pemesanan', $id_detail_pemesanan)
             ->get()->getRowArray();
 
         if (!$detail) {
@@ -107,33 +114,111 @@ class Penilaian extends BaseController
             return redirect()->back()->with('error', 'Anda tidak berhak menilai item ini.');
         }
 
+        // (Opsional kuat): hanya boleh menilai setelah pesanan Selesai
+        if (($detail['status_pemesanan'] ?? '') !== 'Selesai') {
+            return redirect()->back()->with('error', 'Penilaian hanya dapat dilakukan setelah pesanan berstatus Selesai.');
+        }
+
         // Cegah double rating
         if (!empty($detail['user_rating'])) {
             return redirect()->back()->with('info', 'Item ini sudah pernah dinilai.');
         }
 
-        // Upload media (opsional)
+        // ===== Persiapan upload =====
+        $uploadDir = rtrim(FCPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'penilaian';
+        if (!is_dir($uploadDir)) {
+            @mkdir($uploadDir, 0755, true);
+        }
+
         $mediaNames = [];
         $files = $this->request->getFiles();
-        if (!empty($files) && isset($files['media'])) {
-            foreach ($files['media'] as $file) {
-                if ($file->isValid() && !$file->hasMoved()) {
-                    $newName = $file->getRandomName();
-                    $file->move(FCPATH . 'uploads/penilaian', $newName);
-                    $mediaNames[] = $newName;
-                }
+
+        // Normalisasi: dukung <input type="file" name="media"> (single) atau name="media[]" (multiple)
+        $mediaFiles = [];
+        if (isset($files['media'])) {
+            // Bisa array file atau single UploadedFile
+            if (is_array($files['media'])) {
+                $mediaFiles = $files['media'];
+            } else {
+                $mediaFiles = [$files['media']];
             }
         }
+
+        // Batasi jumlah file (misal maks 5)
+        $MAX_FILES = 5;
+        if (count($mediaFiles) > $MAX_FILES) {
+            return redirect()->back()->withInput()->with('error', "Maksimal {$MAX_FILES} file media.");
+        }
+
+        // Validasi manual tambahan (mime/ukuran) + move
+        $totalMoved = 0;
+        $uploadErrors = [];
+
+        foreach ($mediaFiles as $idx => $file) {
+            if (!$file || !$file->isValid()) {
+                // Abaikan slot kosong (misal user tidak memilih file sama sekali)
+                continue;
+            }
+
+            // Double guard: ekstensi & ukuran sudah divalidasi rules, tapi kita cek lagi
+            $ext  = strtolower($file->getClientExtension());
+            $size = (int) $file->getSizeByUnit('kb'); // KB
+
+            $allowedExt = ['jpg','jpeg','png','gif','mp4','webm','ogg'];
+            if (!in_array($ext, $allowedExt, true)) {
+                $uploadErrors[] = "File #".($idx+1)." memiliki ekstensi tidak diizinkan.";
+                continue;
+            }
+            if ($size > 4096) { // 4MB
+                $uploadErrors[] = "File #".($idx+1)." melebihi 4MB.";
+                continue;
+            }
+
+            // Move aman (hindari nama asli)
+            try {
+                $newName = $file->getRandomName();
+                $file->move($uploadDir, $newName, true);
+                $mediaNames[] = $newName;
+                $totalMoved++;
+            } catch (\Throwable $e) {
+                $uploadErrors[] = "Gagal mengunggah file #".($idx+1).".";
+                // lanjut ke file berikutnya
+            }
+        }
+
+        // Jika semua file gagal diunggah (padahal user kirim file), boleh dianggap error
+        if (!empty($mediaFiles) && $totalMoved === 0 && !empty($uploadErrors)) {
+            return redirect()->back()->withInput()->with('error', implode(' ', $uploadErrors));
+        }
+
+        // ===== Sanitasi ulasan & simpan =====
+        $rating = (int) $this->request->getPost('rating');
+        $ulasan = (string) ($this->request->getPost('ulasan') ?? '');
+        if (mb_strlen($ulasan) > 1000) {
+            $ulasan = mb_substr($ulasan, 0, 1000);
+        }
+
         $mediaJson = $mediaNames ? json_encode($mediaNames) : null;
 
-        // Simpan penilaian langsung ke tabel detail_pemesanan (kolom: user_rating, user_ulasan, user_media)
-        $this->penilaianModel->update((int)$id_detail_pemesanan, [
-            'user_rating' => (int)$this->request->getPost('rating'),
-            'user_ulasan' => (string)($this->request->getPost('ulasan') ?? ''),
+        // Update tabel detail_pemesanan langsung (model PenilaianModel = table detail_pemesanan)
+        $ok = $this->penilaianModel->update($id_detail_pemesanan, [
+            'user_rating' => $rating,
+            'user_ulasan' => $ulasan,
             'user_media'  => $mediaJson,
             'updated_at'  => date('Y-m-d H:i:s'),
         ]);
 
-        return redirect()->to('/penilaian/daftar')->with('success', 'Penilaian berhasil dikirim.');
+        if (!$ok) {
+            // (Opsional) bersihkan file yang sudah ter-upload jika ingin atomic
+            // foreach ($mediaNames as $n) { @unlink($uploadDir . DIRECTORY_SEPARATOR . $n); }
+            return redirect()->back()->withInput()->with('error', 'Gagal menyimpan penilaian. Coba lagi.');
+        }
+
+        // (Opsional) Beri tahu user jika ada sebagian file gagal
+        if (!empty($uploadErrors)) {
+            return redirect()->to('/penilaian/daftar')->with('success', 'Penilaian tersimpan, namun sebagian file gagal diunggah: ' . implode(' ', $uploadErrors));
+        }
+
+        return redirect()->to('/penilaian/daftar')->with('success', 'Terima kasih! Penilaian berhasil dikirim.');
     }
 }

@@ -107,7 +107,7 @@
 
     <form action="/auth/sendResetLink" method="post" novalidate>
       <label for="email">Email</label>
-      <input type="email" id="email" name="email" placeholder="[translate:Masukkan email anda]" required autocomplete="email" />
+      <input type="email" id="email" name="email" placeholder="Masukkan email anda" required autocomplete="email" />
 
       <button type="submit" class="btn btn-success">Kirim Link Reset</button>
     </form>

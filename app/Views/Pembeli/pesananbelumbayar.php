@@ -105,11 +105,15 @@
                   <p class="mb-1 status">
                     <span class="badge badge-await">Menunggu Pembayaran</span>
                   </p>
-                  <p class="mb-2">
+                  <p class="mb-0">
                     Total Pesanan
                     <span class="fw-bold">
                       Rp <?= number_format(($order['harga'] ?? 0) * ($order['jumlah_produk'] ?? 0), 0, ',', '.'); ?>
                     </span>
+                  </p>
+                  <p class="mb-0 text-muted small">
+                    <i class="bi bi-clock me-1"></i> 
+                    <?= date('d M Y H:i', strtotime($order['created_at'])) ?> WIB
                   </p>
 
                   <?php if (!empty($order['order_id'])): ?>
@@ -190,7 +194,7 @@
         const data = await res.json();
         if(!data.success){
           alert(data.message || 'Token tidak tersedia');
-          return;
+          return;  
         }
 
         window.snap.pay(data.snapToken, {
@@ -215,7 +219,7 @@
     }
 
     async function doCancelRequest(orderId) {
-      const res = await fetch('<?= site_url('payments/cancel') ?>', {
+      const res = await fetch('<?= site_url('payments/cancel_keep') ?>', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: orderId })
@@ -257,12 +261,16 @@
 
     // auto-open kalau datang dari checkout online
     (function(){
-      const autopay = getParam('autopay');
-      const orderId = getParam('order');
-      if (autopay === '1' && orderId) {
+      const params   = new URLSearchParams(location.search);
+      const autopay  = params.get('autopay');
+      const orderId  = params.get('order');
+      const canceled = params.get('cancelled'); // optional
+
+      if (autopay === '1' && orderId && canceled !== '1') {
         lanjutkanPembayaranByOrder(orderId);
       }
     })();
+
     </script>
 
   </body>

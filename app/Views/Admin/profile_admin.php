@@ -72,7 +72,6 @@
       border: 5px solid white;
       box-shadow: 0 6px 16px rgba(0,0,0,0.35);
       flex-shrink: 0;
-      background: #fff;
     }
     .profile-body {
       padding: 36px 40px;
