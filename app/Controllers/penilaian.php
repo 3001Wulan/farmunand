@@ -89,7 +89,7 @@ class Penilaian extends BaseController
             'ulasan'        => 'permit_empty|max_length[1000]',
             // Catatan: pakai permit_empty agar upload opsional.
             // Validasi per-file akan dicek manual juga.
-            'media.*'       => 'permit_empty|max_size[media,4096]|ext_in[media,jpg,jpeg,png,gif,mp4,webm,ogg]',
+            'media.*'       => 'permit_empty|max_size[media,10240]|ext_in[media,jpg,jpeg,png,gif,mp4,webm,ogg]',
         ];
 
         if (!$this->validate($rules)) {
@@ -169,7 +169,7 @@ class Penilaian extends BaseController
                 $uploadErrors[] = "File #".($idx+1)." memiliki ekstensi tidak diizinkan.";
                 continue;
             }
-            if ($size > 4096) { // 4MB
+            if ($size > 10240) { // 10MB
                 $uploadErrors[] = "File #".($idx+1)." melebihi 4MB.";
                 continue;
             }
