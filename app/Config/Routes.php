@@ -37,7 +37,7 @@ $routes->post('/profileadmin/update', 'ProfileAdmin::update');
 
 // LOGOUT
 $routes->get('/logout', 'Auth::logout');
-
+$routes->get('/auth/logout', 'Auth::logout');
 
 
 

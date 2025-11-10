@@ -51,6 +51,11 @@
         <!-- Directory containing the front controller (index.php) -->
         <const name="PUBLICPATH" value="./public/"/>
         <!-- Database configuration -->
+        <env name="database.tests.hostname" value="localhost"/>
+    <env name="database.tests.database" value="farmunand"/>
+    <env name="database.tests.username" value="root"/>
+    <env name="database.tests.password" value=""/>
+    <env name="database.tests.DBDriver" value="MySQLi"/>
         <!-- Uncomment to provide your own database for testing
             <env name="database.tests.hostname" value="localhost"/>
             <env name="database.tests.database" value="tests"/>
