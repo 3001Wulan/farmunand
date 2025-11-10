@@ -14,9 +14,15 @@ class PenilaianModel extends Model
 
     // Kolom yang diizinkan untuk diupdate saat memberi penilaian
     protected $allowedFields = [
-        'user_rating',   // INT/TINYINT
-        'user_ulasan',   // TEXT
-        'user_media',    // TEXT/VARCHAR (JSON list file)
-        'updated_at',    // DATETIME (opsional)
+        'id_pemesanan',
+        'id_produk',
+        'jumlah_produk',
+        'harga_produk',
+        'user_rating',
+        'user_ulasan',
+        'user_media',
+        'created_at',
+        'updated_at',
     ];
+
 }

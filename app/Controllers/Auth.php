@@ -20,45 +20,102 @@ class Auth extends BaseController
         return view('auth/login');
     }
 
-    // ====== PROSES LOGIN ======
+    // ====== PROSES LOGIN (dengan lock 3x gagal) ======
     public function doLogin()
-    {
-        $session  = session();
-        $email    = $this->request->getVar('email');
-        $password = $this->request->getVar('password');
+{
+    $session  = session();
+    $email    = trim((string) $this->request->getVar('email'));
+    $password = (string) $this->request->getVar('password');
 
-        $user = $this->userModel->where('email', $email)->first();
+    // Cari user berdasarkan email
+    $user = $this->userModel->where('email', $email)->first();
 
-        if ($user) {
-            if (password_verify($password, $user['password'])) {
-                $session->set([
-                    'id_user'        => $user['id_user'],
-                    'username'  => $user['username'],
-                    'email'     => $user['email'],
-                    'role'      => $user['role'],
-                    'foto'      => $user['foto'],
-                    'logged_in' => true,
-                ]);
-
-
-                // Redirect sesuai role
-                if ($user['role'] === 'user') {
-                    return redirect()->to('/dashboarduser'); // halaman untuk user/admin
-                } elseif ($user['role'] === 'admin') {
-                    return redirect()->to('/dashboard'); // halaman untuk pembeli
-                } else { 
-                    $session->setFlashdata('error', 'Role tidak dikenali!');
-                    return redirect()->to('/login');
-                }
-            } else {
-                $session->setFlashdata('error', 'Password salah!');
-                return redirect()->to('/login');
-            }
-        } else {
-            $session->setFlashdata('error', 'Email tidak ditemukan!');
-            return redirect()->to('/login');
-        }
+    // Jangan bocorkan apakah email ada atau tidak
+    if (!$user) {
+        $session->setFlashdata('error', 'Email atau password salah.');
+        return redirect()->to('/login')->withInput();
     }
+
+    $now = date('Y-m-d H:i:s');
+
+    // Cek apakah akun sedang dikunci
+    if (!empty($user['locked_until']) && $user['locked_until'] > $now) {
+        $session->setFlashdata(
+            'error',
+            'Akun Anda terkunci sementara karena terlalu banyak percobaan login gagal. Coba lagi beberapa saat lagi.'
+        );
+        return redirect()->to('/login')->withInput();
+    }
+
+    // Verifikasi password
+    if (!password_verify($password, $user['password'])) {
+        // Hitung gagal login
+        $failed = (int) ($user['failed_logins'] ?? 0) + 1;
+
+        // Jika gagal >= 3 → kunci 15 menit
+        if ($failed >= 3) {
+            $lockMinutes = 15;
+            $lockUntil   = date('Y-m-d H:i:s', strtotime("+{$lockMinutes} minutes"));
+
+            $this->userModel->update($user['id_user'], [
+                'failed_logins'     => $failed,
+                'last_failed_login' => $now,
+                'locked_until'      => $lockUntil,
+            ]);
+
+            $session->setFlashdata(
+                'error',
+                "Terlalu banyak percobaan gagal. Akun dikunci selama {$lockMinutes} menit."
+            );
+        } else {
+            // Belum mencapai batas → hanya simpan counter & timestamp
+            $this->userModel->update($user['id_user'], [
+                'failed_logins'     => $failed,
+                'last_failed_login' => $now,
+                'locked_until'      => null,
+            ]);
+
+            $sisa = 3 - $failed;
+            $session->setFlashdata(
+                'error',
+                "Email atau password salah. Sisa percobaan: {$sisa}."
+            );
+        }
+
+        return redirect()->to('/login')->withInput();
+    }
+
+    // Password benar → reset counter & unlock
+    $this->userModel->update($user['id_user'], [
+        'failed_logins'     => 0,
+        'last_failed_login' => null,
+        'locked_until'      => null,
+    ]);
+
+    // Set session login
+    $session->set([
+        'id_user'   => $user['id_user'],
+        'username'  => $user['username'],
+        'email'     => $user['email'],
+        'role'      => $user['role'],
+        'foto'      => $user['foto'],
+        'logged_in' => true,
+    ]);
+
+    // Redirect sesuai role
+    if ($user['role'] === 'admin') {
+        return redirect()->to('/dashboard');
+    }
+
+    if ($user['role'] === 'user') {
+        return redirect()->to('/dashboarduser');
+    }
+
+    // Fallback kalau role aneh
+    $session->setFlashdata('error', 'Role tidak dikenali.');
+    return redirect()->to('/login');
+}
+
 
     // ====== FORM REGISTER ======
     public function register()
@@ -77,7 +134,9 @@ class Auth extends BaseController
         ];
 
         if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
         }
 
         $this->userModel->save([
@@ -98,51 +157,45 @@ class Auth extends BaseController
         return redirect()->to('/login');
     }
 
-    // FORM FORGOT PASSWORD
+    // ====== LUPA PASSWORD & RESET (tetap sama) ======
     public function forgotPassword()
     {
         return view('auth/forgot_password');
     }
 
-    // KIRIM RESET LINK VIA EMAIL
     public function sendResetLink()
     {
         $email = $this->request->getVar('email');
-        $user = $this->userModel->where('email', $email)->first();
+        $user  = $this->userModel->where('email', $email)->first();
 
         if (!$user) {
             return redirect()->back()->with('error', 'Email tidak ditemukan.');
         }
 
-        // buat token
-        $token = bin2hex(random_bytes(50));
+        $token   = bin2hex(random_bytes(50));
         $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
-        // simpan ke tabel users
         $this->userModel->update($user['id_user'], [
-            'reset_token' => $token,
+            'reset_token'   => $token,
             'reset_expires' => $expires
         ]);
 
-        // buat link reset
-        $resetLink = base_url("reset-password/$token");
-
-        // kirim email
-        $emailService = \Config\Services::email();
-        $emailService->setTo($email);
-        $emailService->setSubject('Reset Password FarmUnand');
-        $emailService->setMessage("Klik link berikut untuk reset password: <a href='$resetLink'>$resetLink</a>");
-        $emailService->send();
+        $resetLink   = base_url("reset-password/$token");
+        $emailSender = \Config\Services::email();
+        $emailSender->setTo($email);
+        $emailSender->setSubject('Reset Password FarmUnand');
+        $emailSender->setMessage("Klik link berikut untuk reset password: <a href='$resetLink'>$resetLink</a>");
+        $emailSender->send();
 
         return redirect()->to('/login')->with('success', 'Link reset password sudah dikirim ke email.');
     }
 
-    // FORM RESET PASSWORD
     public function resetPassword($token)
     {
-        $user = $this->userModel->where('reset_token', $token)
-                                ->where('reset_expires >=', date('Y-m-d H:i:s'))
-                                ->first();
+        $user = $this->userModel
+            ->where('reset_token', $token)
+            ->where('reset_expires >=', date('Y-m-d H:i:s'))
+            ->first();
 
         if (!$user) {
             return redirect()->to('/login')->with('error', 'Token tidak valid atau kadaluarsa.');
@@ -151,29 +204,28 @@ class Auth extends BaseController
         return view('auth/reset_password', ['token' => $token]);
     }
 
-    // PROSES RESET PASSWORD
     public function doResetPassword()
     {
-        $token = $this->request->getVar('token');
+        $token    = $this->request->getVar('token');
         $password = $this->request->getVar('password');
-        $confirm = $this->request->getVar('password_confirm');
+        $confirm  = $this->request->getVar('password_confirm');
 
         if ($password !== $confirm) {
             return redirect()->back()->with('error', 'Password tidak sama.');
         }
 
-        $user = $this->userModel->where('reset_token', $token)
-                                ->where('reset_expires >=', date('Y-m-d H:i:s'))
-                                ->first();
+        $user = $this->userModel
+            ->where('reset_token', $token)
+            ->where('reset_expires >=', date('Y-m-d H:i:s'))
+            ->first();
 
         if (!$user) {
             return redirect()->to('/login')->with('error', 'Token tidak valid atau kadaluarsa.');
         }
 
-        // update password
         $this->userModel->update($user['id_user'], [
-            'password' => password_hash($password, PASSWORD_DEFAULT),
-            'reset_token' => null,
+            'password'      => password_hash($password, PASSWORD_DEFAULT),
+            'reset_token'   => null,
             'reset_expires' => null
         ]);
 

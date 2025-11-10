@@ -72,11 +72,18 @@ class ProdukAdmin extends BaseController
     public function store()
     {
         $file = $this->request->getFile('foto');
-        $fotoName = ($file->isValid() && !$file->hasMoved())
-            ? $file->getRandomName()
-            : 'default.png';
+        $fotoName = 'default.png';
 
-        if ($file->isValid() && !$file->hasMoved()) {
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+
+            $maxBytes = 10 * 1024 * 1024; // 10MB
+            if ($file->getSize() > $maxBytes) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Ukuran file foto maksimal 10MB.');
+            }
+
+            $fotoName = $file->getRandomName();
             $file->move('uploads/produk', $fotoName);
         }
 
@@ -91,6 +98,8 @@ class ProdukAdmin extends BaseController
 
         return redirect()->to('/admin/produk')->with('success', 'Produk berhasil ditambahkan!');
     }
+
+
 
     // === Form Edit Produk
     public function edit($id_produk)
@@ -120,6 +129,14 @@ class ProdukAdmin extends BaseController
 
         $file = $this->request->getFile('foto');
         if ($file && $file->isValid() && !$file->hasMoved()) {
+
+            $maxBytes = 10 * 1024 * 1024; // 10MB
+            if ($file->getSize() > $maxBytes) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Ukuran file foto maksimal 10MB.');
+            }
+
             $fotoName = $file->getRandomName();
             $file->move('uploads/produk', $fotoName);
 
@@ -129,6 +146,8 @@ class ProdukAdmin extends BaseController
         } else {
             $fotoName = $produk['foto'];
         }
+
+
 
         $this->produkModel->update($id_produk, [
             'nama_produk' => $this->request->getVar('nama_produk'),

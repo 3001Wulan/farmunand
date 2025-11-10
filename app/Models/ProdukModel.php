@@ -17,9 +17,11 @@ class ProdukModel extends Model
         'harga',
         'stok',
         'rating',
-        'id_keranjang',
-        'kategori',     // <— baru
+        'kategori',      // kalau ada
+        'created_at',
+        'updated_at',
     ];
+
 
     public function getTotalProduk()
     {
