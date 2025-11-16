@@ -24,5 +24,12 @@ class PenilaianModel extends Model
         'created_at',
         'updated_at',
     ];
-
+    public function getPenilaianByProduk($idProduk)
+    {
+        return $this->select('penilaian.*, user.nama')
+            ->join('user', 'user.id_user = penilaian.id_user')
+            ->where('penilaian.id_produk', $idProduk)
+            ->findAll();
+    }
+    
 }

@@ -35,33 +35,31 @@ class KonfirmasiPesanan extends BaseController
     }
 
     public function selesai($id_pemesanan)
-    {
-        $idUser = session()->get('id_user');
-        if (!$idUser) {
-            return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
-        }
-
-        // Pastikan pesanan milik user & sedang Dikirim
-        $row = $this->pesananModel
-            ->where('id_pemesanan', (int)$id_pemesanan)
-            ->where('id_user', (int)$idUser)
-            ->first();
-
-        if (!$row) {
-            return redirect()->back()->with('error', 'Pesanan tidak ditemukan.');
-        }
-
-        if (($row['status_pemesanan'] ?? '') !== 'Dikirim') {
-            return redirect()->back()->with('error', 'Pesanan ini tidak dalam status Dikirim.');
-        }
-
-        $ok = $this->pesananModel->update((int)$id_pemesanan, [
-            'status_pemesanan' => 'Selesai',
-            'confirmed_at'     => date('Y-m-d H:i:s'),
-            'konfirmasi_token' => null
-        ]);
-
-        return redirect()->to('/pesananselesai')
-                         ->with($ok ? 'success' : 'error', $ok ? 'Pesanan berhasil dikonfirmasi!' : 'Gagal mengonfirmasi pesanan.');
+{
+    $idUser = session()->get('id_user');
+    if (!$idUser) {
+        return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
     }
+
+    // Gunakan helper method di model
+    $row = $this->pesananModel->getPesananByIdAndUser((int)$id_pemesanan, (int)$idUser);
+
+    if (!$row) {
+        return redirect()->back()->with('error', 'Pesanan tidak ditemukan.');
+    }
+
+    if (($row['status_pemesanan'] ?? '') !== 'Dikirim') {
+        return redirect()->back()->with('error', 'Pesanan ini tidak dalam status Dikirim.');
+    }
+
+    $ok = $this->pesananModel->update((int)$id_pemesanan, [
+        'status_pemesanan' => 'Selesai',
+        'confirmed_at'     => date('Y-m-d H:i:s'),
+        'konfirmasi_token' => null
+    ]);
+
+    return redirect()->to('/pesananselesai')
+                     ->with($ok ? 'success' : 'error', $ok ? 'Pesanan berhasil dikonfirmasi!' : 'Gagal mengonfirmasi pesanan.');
+}
+
 }

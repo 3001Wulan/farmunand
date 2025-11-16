@@ -287,4 +287,10 @@ class PesananModel extends Model
 
         return $this->db->affectedRows();
     }
+    public function getPesananByIdAndUser(int $id, int $userId)
+    {
+        return $this->where('id_pemesanan', $id)
+                    ->where('id_user', $userId)
+                    ->first();
+    }
 }

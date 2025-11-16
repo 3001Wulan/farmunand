@@ -8,59 +8,35 @@ use App\Models\PesananModel;
 
 class Dashboard extends BaseController
 {
+    protected $produkModel;
+    protected $userModel;
+    protected $pesananModel;
+
+    public function __construct()
+    {
+        $this->produkModel = new ProdukModel();
+        $this->userModel   = new UserModel();
+        $this->pesananModel = new PesananModel();
+    }
+
     public function index()
     {
-        $produkModel  = new ProdukModel();
-        $userModel    = new UserModel();
-        $pesananModel = new PesananModel();
-
         $userId = session()->get('id_user');
         if (!$userId) {
             return redirect()->to('/login')->with('error', 'Silakan login dulu.');
         }
 
-        $user = $userModel->find($userId);
-
-        // ========= METRIK =========
-        // total produk
-        $totalProduk = method_exists($produkModel, 'getTotalProduk')
-            ? $produkModel->getTotalProduk()
-            : (new ProdukModel())->countAllResults();
-
-        // total user
-        $totalUser = method_exists($userModel, 'getTotalUser')
-            ? $userModel->getTotalUser()
-            : (new UserModel())->countAllResults();
-
-        // transaksi hari ini (pakai helper di PesananModel)
-        $transaksiHari = $pesananModel->getTransaksiHariIni();
-
-        // penjualan bulan ini (pakai helper di PesananModel)
-        $penjualanBulan = $pesananModel->getPenjualanBulan();
-
-        // stok rendah (jika ada helper; fallback 0)
-        $stokRendah = method_exists($produkModel, 'getStokRendah')
-            ? $produkModel->getStokRendah()
-            : 0;
-
-        // “pesan_masuk” sebelumnya berasal dari PesanModel::getPesanMasuk (status ‘belum_dibaca’).
-        // Kita ganti definisinya menjadi jumlah pesanan dengan status “Belum Bayar”.
-        $pesanMasuk = (new PesananModel())
-            ->where('status_pemesanan', 'Belum Bayar')
-            ->countAllResults();
-
-        // total pesanan
-        $totalPesanan = (new PesananModel())->countAllResults();
+        $user = $this->userModel->find($userId);
 
         $data = [
             'title'           => 'Dashboard',
-            'total_produk'    => $totalProduk,
-            'total_user'      => $totalUser,
-            'transaksi_hari'  => $transaksiHari,
-            'penjualan_bulan' => $penjualanBulan,
-            'stok_rendah'     => $stokRendah,
-            'pesan_masuk'     => $pesanMasuk,
-            'total_pesanan'   => $totalPesanan,
+            'total_produk'    => method_exists($this->produkModel, 'getTotalProduk') ? $this->produkModel->getTotalProduk() : $this->produkModel->countAllResults(),
+            'total_user'      => method_exists($this->userModel, 'getTotalUser') ? $this->userModel->getTotalUser() : $this->userModel->countAllResults(),
+            'transaksi_hari'  => $this->pesananModel->getTransaksiHariIni(),
+            'penjualan_bulan' => $this->pesananModel->getPenjualanBulan(),
+            'stok_rendah'     => method_exists($this->produkModel, 'getStokRendah') ? $this->produkModel->getStokRendah() : 0,
+            'pesan_masuk'     => $this->pesananModel->where('status_pemesanan', 'Belum Bayar')->countAllResults(),
+            'total_pesanan'   => $this->pesananModel->countAllResults(),
             'user'            => $user,
         ];
 
