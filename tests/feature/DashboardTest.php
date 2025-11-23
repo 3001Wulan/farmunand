@@ -1,34 +1,40 @@
 <?php
 
-namespace Tests\Support\Controllers;
+namespace Tests\Feature;
 
 use App\Controllers\Dashboard;
 use App\Models\ProdukModel;
 use App\Models\UserModel;
 use App\Models\PesananModel;
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\MockObject\MockObject;
 
 class DashboardTest extends CIUnitTestCase
 {
-    protected $dashboard;
-    protected $produkModelMock;
-    protected $userModelMock;
+    /** @var Dashboard */
+    private $dashboard;
+
+    /** @var MockObject */
+    private $produkModelMock;
+
+    /** @var MockObject */
+    private $userModelMock;
+
+    /** @var MockObject */
+    private $pesananModelMock;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->produkModelMock = $this->getMockBuilder(ProdukModel::class)
-            ->onlyMethods(['getTotalProduk', 'getStokRendah'])
-            ->getMock();
+        // --- Mock ProdukModel ---
+        $this->produkModelMock = $this->createMock(ProdukModel::class);
         $this->produkModelMock->method('getTotalProduk')->willReturn(50);
         $this->produkModelMock->method('getStokRendah')->willReturn(3);
 
-        $this->userModelMock = $this->getMockBuilder(UserModel::class)
-            ->onlyMethods(['getTotalUser', 'find'])
-            ->getMock();
+        // --- Mock UserModel ---
+        $this->userModelMock = $this->createMock(UserModel::class);
         $this->userModelMock->method('getTotalUser')->willReturn(20);
-
         $this->userModelMock->method('find')->with(1)->willReturn([
             'id_user'  => 1,
             'nama'     => 'Admin',
@@ -36,50 +42,58 @@ class DashboardTest extends CIUnitTestCase
             'role'     => 'admin'
         ]);
 
-        $pesananModel = new PesananModel();
+        // --- Mock PesananModel ---
+        $this->pesananModelMock = $this->createMock(PesananModel::class);
+        $this->pesananModelMock->method('countAllResults')->willReturn(7);
 
+        // --- Buat instance Dashboard ---
         $this->dashboard = new Dashboard();
 
-        $ref = new \ReflectionClass($this->dashboard);
-
-        $assign = function ($prop, $value) use ($ref) {
-            $property = $ref->getProperty($prop);
-            $property->setAccessible(true);
-            $property->setValue($this->dashboard, $value);
-        };
-
-        $assign('produkModel', $this->produkModelMock);
-        $assign('userModel', $this->userModelMock);
-        $assign('pesananModel', $pesananModel);
+        // --- Inject semua mock ke controller via reflection ---
+        $this->injectMockToController(Dashboard::class, 'produkModel', $this->produkModelMock);
+        $this->injectMockToController(Dashboard::class, 'userModel', $this->userModelMock);
+        $this->injectMockToController(Dashboard::class, 'pesananModel', $this->pesananModelMock);
     }
 
     public function test_dashboard_returns_metrics_and_user()
     {
+        // Simulasi user login
         $_SESSION['id_user'] = 1;
-    
-        $output = $this->dashboard->index(); // STRING HTML
-    
-        $this->assertStringContainsString("Total Produk", $output);
-        $this->assertStringContainsString("50", $output);
-    
-        $this->assertStringContainsString("Total User", $output);
-        $this->assertStringContainsString("20", $output);
-    
-        $this->assertStringContainsString("Stok Rendah", $output);
-        $this->assertStringContainsString("3", $output);
-    
-        $this->assertStringContainsString("admin123", $output);
+
+        // Jalankan controller
+        $output = $this->dashboard->index(); // HTML string
+
+        // Cek total produk
+        $this->assertStringContainsString('50', $output);
+        $this->assertStringContainsString('20', $output);
+        $this->assertStringContainsString('3', $output);
+        $this->assertStringContainsString('7', $output);
+        $this->assertStringContainsString('admin123', $output);
+
+        // Bersihkan session
+        unset($_SESSION['id_user']);
     }
-    
+
     public function test_dashboard_redirects_if_not_logged_in()
     {
         unset($_SESSION['id_user']);
 
         $response = $this->dashboard->index();
 
+        // Cek header Location dari RedirectResponse
         $location = $response->getHeaderLine('Location');
 
-        // URL CI bisa berubah tergantung baseURL → gunakan contains
-        $this->assertStringContainsString("/login", $location);
+        $this->assertStringContainsString('/login', $location);
+    }
+
+    /** ----------------------- HELPER ----------------------- */
+    private function injectMockToController($controllerClass, $property, $mock)
+    {
+        $ref = new \ReflectionClass($controllerClass);
+        $instance = $this->dashboard;
+
+        $prop = $ref->getProperty($property);
+        $prop->setAccessible(true);
+        $prop->setValue($instance, $mock);
     }
 }

@@ -1,48 +1,94 @@
 <?php
 
-namespace Tests\Support\Controllers;
+namespace Tests\Feature;
 
-use App\Controllers\DashboardUser;
 use CodeIgniter\Test\CIUnitTestCase;
+use CodeIgniter\Test\ControllerTestTrait;
+use PHPUnit\Framework\MockObject\MockObject;
+use App\Controllers\DashboardUser;
+use App\Models\PesananModel;
 
 class DashboardUserTest extends CIUnitTestCase
 {
-    protected $controller;
+    use ControllerTestTrait;
+
+    /** @var MockObject */
+    private $pesananMock;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->controller = new DashboardUser();
+
+        // --- Mock PesananModel ---
+        $this->pesananMock = $this->createMock(PesananModel::class);
+        
+        // Inject mock ke controller
+        $this->injectMockToController(DashboardUser::class, 'pesananModel', $this->pesananMock);
+
+        // --- Mock session ---
+        $mockSession = $this->createMock(\CodeIgniter\Session\Session::class);
+        $mockSession->method('get')->willReturnMap([
+            ['id_user', null], // default: not logged in
+            ['username', null],
+            ['role', null],
+        ]);
+        $mockSession->method('set')->willReturn(true);
+        \Config\Services::injectMock('session', $mockSession);
     }
 
-    public function test_redirect_if_not_logged_in()
+    /** ----------------------- TEST REDIRECT JIKA BELUM LOGIN ----------------------- */
+    public function testRedirectIfNotLoggedIn()
     {
-        // Tidak ada session
-        unset($_SESSION['id_user']);
-
-        $response = $this->controller->index();
-
-        $this->assertStringContainsString('/login', $response->getHeaderLine('Location'));
+        // Session id_user = null → belum login
+        $result = $this->controller(DashboardUser::class)->execute('index');
+        $result->assertRedirectTo(site_url('login'));
     }
 
-    public function test_dashboard_user_returns_view()
+    /** ----------------------- TEST INDEX VIEW JIKA LOGIN ----------------------- */
+    public function testDashboardUserReturnsView()
+{
+    // Simulasikan user login
+    $mockSession = \Config\Services::session();
+    $mockSession->method('get')->willReturnMap([
+        ['id_user', 1],
+        ['username', 'UserTest'],
+        ['role', 'user']
+    ]);
+
+    // --- Mock PesananModel dengan method chaining ---
+    $this->pesananMock = $this->getMockBuilder(PesananModel::class)
+                          ->onlyMethods(['where', 'whereIn', 'countAllResults'])
+                          ->getMock();
+
+$this->pesananMock->method('where')->willReturnSelf();
+$this->pesananMock->method('whereIn')->willReturnSelf();
+$this->pesananMock->method('countAllResults')->willReturn(5); // contoh jumlah pesanan
+
+    // Inject mock baru ke controller
+    $this->injectMockToController(DashboardUser::class, 'pesananModel', $this->pesananMock);
+
+    // Jalankan controller
+    $result = $this->controller(DashboardUser::class)->execute('index');
+
+    // Pastikan response OK
+    $result->assertOK();
+
+    // Cek konten view
+    $output = (string) $result->getBody();
+    $this->assertStringContainsString('Dashboard User', $output);
+    $this->assertStringContainsString('pesanan', strtolower($output));
+}
+
+    /** ----------------------- HELPER ----------------------- */
+    private function injectMockToController($controllerClass, $property, $mock)
     {
-        // Simulasikan user login
-        $_SESSION['id_user'] = 1;
+        $this->controller($controllerClass);
 
-        // Jalankan controller
-        $output = $this->controller->index();   // Return view as STRING
+        $reflection = new \ReflectionClass($controllerClass);
+        $instance = $this->getPrivateProperty($this, 'controller');
 
-        // Cek bahwa HTML mengandung username
-        $this->assertStringContainsString("username", strtolower($output));  // fleksibel
-        // Atau jika view kamu menampilkan langsung nama user
-        // $this->assertStringContainsString("admin", strtolower($output));
-
-        // Minimal pastikan title dashboard tampil
-        $this->assertStringContainsString("Dashboard User", $output);
-
-        // Karena pesanan sukses/pending/batal dikalkulasi, pastikan variabel tampil
-        // Ini tergantung bagaimana view Pembeli/dashboarduser.php menampilkannya
-        $this->assertStringContainsString("pesanan", strtolower($output));
+        $prop = $reflection->getProperty($property);
+        $prop->setAccessible(true);
+        $prop->setValue($instance, $mock);
     }
 }

@@ -1,73 +1,200 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Feature;
 
 use CodeIgniter\Test\CIUnitTestCase;
+use CodeIgniter\Test\ControllerTestTrait;
+use PHPUnit\Framework\MockObject\MockObject;
+use App\Controllers\MemilihAlamat;
 use App\Models\AlamatModel;
 
 class AlamatTest extends CIUnitTestCase
 {
-    protected $alamatModel;
+    use ControllerTestTrait;
+
+    /** @var MockObject */
+    private $alamatMock;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->alamatModel = new AlamatModel();
+
+        // Mock model secara lengkap (HANYA method yang dipakai controller)
+        $this->alamatMock = $this->createMock(AlamatModel::class);
+
+        // Override instance model dalam controller
+        $this->injectMockToController(MemilihAlamat::class, 'alamatModel', $this->alamatMock);
     }
 
-    /** @test */
-    public function testInsertAlamatBerhasil()
+
+    /** ----------------------- INDEX ----------------------- */
+
+    public function test_index()
     {
-        $data = [
-            'id_user'         => 1 	,
-            'alamat_lengkap'  => 'Jl. Khatib Sulaiman No. 45',
-            'kecamatan'       => 'Padang Utara',
-            'kota'            => 'Padang',
-            'provinsi'        => 'Sumatera Barat',
-            'kode_pos'        => '25134',
-        ];
-
-        $inserted = $this->alamatModel->insert($data);
-
-        $this->assertIsInt($inserted, 'Insert harus mengembalikan ID integer.');
+        // --- Mock logger ---
+        $mockLogger = $this->createMock(\CodeIgniter\Log\Logger::class);
+        $mockLogger->method('debug')->willReturnCallback(function(){});
+        $mockLogger->method('error')->willReturnCallback(function(){});
+        \Config\Services::injectMock('logger', $mockLogger);
+    
+        // --- Mock session ---
+        $mockSession = $this->createMock(\CodeIgniter\Session\Session::class);
+        $mockSession->method('get')->willReturnMap([
+            ['id_user', 1],
+            ['username', 'tester'],
+            ['role', 'pembeli']
+        ]);
+        $mockSession->method('set')->willReturn(true);
+        \Config\Services::injectMock('session', $mockSession);
+    
+        // --- Mock AlamatModel --- 
+        // Hanya mock findAll() yang dipanggil di index
+        $this->alamatMock->method('findAll')->willReturn([
+            ['id_alamat' => 1, 'nama_penerima' => 'Tester']
+        ]);
+    
+        // Jalankan controller
+        $result = $this->controller(\App\Controllers\MemilihAlamat::class)
+                       ->execute('index');
+    
+        $result->assertOK();
     }
+    
+    /** ----------------------- TAMBAH ----------------------- */
 
-    /** @test */
-    public function testAmbilAlamatByUserId()
+    public function test_tambah()
     {
-        $userId = 1;
-        $result = $this->alamatModel->where('id_user', $userId)->findAll();
+        // Mock insert() pada tambahAlamat()
+        $this->alamatMock->method('insert')->willReturn(1);
 
-        $this->assertIsArray($result, 'Hasil findAll harus berupa array.');
+        $result = $this->withBody([
+                            'nama_penerima' => 'User A',
+                            'no_hp' => '08123',
+                            'alamat_lengkap' => 'Test alamat',
+                            'label' => 'Rumah'
+                        ])
+                        ->controller(MemilihAlamat::class)
+                        ->execute('tambah');
+
+        $result->assertOK();
     }
 
-    /** @test */
-    public function testUpdateAlamatBerhasil()
+
+    /** ----------------------- PILIH ----------------------- */
+
+    public function test_pilih()
     {
-        $dataUpdate = [
-            'jalan' => 'Jl. Veteran No. 21'
-        ];
+        // Mock find() dipanggil pada pilihAlamat()
+        $this->alamatMock->method('find')->willReturn([
+            'id' => 2,
+            'nama_penerima' => 'Tester'
+        ]);
 
-        $updated = $this->alamatModel->update(1, $dataUpdate);
+        $result = $this->controller(MemilihAlamat::class)
+                       ->execute('pilih', 2);
 
-        $this->assertTrue($updated, 'Update alamat seharusnya berhasil.');
+        $result->assertOK();
     }
 
-    /** @test */
-    public function testDeleteAlamatBerhasil()
+
+    /** ----------------------- UBAH ----------------------- */
+
+    public function test_ubah()
     {
-        $deleted = $this->alamatModel->delete(1);
+        // Mock update()
+        $this->alamatMock->method('update')->willReturn(true);
 
-        $this->assertTrue($deleted, 'Delete alamat seharusnya berhasil.');
+        $result = $this->withBody([
+                            'nama_penerima' => 'Updated',
+                            'no_hp' => '081999',
+                            'alamat_lengkap' => 'Alamat updated',
+                            'label' => 'Kantor'
+                        ])
+                        ->controller(MemilihAlamat::class)
+                        ->execute('ubah', 5);
+
+        $result->assertOK();
     }
 
-    /** @test */
-    public function testKolomYangDiizinkanSaja()
+
+    /** ----------------------- INJECT MOCK ----------------------- */
+    private function injectMockToController($controllerClass, $property, $mock)
     {
-        $allowedFields = $this->alamatModel->allowedFields;
+        // Trick: memaksa controller menggunakan mock model
+        $this->controller($controllerClass);
 
-        $this->assertContains('kota', $allowedFields);
-        $this->assertContains('provinsi', $allowedFields);
-        $this->assertContains('kode_pos', $allowedFields);
+        $reflection = new \ReflectionClass($controllerClass);
+        $instance = $this->getPrivateProperty($this, 'controller');
+
+        $prop = $reflection->getProperty($property);
+        $prop->setAccessible(true);
+        $prop->setValue($instance, $mock);
     }
+    /** ----------------------- TAMBAH (VALIDASI GAGAL) ----------------------- */
+public function test_tambah_validation_fail()
+{
+    $mockSession = $this->createMock(\CodeIgniter\Session\Session::class);
+    $mockSession->method('get')->willReturn(1);
+    \Config\Services::injectMock('session', $mockSession);
+
+    // Body tidak lengkap
+    $result = $this->withBody([
+                        'nama_penerima' => '',
+                        'jalan' => '',
+                        'no_telepon' => '',
+                        'kota' => '',
+                        'provinsi' => '',
+                        'kode_pos' => ''
+                    ])
+                    ->controller(MemilihAlamat::class)
+                    ->execute('tambah');
+
+    $result->assertRedirect(); // pastikan redirect karena gagal validasi
+}
+
+/** ----------------------- PILIH (ALAMAT TIDAK DITEMUKAN) ----------------------- */
+public function test_pilih_not_found()
+{
+    $this->alamatMock->method('find')->willReturn(null);
+
+    $mockSession = $this->createMock(\CodeIgniter\Session\Session::class);
+    $mockSession->method('get')->willReturn(1);
+    \Config\Services::injectMock('session', $mockSession);
+
+    $result = $this->controller(MemilihAlamat::class)
+                   ->execute('pilih', 99);
+
+    $body = $result->getBody();
+    $this->assertStringContainsString('Alamat tidak ditemukan', $body);
+}
+
+/** ----------------------- UBAH (ALAMAT TIDAK DITEMUKAN) ----------------------- */
+public function test_ubah_not_found()
+{
+    $this->alamatMock->method('find')->willReturn(null);
+
+    $result = $this->withBody([
+                        'nama_penerima' => 'Updated',
+                        'jalan' => 'Jalan Baru',
+                        'no_telepon' => '08123',
+                        'kota' => 'Kota',
+                        'provinsi' => 'Provinsi',
+                        'kode_pos' => '12345'
+                    ])
+                    ->controller(MemilihAlamat::class)
+                    ->execute('ubah', 99);
+
+    $body = $result->getBody();
+    $this->assertStringContainsString('Alamat tidak ditemukan', $body);
+}
+
+/** ----------------------- TAMBAH (GET REQUEST) ----------------------- */
+public function test_tambah_get_request()
+{
+    $result = $this->controller(MemilihAlamat::class)
+                   ->execute('tambah');
+
+    $result->assertRedirect(); // pastikan redirect ke halaman index
+}
+
 }

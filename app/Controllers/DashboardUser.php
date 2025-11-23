@@ -9,6 +9,15 @@ use Config\Database;
 
 class DashboardUser extends BaseController
 {
+    protected $userModel;
+    protected $pesananModel;
+
+    public function __construct()
+    {
+        $this->userModel    = new UserModel();
+        $this->pesananModel = new PesananModel();
+    }
+    
     public function index()
     {
         $userId = session()->get('id_user');

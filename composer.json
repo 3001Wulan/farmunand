@@ -19,7 +19,8 @@
     "require-dev": {
         "fakerphp/faker": "^1.9",
         "mikey179/vfsstream": "^1.6",
-        "phpunit/phpunit": "^10.5"
+        "phpunit/phpunit": "^10.5",
+        "codeigniter/coding-standard": "^1.0" 
     },
     "autoload": {
         "psr-4": {
