@@ -11,7 +11,7 @@ class MengelolaRiwayatPesanan extends BaseController
     protected $pesananModel;
     protected $userModel;
 
-    public function __construct()
+     public function __construct()
     {
         $this->pesananModel = new PesananModel();
         $this->userModel    = new UserModel();
