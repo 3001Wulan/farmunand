@@ -134,4 +134,14 @@ class MengelolaRiwayatPesanan extends BaseController
         return redirect()->to('/MengelolaRiwayatPesanan')
             ->with($ok ? 'success' : 'error', $ok ? 'Status pesanan berhasil diperbarui.' : 'Gagal memperbarui status.');
     }
+    public function setRequest($request)
+{
+    $this->request = $request;
+}
+
+public function setModel($model)
+{
+    $this->pesananModel = $model;
+}
+
 }

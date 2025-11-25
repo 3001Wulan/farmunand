@@ -8,17 +8,19 @@ use App\Models\PesananModel;
 
 class Dashboard extends BaseController
 {
-    protected $produkModel;
+   protected $produkModel;
     protected $userModel;
     protected $pesananModel;
 
-    public function __construct()
-    {
-        $this->produkModel = new ProdukModel();
-        $this->userModel   = new UserModel();
-        $this->pesananModel = new PesananModel();
+    public function __construct(
+        ProdukModel $produkModel = null,
+        UserModel $userModel = null,
+        PesananModel $pesananModel = null
+    ) {
+        $this->produkModel  = $produkModel ?? new ProdukModel();
+        $this->userModel    = $userModel ?? new UserModel();
+        $this->pesananModel = $pesananModel ?? new PesananModel();
     }
-
     public function index()
     {
         $userId = session()->get('id_user');
