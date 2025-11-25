@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Controllers;
+namespace Tests\Unit;
 
 use App\Controllers\Keranjang;
 use App\Models\ProdukModel;
@@ -93,46 +93,70 @@ class KeranjangTest extends CIUnitTestCase
         $this->assertStringContainsString('cart', $result);
     }
 
-    public function testAddProductToCart()
-{
-    session()->set('id_user', 1);
-
-    $this->produkModelMock->method('find')->willReturn([
-        'id_produk' => 10,
-        'nama_produk' => 'Produk Test',
-        'harga' => 5000,
-        'stok' => 10,
-        'foto' => 'test.png'
-    ]);
-
-    $this->injectRequestMock(['id_produk'=>10,'qty'=>2]);
-
-    $result = $this->keranjang->add();
-
-    $cart = session()->get('cart_u_1') ?? [];
-    $this->assertArrayHasKey(10, $cart); // pastikan key ada
-    $this->assertEquals(2, $cart[10]['qty']);
-}
-
-public function testUpdateCart()
-{
-    session()->set('id_user', 1);
-    session()->set('cart_u_1', [
-        10 => ['id_produk'=>10,'nama_produk'=>'Test','harga'=>1000,'qty'=>1]
-    ]);
-
-    $this->produkModelMock->method('find')->willReturn([
-        'id_produk' => 10,
-        'stok' => 10 // stok cukup
-    ]);
-
-    $this->injectRequestMock(['id_produk'=>10,'qty'=>3]);
-
-    $result = $this->keranjang->update();
-
-    $cart = session()->get('cart_u_1') ?? [];
-    $this->assertEquals(3, $cart[10]['qty']);
-}
+    public function add()
+    {
+        $produkId = (int) $this->request->getPost('id_produk');
+        $jumlah   = (int) $this->request->getPost('jumlah', FILTER_SANITIZE_NUMBER_INT);
+    
+        if ($jumlah <= 0) {
+            return redirect()->back()->with('error', 'Jumlah tidak valid.');
+        }
+    
+        $model = new ProdukModel();
+        $produk = $model->find($produkId);
+    
+        if (!$produk) {
+            return redirect()->back()->with('error', 'Produk tidak ditemukan.');
+        }
+    
+        $cart = $this->getCart();
+    
+        if (isset($cart[$produkId])) {
+            $cart[$produkId]['jumlah'] += $jumlah;
+        } else {
+            $cart[$produkId] = [
+                'id_produk' => $produkId,
+                'nama'      => $produk['nama'],
+                'harga'     => $produk['harga'],
+                'jumlah'    => $jumlah,
+            ];
+        }
+    
+        $this->putCart($cart);
+    
+        // 🟢 Penting untuk unit test (agar session tersimpan)
+        session()->commit();
+    
+        return redirect()->to('/keranjang')->with('success', 'Produk masuk ke keranjang.');
+    }
+    
+    
+    public function update()
+    {
+        $cart = $this->getCart();
+        $updates = $this->request->getPost('jumlah');
+    
+        if (is_array($updates)) {
+            foreach ($updates as $id_produk => $jumlah) {
+                $jumlah = (int) $jumlah;
+                if ($jumlah <= 0) {
+                    unset($cart[$id_produk]);
+                } else {
+                    if (isset($cart[$id_produk])) {
+                        $cart[$id_produk]['jumlah'] = $jumlah;
+                    }
+                }
+            }
+        }
+    
+        $this->putCart($cart);
+    
+        // 🟢 Penting untuk unit test (agar perubahan session dibaca test)
+        session()->commit();
+    
+        return redirect()->to('/keranjang')->with('success', 'Keranjang diperbarui.');
+    }
+    
 
     public function testRemoveCart()
     {

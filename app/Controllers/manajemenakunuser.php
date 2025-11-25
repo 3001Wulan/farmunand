@@ -6,6 +6,12 @@ use App\Models\UserModel;
 
 class ManajemenAkunUser extends BaseController
 {
+    protected $userModel;
+
+    public function __construct()
+    {
+        $this->userModel = new UserModel();
+    }
     public function index()
     {
         $model   = new UserModel();

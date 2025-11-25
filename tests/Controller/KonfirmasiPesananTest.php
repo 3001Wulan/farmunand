@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Support\Controllers;
+namespace Tests\Unit;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use App\Models\PesananModel;

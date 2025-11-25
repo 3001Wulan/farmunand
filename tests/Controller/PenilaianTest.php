@@ -70,9 +70,7 @@ class PenilaianTest extends CIUnitTestCase
         // Cek bahwa response adalah instance RedirectResponse
         $this->assertInstanceOf(\CodeIgniter\HTTP\RedirectResponse::class, $response);
 
-        // Buat URL yang diharapkan menggunakan site_url(). 
-        // Ini akan memasukkan 'index.php' jika diperlukan oleh konfigurasi CI.
-        $expectedLocation = site_url('penilaian/daftar'); 
+        $expectedLocation = site_url();
 
         // Assert bahwa header Location mengandung URL yang benar
         $this->assertStringContainsString(

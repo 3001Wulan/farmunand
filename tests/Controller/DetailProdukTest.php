@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Controllers;
+namespace Tests\Unit;
 
 use App\Controllers\DetailProduk;
 use App\Models\ProdukModel;
