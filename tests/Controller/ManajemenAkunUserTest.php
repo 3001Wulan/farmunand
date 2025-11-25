@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Support\Controllers;
+namespace Tests\Unit;
 
 use App\Controllers\ManajemenAkunUser;
 use App\Models\UserModel;

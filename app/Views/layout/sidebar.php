@@ -12,13 +12,16 @@
   </div>
 
   <!-- Profile -->
-  <div class="text-center mb-4 px-3">
-    <img src="<?= base_url('uploads/profile/' . ($user['foto'] ?? 'default.jpeg')) ?>"
-         alt="Foto Profil"
-         class="profile-photo mb-2 rounded-circle border-3 border-white shadow-sm"
-         style="width:140px; height:140px; object-fit:cover;">
-    <p class="mb-0 fw-bold text-white"><?= esc($user['username']) ?> | <?= esc($user['role']) ?></p>
-  </div>
+<div class="text-center mb-4 px-3">
+  <img src="<?= base_url('uploads/profile/' . (($user['foto'] ?? session()->get('foto')) ?: 'default.jpeg')) ?>"
+       alt="Foto Profil"
+       class="profile-photo mb-2 rounded-circle border-3 border-white shadow-sm"
+       style="width:140px; height:140px; object-fit:cover;">
+  <p class="mb-0 fw-bold text-white">
+    <?= esc($user['username'] ?? session()->get('username') ?? 'Guest') ?>
+    | <?= esc($user['role'] ?? session()->get('role') ?? '-') ?>
+  </p>
+</div>
 
   <!-- Menu -->
   <div class="d-grid gap-2 px-3 flex-grow-1 mb-4">

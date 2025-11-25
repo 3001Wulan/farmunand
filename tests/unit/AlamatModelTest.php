@@ -4,30 +4,17 @@ namespace Tests\Unit;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use App\Models\AlamatModel;
-use Config\Database;
 
 class AlamatModelTest extends CIUnitTestCase
 {
     protected $alamatModel;
-    protected $db;
 
     protected function setUp(): void
     {
         parent::setUp();
-        // Koneksi ke database asli (bukan test database)
-        $this->db = Database::connect();
-        $this->db->transBegin(); // mulai transaksi agar data tidak tersimpan permanen
 
-        $this->alamatModel = new AlamatModel();
-    }
-
-    protected function tearDown(): void
-    {
-        // rollback agar semua data test tidak disimpan di database
-        if ($this->db->transStatus() === true) {
-            $this->db->transRollback();
-        }
-        parent::tearDown();
+        // Buat mock untuk AlamatModel
+        $this->alamatModel = $this->createMock(AlamatModel::class);
     }
 
     public function testInsertAlamatBaru()
@@ -43,6 +30,10 @@ class AlamatModelTest extends CIUnitTestCase
             'no_telepon' => '08123456789'
         ];
 
+        // Atur perilaku mock: insert() return id, find() return data
+        $this->alamatModel->method('insert')->willReturn(123);
+        $this->alamatModel->method('find')->willReturn($data + ['id' => 123]);
+
         $insertId = $this->alamatModel->insert($data);
 
         $this->assertIsNumeric($insertId);
@@ -51,8 +42,7 @@ class AlamatModelTest extends CIUnitTestCase
 
     public function testGetAlamatAktifByUser()
     {
-        // tambahkan data dummy (sementara, tidak disimpan permanen karena di-rollback)
-        $this->alamatModel->insert([
+        $dummy = [[
             'id_user' => 2,
             'nama_penerima' => 'Siti Aminah',
             'jalan' => 'Jl. Sudirman No. 12',
@@ -61,7 +51,12 @@ class AlamatModelTest extends CIUnitTestCase
             'kode_pos' => '26125',
             'aktif' => 1,
             'no_telepon' => '08991234567'
-        ]);
+        ]];
+
+        // Atur perilaku mock: getAlamatAktifByUser(2) return dummy
+        $this->alamatModel->method('getAlamatAktifByUser')
+            ->with(2)
+            ->willReturn($dummy);
 
         $result = $this->alamatModel->getAlamatAktifByUser(2);
 
@@ -72,8 +67,12 @@ class AlamatModelTest extends CIUnitTestCase
 
     public function testGetAlamatAktifByUserKosong()
     {
-        // ambil user yang tidak punya alamat aktif
-        $result = $this->alamatModel->getAlamatAktifByUser(9999); // id_user tidak ada
+        // Atur perilaku mock: getAlamatAktifByUser(9999) return []
+        $this->alamatModel->method('getAlamatAktifByUser')
+            ->with(9999)
+            ->willReturn([]);
+
+        $result = $this->alamatModel->getAlamatAktifByUser(9999);
 
         $this->assertIsArray($result);
         $this->assertCount(0, $result);

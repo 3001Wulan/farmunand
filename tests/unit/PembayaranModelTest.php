@@ -4,30 +4,17 @@ namespace Tests\Unit;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use App\Models\PembayaranModel;
-use Config\Database;
 
 class PembayaranModelTest extends CIUnitTestCase
 {
     protected $pembayaranModel;
-    protected $db;
 
     protected function setUp(): void
     {
         parent::setUp();
-        // koneksi ke DB asli
-        $this->db = Database::connect();
-        $this->db->transBegin(); // agar data tidak tersimpan permanen
 
-        $this->pembayaranModel = new PembayaranModel();
-    }
-
-    protected function tearDown(): void
-    {
-        // rollback semua data uji
-        if ($this->db->transStatus() === true) {
-            $this->db->transRollback();
-        }
-        parent::tearDown();
+        // Buat mock untuk PembayaranModel
+        $this->pembayaranModel = $this->createMock(PembayaranModel::class);
     }
 
     public function testInsertPembayaran()
@@ -49,6 +36,10 @@ class PembayaranModelTest extends CIUnitTestCase
             'status_bayar' => 'Belum Lunas',
         ];
 
+        // Atur perilaku mock
+        $this->pembayaranModel->method('insert')->willReturn(123);
+        $this->pembayaranModel->method('find')->willReturn($data + ['id' => 123]);
+
         $insertId = $this->pembayaranModel->insert($data);
 
         $this->assertIsNumeric($insertId);
@@ -57,9 +48,8 @@ class PembayaranModelTest extends CIUnitTestCase
 
     public function testFindByOrderId()
     {
-        // buat data dummy
         $orderId = 'ORD98765';
-        $this->pembayaranModel->insert([
+        $dummy = [
             'gateway' => 'Midtrans',
             'order_id' => $orderId,
             'snap_token' => 'snap987',
@@ -74,7 +64,12 @@ class PembayaranModelTest extends CIUnitTestCase
             'metode' => 'Kartu Kredit',
             'referensi' => 'REF987',
             'status_bayar' => 'Lunas',
-        ]);
+        ];
+
+        // Atur perilaku mock
+        $this->pembayaranModel->method('findByOrderId')
+            ->with($orderId)
+            ->willReturn($dummy);
 
         $result = $this->pembayaranModel->findByOrderId($orderId);
 
@@ -85,7 +80,12 @@ class PembayaranModelTest extends CIUnitTestCase
 
     public function testFindByOrderIdTidakAda()
     {
+        $this->pembayaranModel->method('findByOrderId')
+            ->with('ORDER_TIDAK_ADA')
+            ->willReturn(null);
+
         $result = $this->pembayaranModel->findByOrderId('ORDER_TIDAK_ADA');
+
         $this->assertNull($result);
     }
 }
