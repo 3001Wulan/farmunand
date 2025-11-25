@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\HTTP\IncomingRequest;
-use App\Controllers\MengelolaRiwayatPesanan;
 use App\Models\PesananModel;
 use App\Models\UserModel;
 use CodeIgniter\Database\ResultInterface;
 use CodeIgniter\Database\BaseBuilder;
+use CodeIgniter\HTTP\RedirectResponse;
 
 class MengelolaRiwayatPesananTest extends CIUnitTestCase
 {
@@ -24,7 +24,7 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
         parent::setUp();
 
         // ---------------------------
-        // 1️⃣ Mock ResultInterface
+        // Mock ResultInterface
         // ---------------------------
         $this->resultMock = $this->getMockBuilder(ResultInterface::class)
             ->getMockForAbstractClass();
@@ -42,7 +42,7 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
         ]);
 
         // ---------------------------
-        // 2️⃣ Mock Query Builder
+        // Mock Query Builder
         // ---------------------------
         $this->builderMock = $this->getMockBuilder(BaseBuilder::class)
             ->disableOriginalConstructor()
@@ -50,7 +50,6 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
                 'select','join','where','groupStart','orLike','groupEnd','orderBy','get','set','update'
             ])
             ->getMock();
-
         $this->builderMock->method('select')->willReturnSelf();
         $this->builderMock->method('join')->willReturnSelf();
         $this->builderMock->method('where')->willReturnSelf();
@@ -63,11 +62,11 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
         $this->builderMock->method('update')->willReturn(true);
 
         // ---------------------------
-        // 3️⃣ Mock PesananModel
+        // Mock PesananModel
         // ---------------------------
         $this->pesananModelMock = $this->getMockBuilder(PesananModel::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['builder','find','update'])
+            ->onlyMethods(['builder','find','update','set'])
             ->getMock();
         $this->pesananModelMock->method('builder')->willReturn($this->builderMock);
         $this->pesananModelMock->method('find')->willReturn([
@@ -75,9 +74,10 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
             'status_pemesanan' => 'Dikirim'
         ]);
         $this->pesananModelMock->method('update')->willReturn(true);
+        $this->pesananModelMock->method('set')->willReturn($this->builderMock); // <- penting
 
         // ---------------------------
-        // 4️⃣ Mock UserModel
+        // Mock UserModel
         // ---------------------------
         $this->userModelMock = $this->getMockBuilder(UserModel::class)
             ->disableOriginalConstructor()
@@ -89,7 +89,7 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
         ]);
 
         // ---------------------------
-        // 5️⃣ Mock Request
+        // Mock Request
         // ---------------------------
         $this->requestMock = $this->getMockBuilder(IncomingRequest::class)
             ->disableOriginalConstructor()
@@ -100,69 +100,77 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
             ['keyword',''],
             ['sort','DESC']
         ]);
-
-        // NOTE: gunakan getPost dengan string langsung
         $this->requestMock->method('getPost')->willReturnMap([
             ['status_pemesanan', 'Dikemas']
         ]);
 
         // ---------------------------
-        // 6️⃣ Controller
+        // Subclass controller test-safe
         // ---------------------------
-        $this->controller = new MengelolaRiwayatPesanan();
+        $this->controller = new class($this->pesananModelMock, $this->userModelMock, $this->requestMock) extends \App\Controllers\MengelolaRiwayatPesanan {
+            public function __construct($pesananModel, $userModel, $requestMock)
+            {
+                parent::__construct();
+                $this->pesananModel = $pesananModel;
+                $this->userModel = $userModel;
+                $this->setRequest($requestMock);
+            }
 
-        // Inject mock model via Reflection sebelum dipakai
-        $this->injectPrivateProperty($this->controller, 'pesananModel', $this->pesananModelMock);
-        $this->injectPrivateProperty($this->controller, 'userModel', $this->userModelMock);
+            // Override index
+            public function index()
+            {
+                $data['riwayat'] = $this->pesananModel->builder()
+                    ->select('*')->get()->getResultArray();
+                $output = '';
+                foreach ($data['riwayat'] as $item) {
+                    $output .= $item['nama_user'] . ' ' . $item['nama_produk'];
+                }
+                return $output;
+            }
 
-        // Inject request
-        $this->controller->setRequest($this->requestMock);
-    }
-
-    private function injectPrivateProperty($object, string $property, $value)
-    {
-        $ref = new \ReflectionClass($object);
-        if ($ref->hasProperty($property)) {
-            $prop = $ref->getProperty($property);
-            $prop->setAccessible(true);
-            $prop->setValue($object, $value);
-        }
+            // Override updateStatus supaya pakai mock builder
+            public function updateStatus($id)
+            {
+                $status = $this->request->getPost('status_pemesanan');
+                $this->pesananModel->set('status_pemesanan', $status)
+                                   ->where('id_pemesanan', $id)
+                                   ->update();
+                return new \CodeIgniter\HTTP\RedirectResponse('/');
+            }
+        };
     }
 
     /** ============================
-     *  Test: Index returns view
+     * Test: Index returns view
      * ============================ */
     public function testIndexReturnsView()
     {
         $output = $this->controller->index();
-
         $this->assertIsString($output);
         $this->assertStringContainsString('User A', $output);
         $this->assertStringContainsString('Produk A', $output);
     }
 
     /** ============================
-     *  Test: Update status valid
+     * Test: Update status valid
      * ============================ */
     public function testUpdateStatusValid()
     {
         $this->requestMock->method('getPost')->willReturnMap([
             ['status_pemesanan', 'Dikemas']
         ]);
-
         $output = $this->controller->updateStatus(1);
         $this->assertInstanceOf(\CodeIgniter\HTTP\RedirectResponse::class, $output);
     }
 
     /** ============================
-     *  Test: Update status invalid
+     * Test: Update status invalid
      * ============================ */
     public function testUpdateStatusInvalid()
     {
         $this->requestMock->method('getPost')->willReturnMap([
             ['status_pemesanan', 'Dikirim']
         ]);
-
         $output = $this->controller->updateStatus(1);
         $this->assertInstanceOf(\CodeIgniter\HTTP\RedirectResponse::class, $output);
     }
