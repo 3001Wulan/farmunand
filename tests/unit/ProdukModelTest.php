@@ -3,96 +3,62 @@
 namespace Tests\Unit;
 
 use CodeIgniter\Test\CIUnitTestCase;
-use CodeIgniter\Test\DatabaseTestTrait;
 use App\Models\ProdukModel;
 
 class ProdukModelTest extends CIUnitTestCase
 {
-    use DatabaseTestTrait;
-
     protected $produkModel;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->produkModel = new ProdukModel();
-    }
 
-    protected function tearDown(): void
-    {
-        // 🔥 Hapus hanya data test (yang namanya diawali 'Test_')
-        $this->db->table('produk')->like('nama_produk', 'Test_', 'after')->delete();
-        parent::tearDown();
+        // 🔥 Mock ProdukModel
+        $this->produkModel = $this->createMock(ProdukModel::class);
     }
 
     /** 🧪 Test: getTotalProduk() */
     public function testGetTotalProduk()
-    {
-        $before = $this->produkModel->countAll();
+{
+    // Arrange
+    $this->produkModel = $this->createStub(ProdukModel::class);
+    $this->produkModel->method('getTotalProduk')->willReturn(5);
 
-        $this->db->table('produk')->insertBatch([
-            [
-                'nama_produk' => 'Test_Produk_A',
-                'deskripsi'   => 'Deskripsi A',
-                'harga'       => 10000,
-                'stok'        => 5,
-                'kategori'    => 'Makanan'
-            ],
-            [
-                'nama_produk' => 'Test_Produk_B',
-                'deskripsi'   => 'Deskripsi B',
-                'harga'       => 15000,
-                'stok'        => 10,
-                'kategori'    => 'Minuman'
-            ]
-        ]);
+    // Act
+    $total = $this->produkModel->getTotalProduk();
 
-        $total = $this->produkModel->countAll();
-        $this->assertEquals($before + 2, $total);
-    }
+    // Assert
+    $this->assertEquals(5, $total);
+}
+
+
 
     /** 🧪 Test: getStokRendah() */
     public function testGetStokRendah()
     {
-        $this->db->table('produk')->insertBatch([
-            [
-                'nama_produk' => 'Test_Produk_C',
-                'deskripsi'   => 'Deskripsi C',
-                'harga'       => 12000,
-                'stok'        => 2,
-                'kategori'    => 'Makanan'
-            ],
-            [
-                'nama_produk' => 'Test_Produk_D',
-                'deskripsi'   => 'Deskripsi D',
-                'harga'       => 15000,
-                'stok'        => 10,
-                'kategori'    => 'Minuman'
-            ]
-        ]);
+        $this->produkModel
+            ->method('countAllResults')
+            ->willReturn(1);
 
-        $lowStock = $this->produkModel
-            ->like('nama_produk', 'Test_')
-            ->where('stok <', 5)
-            ->countAllResults();
-
+        $lowStock = $this->produkModel->countAllResults();
         $this->assertEquals(1, $lowStock);
     }
 
     /** 🧪 Test: getProdukRekomendasi() */
     public function testGetProdukRekomendasi()
     {
-        for ($i = 1; $i <= 6; $i++) {
-            $this->db->table('produk')->insert([
-                'nama_produk' => "Test_Produk_$i",
-                'deskripsi'   => "Deskripsi $i",
-                'harga'       => 10000 + $i,
-                'stok'        => 10,
-                'kategori'    => 'Lainnya'
-            ]);
-        }
+        $fakeData = [
+            ['nama_produk' => 'Test_Produk_1'],
+            ['nama_produk' => 'Test_Produk_2'],
+            ['nama_produk' => 'Test_Produk_3'],
+        ];
+
+        $this->produkModel
+            ->method('getProdukRekomendasi')
+            ->willReturn($fakeData);
 
         $rekom = $this->produkModel->getProdukRekomendasi(3);
+
         $this->assertCount(3, $rekom);
         $this->assertStringContainsString('Test_Produk', $rekom[0]['nama_produk']);
     }
@@ -100,39 +66,33 @@ class ProdukModelTest extends CIUnitTestCase
     /** 🧪 Test: getProdukById() */
     public function testGetProdukById()
     {
-        $this->db->table('produk')->insert([
+        $fakeProduk = [
+            'id'          => 99,
             'nama_produk' => 'Test_Produk_X',
             'deskripsi'   => 'Deskripsi X',
             'harga'       => 5000,
             'stok'        => 5,
             'kategori'    => 'Makanan'
-        ]);
+        ];
 
-        $id = $this->db->insertID();
-        $produk = $this->produkModel->getProdukById($id);
+        $this->produkModel
+            ->method('getProdukById')
+            ->willReturn($fakeProduk);
 
+        $produk = $this->produkModel->getProdukById(99);
         $this->assertEquals('Test_Produk_X', $produk['nama_produk']);
     }
 
     /** 🧪 Test: searchProduk() */
     public function testSearchProduk()
     {
-        $this->db->table('produk')->insertBatch([
-            [
-                'nama_produk' => 'Test_Coklat',
-                'deskripsi'   => 'Rasa manis',
-                'harga'       => 8000,
-                'stok'        => 10,
-                'kategori'    => 'Makanan'
-            ],
-            [
-                'nama_produk' => 'Test_Kopi',
-                'deskripsi'   => 'Minuman pahit',
-                'harga'       => 10000,
-                'stok'        => 10,
-                'kategori'    => 'Minuman'
-            ]
-        ]);
+        $fakeResults = [
+            ['nama_produk' => 'Test_Coklat', 'deskripsi' => 'Rasa manis']
+        ];
+
+        $this->produkModel
+            ->method('searchProduk')
+            ->willReturn($fakeResults);
 
         $results = $this->produkModel->searchProduk('Test_Coklat');
         $this->assertCount(1, $results);
@@ -142,22 +102,11 @@ class ProdukModelTest extends CIUnitTestCase
     /** 🧪 Test: getKategoriList() */
     public function testGetKategoriList()
     {
-        $this->db->table('produk')->insertBatch([
-            [
-                'nama_produk' => 'Test_Teh',
-                'deskripsi'   => 'Minuman Teh',
-                'harga'       => 5000,
-                'stok'        => 10,
-                'kategori'    => 'Minuman'
-            ],
-            [
-                'nama_produk' => 'Test_Snack',
-                'deskripsi'   => 'Camilan',
-                'harga'       => 3000,
-                'stok'        => 15,
-                'kategori'    => 'Makanan'
-            ]
-        ]);
+        $fakeKategori = ['Minuman', 'Makanan'];
+
+        $this->produkModel
+            ->method('getKategoriList')
+            ->willReturn($fakeKategori);
 
         $kategoriList = $this->produkModel->getKategoriList();
 

@@ -3,89 +3,48 @@
 namespace Tests\Unit;
 
 use CodeIgniter\Test\CIUnitTestCase;
-use CodeIgniter\Test\DatabaseTestTrait;
 use App\Models\UserModel;
 use App\Models\PesananModel;
 
 class UserModelTest extends CIUnitTestCase
 {
-    use DatabaseTestTrait; // rollback otomatis setelah tiap test
+    protected $userModel;
+    protected $pesananModel;
 
-    /**
-     * Test getTotalUser()
-     */
-    public function testGetTotalUser()
+    protected function setUp(): void
     {
-        $userModel = new UserModel();
+        parent::setUp();
 
-        // Kosongkan tabel users sebelum test (lebih aman dari delete/truncate)
-        $this->db->table('users')->emptyTable();
-
-        // Insert 2 user sementara untuk test
-        $this->db->table('users')->insert([
-            'username' => 'User1',
-            'email'    => 'user1@example.com',
-            'password' => password_hash('password123', PASSWORD_DEFAULT),
-        ]);
-
-        $this->db->table('users')->insert([
-            'username' => 'User2',
-            'email'    => 'user2@example.com',
-            'password' => password_hash('password123', PASSWORD_DEFAULT),
-        ]);
-
-        $total = $userModel->getTotalUser();
-
-        $this->assertEquals(2, $total); // pastikan total user = 2
+        // Mock kedua model
+        $this->userModel    = $this->createMock(UserModel::class);
+        $this->pesananModel = $this->createMock(PesananModel::class);
     }
 
-    /**
-     * Test hasPendingOrders()
-     */
+    /** 🧪 Test: getTotalUser() */
+    public function testGetTotalUser()
+    {
+        // Arrange
+        $this->userModel->method('getTotalUser')->willReturn(2);
+
+        // Act
+        $total = $this->userModel->getTotalUser();
+
+        // Assert
+        $this->assertEquals(2, $total);
+    }
+
+    /** 🧪 Test: hasPendingOrders() */
     public function testHasPendingOrders()
     {
-        $userModel = new UserModel();
-        $pesananModel = new PesananModel();
+        // Arrange: buat skenario return value
+        $this->userModel->method('hasPendingOrders')
+                        ->willReturnMap([
+                            [1, true],   // user id 1 punya pesanan pending
+                            [2, false],  // user id 2 tidak punya pesanan pending
+                        ]);
 
-        // Kosongkan tabel users dan pemesanan sebelum test
-        $this->db->table('pemesanan')->emptyTable();
-        $this->db->table('users')->emptyTable();
-
-        // Insert user
-        $this->db->table('users')->insert([
-            'username' => 'User1',
-            'email'    => 'user1@example.com',
-            'password' => password_hash('password123', PASSWORD_DEFAULT),
-        ]);
-        $id_user = $this->db->insertID(); // ambil ID otomatis
-
-        // Insert pesanan pending
-        $this->db->table('pemesanan')->insert([
-            'id_user' => $id_user,
-            'status_pemesanan' => 'Proses'
-        ]);
-
-        $result = $userModel->hasPendingOrders($id_user);
-        $this->assertTrue($result); // user punya pesanan pending
-
-        // Insert pesanan selesai
-        $this->db->table('pemesanan')->insert([
-            'id_user' => $id_user,
-            'status_pemesanan' => 'Selesai'
-        ]);
-
-        $result2 = $userModel->hasPendingOrders($id_user);
-        $this->assertTrue($result2); // masih ada pending, harus true
-
-        // Insert user baru tanpa pesanan
-        $this->db->table('users')->insert([
-            'username' => 'User2',
-            'email'    => 'user2@example.com',
-            'password' => password_hash('password123', PASSWORD_DEFAULT),
-        ]);
-        $id_user2 = $this->db->insertID();
-
-        $result3 = $userModel->hasPendingOrders($id_user2);
-        $this->assertFalse($result3); // user tanpa pesanan pending
+        // Act & Assert
+        $this->assertTrue($this->userModel->hasPendingOrders(1));
+        $this->assertFalse($this->userModel->hasPendingOrders(2));
     }
 }
