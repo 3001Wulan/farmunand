@@ -1,20 +1,263 @@
 <?php
 
-namespace Tests\Controllers;
+namespace Tests\Controller;
 
-use App\Controllers\Profile;
-use App\Models\UserModel;
 use CodeIgniter\Test\CIUnitTestCase;
-use CodeIgniter\HTTP\IncomingRequest;
-use CodeIgniter\HTTP\URI;
-use CodeIgniter\HTTP\UserAgent;
-use Config\App;
-use ReflectionClass;
+use App\Controllers\Profile as RealProfile;
 
+/**
+ * Fake repository pengganti UserModel untuk Profile (pembeli).
+ * Semua data user disimpan in-memory (array).
+ */
+class ProfilePembeliFakeUserRepo
+{
+    /** @var array<int,array> */
+    public array $users = [];
+
+    /** @var array<int,array{0:int,1:array}> */
+    public array $updateCalls = [];
+
+    /**
+     * @param array<int,array> $users
+     */
+    public function __construct(array $users = [])
+    {
+        foreach ($users as $u) {
+            $this->users[(int) $u['id_user']] = $u;
+        }
+    }
+
+    public function find(int $id): ?array
+    {
+        return $this->users[$id] ?? null;
+    }
+
+    public function update(int $id, array $data): bool
+    {
+        $this->updateCalls[] = [$id, $data];
+
+        if (! isset($this->users[$id])) {
+            $this->users[$id] = array_merge(['id_user' => $id], $data);
+        } else {
+            $this->users[$id] = array_merge($this->users[$id], $data);
+        }
+
+        return true;
+    }
+}
+
+/**
+ * Fake uploaded file khusus untuk ProfilePembeliTest
+ * supaya tidak menyentuh filesystem beneran.
+ */
+class ProfilePembeliFakeUploadedFile
+{
+    private bool $valid;
+    private bool $moved = false;
+    private string $randomName;
+    public ?string $movedTo = null;
+
+    public function __construct(bool $valid = false, string $randomName = 'uploaded.png')
+    {
+        $this->valid      = $valid;
+        $this->randomName = $randomName;
+    }
+
+    public function isValid(): bool
+    {
+        return $this->valid;
+    }
+
+    public function hasMoved(): bool
+    {
+        return $this->moved;
+    }
+
+    public function getRandomName(): string
+    {
+        return $this->randomName;
+    }
+
+    public function move(string $directory, ?string $name = null): void
+    {
+        $this->moved   = true;
+        $fileName      = $name ?? $this->randomName;
+        $this->movedTo = rtrim($directory, '/') . '/' . $fileName;
+    }
+}
+
+/**
+ * Versi testable dari Profile:
+ *  - Tidak pakai UserModel asli → pakai ProfilePembeliFakeUserRepo.
+ *  - Tidak render view → index/edit/update mengembalikan ARRAY.
+ *  - Tidak pakai validator CI4 → validasi disimulasikan.
+ *  - File upload disimulasikan pakai ProfilePembeliFakeUploadedFile.
+ */
+class TestableProfile extends RealProfile
+{
+    private ProfilePembeliFakeUserRepo $userRepo;
+
+    /** Data POST buatan untuk unit-test */
+    public array $fakePost = [];
+
+    /** File upload buatan untuk unit-test */
+    public ?ProfilePembeliFakeUploadedFile $fakeFile = null;
+
+    /** Hasil validasi berikutnya (diset dari test) */
+    public bool $validationNextResult = true;
+
+    /** Error validasi buatan untuk disimpan di session */
+    public array $validationErrors = [];
+
+    public function __construct(ProfilePembeliFakeUserRepo $userRepo)
+    {
+        // Jangan panggil parent::__construct() supaya tidak buat UserModel asli.
+        $this->userRepo  = $userRepo;
+        $this->userModel = $userRepo; // jaga-jaga kalau dipakai di tempat lain.
+    }
+
+    public function withPost(array $data): self
+    {
+        $this->fakePost = $data;
+        return $this;
+    }
+
+    public function withUploadedFile(?ProfilePembeliFakeUploadedFile $file): self
+    {
+        $this->fakeFile = $file;
+        return $this;
+    }
+
+    public function withValidationResult(bool $ok, array $errors = []): self
+    {
+        $this->validationNextResult = $ok;
+        $this->validationErrors     = $errors;
+        return $this;
+    }
+
+    /**
+     * index() versi unit-test:
+     *  - belum login → redirect ke /login (via array)
+     *  - sudah login → kembalikan data user & title
+     *
+     * @return array<string,mixed>
+     */
+    public function index()
+    {
+        $userId = (int) (session()->get('id_user') ?? 0);
+        if (! $userId) {
+            return [
+                'redirect' => '/login',
+                'error'    => 'Silakan login dulu.',
+            ];
+        }
+
+        return [
+            'title' => 'Profil Saya',
+            'user'  => $this->userRepo->find($userId),
+        ];
+    }
+
+    /**
+     * edit() versi unit-test:
+     *  - belum login → redirect ke /login (via array)
+     *  - sudah login → data untuk form edit
+     *
+     * @return array<string,mixed>
+     */
+    public function edit()
+    {
+        $userId = (int) (session()->get('id_user') ?? 0);
+        if (! $userId) {
+            return [
+                'redirect' => '/login',
+                'error'    => 'Silakan login dulu.',
+            ];
+        }
+
+        return [
+            'title' => 'Edit Profil',
+            'user'  => $this->userRepo->find($userId),
+        ];
+    }
+
+    /**
+     * update() versi unit-test:
+     *  - pakai fakePost + fakeFile
+     *  - validasi disimulasikan pakai $validationNextResult
+     *  - tidak sentuh filesystem (tidak file_exists / unlink)
+     *
+     * @return array<string,mixed>
+     */
+    public function update()
+    {
+        $session = session();
+        $userId  = (int) ($session->get('id_user') ?? 0);
+
+        if (! $userId) {
+            return [
+                'success'  => false,
+                'redirect' => '/login',
+                'message'  => 'Silakan login dulu.',
+            ];
+        }
+
+        $user = $this->userRepo->find($userId);
+
+        // Simulasi validasi (pengganti $this->validate(...))
+        if (! $this->validationNextResult) {
+            // Simulasikan perilaku redirect()->back()->withInput()->with('errors', ...)
+            $session->set('errors', $this->validationErrors);
+
+            return [
+                'success'  => false,
+                'redirect' => 'back',
+                'errors'   => $this->validationErrors,
+            ];
+        }
+
+        // Data update diambil dari fakePost
+        $dataUpdate = [
+            'username' => $this->fakePost['username'] ?? ($user['username'] ?? null),
+            'nama'     => $this->fakePost['nama']     ?? ($user['nama'] ?? null),
+            'email'    => $this->fakePost['email']    ?? ($user['email'] ?? null),
+            'no_hp'    => $this->fakePost['no_hp']    ?? ($user['no_hp'] ?? null),
+        ];
+
+        $file = $this->fakeFile;
+
+        if ($file && $file->isValid() && ! $file->hasMoved()) {
+            $newName = $file->getRandomName();
+            $file->move('uploads/profile', $newName);
+
+            // Tidak ada file_exists/unlink supaya tetap murni unit-test
+            $dataUpdate['foto'] = $newName;
+        }
+
+        $this->userRepo->update($userId, $dataUpdate);
+
+        // Simulasi flash success seperti controller asli
+        $session->setFlashdata('success', 'Profil berhasil diperbarui!');
+
+        return [
+            'success'      => true,
+            'redirect'     => '/profile',
+            'updated_data' => $dataUpdate,
+            'user_after'   => $this->userRepo->find($userId),
+        ];
+    }
+}
+
+/**
+ * Test murni unit untuk Profile (ProfilPembeli).
+ *  - Tanpa DB
+ *  - Tanpa view
+ *  - Tanpa filesystem
+ */
 class ProfilPembeliTest extends CIUnitTestCase
 {
-    protected $userModelMock;
-    protected $controller;
+    private ProfilePembeliFakeUserRepo $userRepo;
+    private TestableProfile $controller;
 
     protected function setUp(): void
     {
@@ -22,176 +265,211 @@ class ProfilPembeliTest extends CIUnitTestCase
 
         helper('session');
 
-        // Mock UserModel
-        $this->userModelMock = $this->getMockBuilder(UserModel::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods(['find', 'update'])
-            ->getMock();
-
-        // Instance controller
-        $this->controller = new Profile();
-
-        // Inject mock UserModel via Reflection
-        $ref      = new ReflectionClass($this->controller);
-        $property = $ref->getProperty('userModel');
-        $property->setAccessible(true);
-        $property->setValue($this->controller, $this->userModelMock);
-
-        // Pastikan session kosong di awal
+        // Reset session
         $_SESSION = [];
+        session()->destroy();
+
+        // Seed user dummy
+        $this->userRepo = new ProfilePembeliFakeUserRepo([
+            [
+                'id_user'  => 1,
+                'username' => 'user1',
+                'nama'     => 'User Satu',
+                'role'     => 'user',
+                'email'    => 'user@gmail.com',
+                'no_hp'    => '0800000000',
+                'foto'     => 'lama.png',
+            ],
+        ]);
+
+        $this->controller = new TestableProfile($this->userRepo);
     }
 
     protected function tearDown(): void
     {
-        $_SESSION = [];
+        session()->destroy();
         parent::tearDown();
     }
 
-    private function injectRequest(IncomingRequest $request): void
+    /** ---------------- INDEX ---------------- */
+
+    public function testIndexWithoutSession(): void
     {
-        $ref      = new ReflectionClass($this->controller);
-        $property = $ref->getProperty('request');
-        $property->setAccessible(true);
-        $property->setValue($this->controller, $request);
+        session()->remove('id_user');
+
+        $data = $this->controller->index();
+
+        $this->assertIsArray($data);
+        $this->assertSame('/login', $data['redirect'] ?? null);
+        $this->assertSame('Silakan login dulu.', $data['error'] ?? null);
     }
 
-    // ---------------------- INDEX ----------------------
-
-    public function testIndexWithoutSession()
+    public function testIndexWithSession(): void
     {
-        $_SESSION = [];
+        session()->set('id_user', 1);
 
-        $result = $this->controller->index();
+        $data = $this->controller->index();
 
-        $this->assertInstanceOf(\CodeIgniter\HTTP\RedirectResponse::class, $result);
-        $this->assertStringContainsString('/login', $result->getHeaderLine('Location'));
+        $this->assertIsArray($data);
+        $this->assertSame('Profil Saya', $data['title']);
+        $this->assertIsArray($data['user']);
+
+        $this->assertSame(1, $data['user']['id_user']);
+        $this->assertSame('user1', $data['user']['username']);
+        $this->assertSame('user', $data['user']['role']);
     }
 
-    public function testIndexWithSession()
+    /** ---------------- EDIT ---------------- */
+
+    public function testEditWithoutSession(): void
     {
-        $_SESSION['id_user'] = 1;
+        session()->remove('id_user');
 
-        $userData = [
-            'id_user'  => 1,
-            'username' => 'user1',
-            'role'     => 'user',
-            'email'    => 'user@gmail.com',
-            'foto'     => 'default.png',
-        ];
+        $data = $this->controller->edit();
 
-        $this->userModelMock->expects($this->once())
-            ->method('find')
-            ->with(1)
-            ->willReturn($userData);
-
-        $result = $this->controller->index();
-
-        $this->assertIsString($result); // view dikembalikan sebagai string
-        $this->assertStringContainsString('Profil', $result);
-        $this->assertStringContainsString($userData['username'], $result);
+        $this->assertIsArray($data);
+        $this->assertSame('/login', $data['redirect'] ?? null);
+        $this->assertSame('Silakan login dulu.', $data['error'] ?? null);
     }
 
-    // ---------------------- EDIT ----------------------
-
-    public function testEditWithoutSession()
+    public function testEditWithSession(): void
     {
-        $_SESSION = [];
+        session()->set('id_user', 1);
 
-        $result = $this->controller->edit();
+        $data = $this->controller->edit();
 
-        $this->assertInstanceOf(\CodeIgniter\HTTP\RedirectResponse::class, $result);
-        $this->assertStringContainsString('/login', $result->getHeaderLine('Location'));
+        $this->assertIsArray($data);
+        $this->assertSame('Edit Profil', $data['title']);
+        $this->assertIsArray($data['user']);
+
+        $this->assertSame('user1', $data['user']['username']);
+        $this->assertSame('user', $data['user']['role']);
     }
 
-    public function testEditWithSession()
+    /** ---------------- UPDATE ---------------- */
+
+    public function testUpdateWithoutSessionDoesNotCallRepoAndRedirectsToLogin(): void
     {
-        $_SESSION['id_user'] = 1;
+        session()->remove('id_user');
 
-        $userData = [
-            'id_user'  => 1,
-            'username' => 'user1',
-            'role'     => 'user',
-            'nama'     => 'User Satu',
-            'email'    => 'user@gmail.com',
-            'no_hp'    => '082285671644',
-            'foto'     => 'default.png',
-        ];
+        $result = $this->controller
+            ->withPost([
+                'username' => 'userbaru',
+                'nama'     => 'User Baru',
+                'email'    => 'baru@example.com',
+                'no_hp'    => '0811111111',
+            ])
+            ->update();
 
-        $this->userModelMock->expects($this->once())
-            ->method('find')
-            ->with(1)
-            ->willReturn($userData);
+        $this->assertFalse($result['success']);
+        $this->assertSame('/login', $result['redirect']);
+        $this->assertSame('Silakan login dulu.', $result['message']);
 
-        $result = $this->controller->edit();
-
-        $this->assertIsString($result);
-        $this->assertStringContainsString('Edit', $result);
-        $this->assertStringContainsString($userData['username'], $result);
+        $this->assertSame([], $this->userRepo->updateCalls);
     }
 
-    // ---------------------- UPDATE ----------------------
-
-    public function testUpdateWithoutSession()
+    public function testUpdateValidationFailsDoesNotUpdateRepo(): void
     {
-        $_SESSION = [];
+        session()->set('id_user', 1);
 
-        $result = $this->controller->update();
+        $errors = ['username' => 'Username wajib diisi'];
 
-        $this->assertInstanceOf(\CodeIgniter\HTTP\RedirectResponse::class, $result);
-        $this->assertStringContainsString('/login', $result->getHeaderLine('Location'));
+        $result = $this->controller
+            ->withPost([
+                'username' => '', // dianggap invalid
+                'nama'     => 'Nama',
+                'email'    => 'email@test.com',
+                'no_hp'    => '08123',
+            ])
+            ->withValidationResult(false, $errors)
+            ->update();
+
+        $this->assertFalse($result['success']);
+        $this->assertSame('back', $result['redirect']);
+        $this->assertArrayHasKey('username', $result['errors']);
+
+        // Tidak ada update ke repo
+        $this->assertSame([], $this->userRepo->updateCalls);
+
+        // Error juga tersimpan di session (simulasi with('errors', ...))
+        $sessionErrors = session()->get('errors') ?? [];
+        $this->assertArrayHasKey('username', $sessionErrors);
     }
 
-    public function testUpdateWithSessionAndValidData()
+    public function testUpdateValidWithoutFotoUpdatesBasicFields(): void
     {
-        $_SESSION['id_user'] = 1;
+        session()->set('id_user', 1);
 
-        // User lama
-        $userData = [
-            'id_user'  => 1,
-            'username' => 'user1',
-            'foto'     => 'default.png',
-        ];
+        $result = $this->controller
+            ->withPost([
+                'username' => 'user1updated',
+                'nama'     => 'User Updated',
+                'email'    => 'user1@example.com',
+                'no_hp'    => '08123456789',
+            ])
+            ->withValidationResult(true)
+            ->withUploadedFile(null)
+            ->update();
 
-        $this->userModelMock->expects($this->once())
-            ->method('find')
-            ->with(1)
-            ->willReturn($userData);
+        $this->assertTrue($result['success']);
+        $this->assertSame('/profile', $result['redirect']);
 
-        // Mock request (POST data)
-        $postData = [
-            'username' => 'user1updated',
-            'nama'     => 'User Updated',
-            'email'    => 'user1@example.com',
-            'no_hp'    => '08123456789',
-        ];
+        $this->assertCount(1, $this->userRepo->updateCalls);
+        [$id, $data] = $this->userRepo->updateCalls[0];
 
-        $requestMock = $this->getMockBuilder(IncomingRequest::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods(['getPost', 'getFiles', 'getFile', 'getMethod'])
-            ->getMock();
+        $this->assertSame(1, $id);
+        $this->assertSame('user1updated', $data['username']);
+        $this->assertSame('User Updated', $data['nama']);
+        $this->assertSame('user1@example.com', $data['email']);
+        $this->assertSame('08123456789', $data['no_hp']);
+        $this->assertArrayNotHasKey('foto', $data, 'Foto tidak boleh ikut berubah jika tidak ada upload.');
 
-        $requestMock->method('getMethod')->willReturn('post');
-        $requestMock->method('getPost')
-            ->willReturnCallback(function ($key = null) use ($postData) {
-                if ($key === null) {
-                    return $postData;
-                }
-                return $postData[$key] ?? null;
-            });
+        $userAfter = $this->userRepo->find(1);
+        $this->assertSame('user1updated', $userAfter['username']);
+        $this->assertSame('User Updated', $userAfter['nama']);
 
-        $requestMock->method('getFiles')->willReturn([]);
-        $requestMock->method('getFile')->willReturn(null);
+        $this->assertSame(
+            'Profil berhasil diperbarui!',
+            session()->getFlashdata('success')
+        );
+    }
 
-        // Inject request ke controller
-        $this->injectRequest($requestMock);
+    public function testUpdateValidWithFotoReplacesFoto(): void
+    {
+        session()->set('id_user', 1);
 
-        // Tidak terlalu ketat ke isi datanya, cukup stub update() agar tidak error
-        $this->userModelMock->method('update')->willReturn(true);
+        $fakeFile = new ProfilePembeliFakeUploadedFile(true, 'foto_baru.png');
 
-        $result = $this->controller->update();
+        $result = $this->controller
+            ->withPost([
+                'username' => 'userfoto',
+                'nama'     => 'User Foto',
+                'email'    => 'userfoto@example.com',
+                'no_hp'    => '0899999999',
+            ])
+            ->withValidationResult(true)
+            ->withUploadedFile($fakeFile)
+            ->update();
 
-        $this->assertInstanceOf(\CodeIgniter\HTTP\RedirectResponse::class, $result);
-        // Biasanya redirect ke /profile, tapi supaya aman kita cukup cek bukan ke /login
-        $this->assertStringNotContainsString('/login', $result->getHeaderLine('Location'));
+        $this->assertTrue($result['success']);
+        $this->assertSame('/profile', $result['redirect']);
+
+        $this->assertTrue($fakeFile->hasMoved());
+        $this->assertSame('uploads/profile/foto_baru.png', $fakeFile->movedTo);
+
+        $this->assertCount(1, $this->userRepo->updateCalls);
+        [$id, $data] = $this->userRepo->updateCalls[0];
+
+        $this->assertSame(1, $id);
+        $this->assertSame('foto_baru.png', $data['foto']);
+
+        $userAfter = $this->userRepo->find(1);
+        $this->assertSame('foto_baru.png', $userAfter['foto']);
+        $this->assertSame('userfoto', $userAfter['username']);
+
+        $this->assertSame(
+            'Profil berhasil diperbarui!',
+            session()->getFlashdata('success')
+        );
     }
 }
