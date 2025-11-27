@@ -2,134 +2,234 @@
 
 namespace Tests\Unit;
 
-use CodeIgniter\Test\CIUnitTestCase;
-use App\Models\PesananModel;
-use App\Models\UserModel;
 use App\Controllers\KonfirmasiPesanan;
+use App\Models\UserModel;
+use App\Models\PesananModel;
+use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\Test\CIUnitTestCase;
 
 class KonfirmasiPesananTest extends CIUnitTestCase
 {
-    protected $pesananModelMock;
-    protected $userModelMock;
-    protected $controller;
-
-    protected function setUp(): void
+    protected function tearDown(): void
     {
-        parent::setUp();
-
-        // Mock PesananModel
-        $this->pesananModelMock = $this->createMock(PesananModel::class);
-
-        // Mock UserModel
-        $this->userModelMock = $this->createMock(UserModel::class);
-
-        // Inisialisasi Controller
-        $this->controller = new KonfirmasiPesanan();
-
-        // Reflection untuk set protected properties
-        $reflection = new \ReflectionClass($this->controller);
-
-        $pesananProp = $reflection->getProperty('pesananModel');
-        $pesananProp->setAccessible(true);
-        $pesananProp->setValue($this->controller, $this->pesananModelMock);
-
-        $userProp = $reflection->getProperty('userModel');
-        $userProp->setAccessible(true);
-        $userProp->setValue($this->controller, $this->userModelMock);
+        session()->destroy();
+        parent::tearDown();
     }
 
-    /** @test */
-    public function index_without_login_redirects_to_login()
+    /**
+     * Helper untuk inject fake model ke controller.
+     */
+    protected function makeController(
+        ?object $pesananModel = null,
+        ?object $userModel = null
+    ): KonfirmasiPesanan {
+        $controller = new KonfirmasiPesanan();
+
+        $ref = new \ReflectionClass($controller);
+
+        if ($pesananModel !== null) {
+            $prop = $ref->getProperty('pesananModel');
+            $prop->setAccessible(true);
+            $prop->setValue($controller, $pesananModel);
+        }
+
+        if ($userModel !== null) {
+            $prop = $ref->getProperty('userModel');
+            $prop->setAccessible(true);
+            $prop->setValue($controller, $userModel);
+        }
+
+        return $controller;
+    }
+
+    public function testIndexRedirectsToLoginWhenNotLoggedIn(): void
     {
-        $_SESSION = [];
+        session()->remove('id_user');
 
-        $response = $this->controller->index();
+        $controller = new KonfirmasiPesanan();
+        $response   = $controller->index();
 
+        $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertStringContainsString('/login', $response->getHeaderLine('Location'));
     }
 
-    /** @test */
-    public function index_with_login_fetches_pesanan_and_user()
+    public function testIndexUsesGetPesananByStatusForLoggedInUser()
     {
-        $_SESSION['id_user'] = 1;
+        session()->set(['id_user' => 10]);
 
-        $mockPesanan = [
-            ['id_pemesanan' => 101, 'status_pemesanan' => 'Dikirim']
-        ];
-        $mockUser = [
-            'id_user' => 1,
-            'nama' => 'Test User',
-            'username' => 'testuser'
-        ];
+        // Mock pesanan model
+        $pesananModel = $this->createMock(PesananModel::class);
+        $pesananModel->expects($this->once())
+            ->method('getPesananByStatus')
+            ->with(10, 'Dikirim')
+            ->willReturn([
+                ['id_pemesanan' => 1, 'status_pemesanan' => 'Dikirim'],
+            ]);
 
-        $this->pesananModelMock->method('getPesananByStatus')
-            ->with(1, 'Dikirim')
-            ->willReturn($mockPesanan);
+        // Mock user model (dipakai di sidebar: role/foto)
+        $userModel = $this->createMock(UserModel::class);
+        $userModel->expects($this->once())
+            ->method('find')
+            ->with(10)
+            ->willReturn([
+                'id_user'  => 10,
+                'username' => 'tester',
+                'email'    => 'tester@example.com',
+                'role'     => 'user',
+                'foto'     => 'default.png',
+            ]);
 
-        $this->userModelMock->method('find')
-            ->with(1)
-            ->willReturn($mockUser);
+        $controller = $this->makeController($pesananModel, $userModel);
 
-        // Ambil data dari model mock, tanpa render view
-        $pesanan = $this->pesananModelMock->getPesananByStatus(1, 'Dikirim');
-        $user    = $this->userModelMock->find(1);
+        $result = $controller->index();
 
-        $this->assertEquals($mockPesanan, $pesanan);
-        $this->assertEquals($mockUser, $user);
+        $this->assertIsString($result);
+        $this->assertStringContainsString('Pesanan', $result);
     }
 
-    /** @test */
-    public function selesai_without_login_redirects_to_login()
+    public function testSelesaiRedirectsToLoginWhenNotLoggedIn(): void
     {
-        $_SESSION = [];
+        session()->remove('id_user');
 
-        $response = $this->controller->selesai(101);
+        $controller = new KonfirmasiPesanan();
+        $response   = $controller->selesai(123);
 
+        $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertStringContainsString('/login', $response->getHeaderLine('Location'));
     }
 
-    /** @test */
-public function selesai_pesanan_not_found_redirects_back()
-{
-    $_SESSION['id_user'] = 1;
-
-    // Mock method helper baru di model
-    $this->pesananModelMock->method('getPesananByIdAndUser')
-        ->with(101, 1)
-        ->willReturn(null);
-
-    $response = $this->controller->selesai(101);
-
-    // Sesuaikan dengan redirect()->back() default CI
-    $this->assertStringContainsString('/', $response->getHeaderLine('Location'));
-}
-
-    /** @test */
-    public function selesai_pesanan_sukses_updates_status()
+    public function testSelesaiGivesErrorWhenOrderNotFound(): void
     {
-        $_SESSION['id_user'] = 1;
+        session()->set(['id_user' => 5]);
 
-        $row = [
-            'id_pemesanan' => 101,
-            'id_user' => 1,
-            'status_pemesanan' => 'Dikirim'
-        ];
+        $fakePesanan = new class {
+            public array $calls = [];
 
-        // Mock method helper baru di model
-        $this->pesananModelMock->method('getPesananByIdAndUser')
-            ->with(101, 1)
-            ->willReturn($row);
+            public function getPesananByIdAndUser($idPemesanan, $idUser)
+            {
+                $this->calls[] = [$idPemesanan, $idUser];
+                return null; // tidak ditemukan
+            }
 
-        $this->pesananModelMock->method('update')
-            ->with(101, $this->callback(function($data) {
-                return $data['status_pemesanan'] === 'Selesai'
-                    && isset($data['confirmed_at'])
-                    && $data['konfirmasi_token'] === null;
-            }))
-            ->willReturn(true);
+            public function update($id, $data)
+            {
+                // tidak seharusnya dipanggil di kasus ini
+                throw new \RuntimeException('update() tidak boleh dipanggil ketika pesanan tidak ditemukan');
+            }
+        };
 
-        $response = $this->controller->selesai(101);
+        $controller = $this->makeController($fakePesanan, new class {});
 
+        $response = $controller->selesai(99);
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertSame('Pesanan tidak ditemukan.', session()->getFlashdata('error'));
+    }
+
+    public function testSelesaiGivesErrorWhenStatusNotDikirim(): void
+    {
+        session()->set(['id_user' => 7]);
+
+        $fakePesanan = new class {
+            public function getPesananByIdAndUser($idPemesanan, $idUser)
+            {
+                return [
+                    'id_pemesanan'     => $idPemesanan,
+                    'id_user'          => $idUser,
+                    'status_pemesanan' => 'Diproses', // bukan Dikirim
+                ];
+            }
+
+            public function update($id, $data)
+            {
+                throw new \RuntimeException('update() tidak boleh dipanggil ketika status bukan Dikirim');
+            }
+        };
+
+        $controller = $this->makeController($fakePesanan, new class {});
+
+        $response = $controller->selesai(50);
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertSame(
+            'Pesanan ini tidak dalam status Dikirim.',
+            session()->getFlashdata('error')
+        );
+    }
+
+    public function testSelesaiSuccessUpdatesOrderAndRedirects(): void
+    {
+        session()->set(['id_user' => 9]);
+
+        $fakePesanan = new class {
+            public array $updateArgs = [];
+
+            public function getPesananByIdAndUser($idPemesanan, $idUser)
+            {
+                return [
+                    'id_pemesanan'     => $idPemesanan,
+                    'id_user'          => $idUser,
+                    'status_pemesanan' => 'Dikirim',
+                ];
+            }
+
+            public function update($id, $data)
+            {
+                $this->updateArgs = [$id, $data];
+                return true;
+            }
+        };
+
+        $controller = $this->makeController($fakePesanan, new class {});
+
+        $response = $controller->selesai(77);
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertStringContainsString('/pesananselesai', $response->getHeaderLine('Location'));
+
+        [$id, $data] = $fakePesanan->updateArgs;
+
+        $this->assertSame(77, $id);
+        $this->assertSame('Selesai', $data['status_pemesanan'] ?? null);
+        $this->assertArrayHasKey('confirmed_at', $data);
+        $this->assertNull($data['konfirmasi_token'] ?? null);
+
+        $this->assertSame(
+            'Pesanan berhasil dikonfirmasi!',
+            session()->getFlashdata('success')
+        );
+    }
+
+    public function testSelesaiFailedUpdateSetsErrorFlash(): void
+    {
+        session()->set(['id_user' => 9]);
+
+        $fakePesanan = new class {
+            public function getPesananByIdAndUser($idPemesanan, $idUser)
+            {
+                return [
+                    'id_pemesanan'     => $idPemesanan,
+                    'id_user'          => $idUser,
+                    'status_pemesanan' => 'Dikirim',
+                ];
+            }
+
+            public function update($id, $data)
+            {
+                return false; // gagal update
+            }
+        };
+
+        $controller = $this->makeController($fakePesanan, new class {});
+
+        $response = $controller->selesai(88);
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertStringContainsString('/pesananselesai', $response->getHeaderLine('Location'));
+
+        $this->assertSame(
+            'Gagal mengonfirmasi pesanan.',
+            session()->getFlashdata('error')
+        );
     }
 }
