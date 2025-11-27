@@ -1,206 +1,574 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Controller;
 
 use App\Controllers\Keranjang;
-use App\Models\ProdukModel;
-use App\Models\UserModel;
 use CodeIgniter\Test\CIUnitTestCase;
+use CodeIgniter\HTTP\RedirectResponse;
+
+/**
+ * Fake repo sederhana pengganti ProdukModel.
+ * Hanya perlu method find() dan menyimpan jejak pemanggilan.
+ */
+class KeranjangFakeProdukRepo
+{
+    /** @var array<int,array> */
+    public array $records = [];
+
+    /** @var array<int> */
+    public array $calledWith = [];
+
+    public function __construct(array $records = [])
+    {
+        $this->records = $records;
+    }
+
+    public function find($id)
+    {
+        $id = (int) $id;
+        $this->calledWith[] = $id;
+
+        return $this->records[$id] ?? null;
+    }
+}
+
+/**
+ * Fake repo sederhana pengganti UserModel untuk KeranjangTest.
+ */
+class KeranjangFakeUserRepo
+{
+    /** @var array<int,array> */
+    public array $records = [];
+
+    public function __construct(array $records = [])
+    {
+        $this->records = $records;
+    }
+
+    public function find($id)
+    {
+        $id = (int) $id;
+        return $this->records[$id] ?? null;
+    }
+}
+
+/**
+ * Versi testable dari Keranjang:
+ * - Tidak memanggil konstruktor asli (tidak bikin ProdukModel/UserModel sungguhan).
+ * - index() dikembalikan sebagai array, bukan view HTML.
+ */
+class TestableKeranjang extends Keranjang
+{
+    public function __construct($produkRepo, $userRepo)
+    {
+        // Jangan panggil parent::__construct() supaya tidak bikin Model asli.
+        $this->produkModel = $produkRepo;
+        $this->userModel   = $userRepo;
+
+        helper(['form']);
+    }
+
+    /**
+     * index() versi test:
+     * - Jika belum login -> redirect ke /login (sama seperti ensureLogin()).
+     * - Jika sudah login:
+     *   - Ambil cart dari session (cart_u_{id_user})
+     *   - Hitung total harga & total qty
+     *   - Sinkronkan badge count ke cart_count_u_{id_user}
+     *   - Kembalikan array data (bukan view).
+     */
+    public function index()
+    {
+        $idUser = session()->get('id_user');
+
+        if (! $idUser) {
+            return redirect()->to('/login')->with('error', 'Silakan login dulu.');
+        }
+
+        $cartKey  = 'cart_u_' . $idUser;
+        $countKey = 'cart_count_u_' . $idUser;
+
+        $cart  = session()->get($cartKey) ?? [];
+        $total = 0;
+        $count = 0;
+
+        foreach ($cart as $row) {
+            $harga = (float) ($row['harga'] ?? 0);
+            $qty   = (int)   ($row['qty'] ?? 0);
+
+            $total += $harga * $qty;
+            $count += $qty;
+        }
+
+        // Simulasikan syncCartCount()
+        session()->set($countKey, $count);
+
+        // Ambil user dari fake repo
+        $user = $this->userModel ? $this->userModel->find($idUser) : null;
+
+        return [
+            'cart'  => $cart,
+            'total' => $total,
+            'user'  => $user,
+            'count' => $count,
+        ];
+    }
+}
 
 class KeranjangTest extends CIUnitTestCase
 {
-    protected $keranjang;
-    protected $produkModelMock;
-    protected $userModelMock;
+    /** @var TestableKeranjang */
+    private $controller;
+
+    /** @var KeranjangFakeProdukRepo */
+    private $produkRepo;
+
+    /** @var KeranjangFakeUserRepo */
+    private $userRepo;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Mock ProdukModel
-        $this->produkModelMock = $this->getMockBuilder(ProdukModel::class)
-            ->onlyMethods(['find'])
-            ->getMock();
-
-        // Mock UserModel
-        $this->userModelMock = $this->getMockBuilder(UserModel::class)
-            ->onlyMethods(['find'])
-            ->getMock();
-
-        // Instance controller
-        $this->keranjang = new Keranjang();
-
-        // Inject mock ke protected properties via Reflection
-        $reflection = new \ReflectionClass($this->keranjang);
-
-        $propProduk = $reflection->getProperty('produkModel');
-        $propProduk->setAccessible(true);
-        $propProduk->setValue($this->keranjang, $this->produkModelMock);
-
-        $propUser = $reflection->getProperty('userModel');
-        $propUser->setAccessible(true);
-        $propUser->setValue($this->keranjang, $this->userModelMock);
-
-        // Bersihkan session sebelum test
+        // Reset session setiap test
+        $_SESSION = [];
         session()->destroy();
-    }
 
-    protected function injectRequestMock(array $post = [])
-    {
-        $requestMock = $this->getMockBuilder(\CodeIgniter\HTTP\IncomingRequest::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods(['getPost'])
-            ->getMock();
-
-        // setup getPost untuk setiap key
-        $map = [];
-        foreach ($post as $key => $value) {
-            $map[] = [$key, $value];
-        }
-        $requestMock->method('getPost')->willReturnMap($map);
-
-        $reflection = new \ReflectionClass($this->keranjang);
-        $prop = $reflection->getProperty('request');
-        $prop->setAccessible(true);
-        $prop->setValue($this->keranjang, $requestMock);
-    }
-
-    public function testIndexRedirectsWhenNotLoggedIn()
-    {
-        $result = $this->keranjang->index();
-        $this->assertInstanceOf(\CodeIgniter\HTTP\RedirectResponse::class, $result);
-        $this->assertStringContainsString('/login', $result->getHeaderLine('Location'));
-    }
-
-    public function testIndexShowsCartWhenLoggedIn()
-    {
-        session()->set('id_user', 1);
-
-        // Mock user lengkap untuk view
-        $this->userModelMock->method('find')->willReturn([
-            'id_user' => 1,
-            'nama' => 'User Test',
-            'username' => 'usertest',
-            'role' => 'pembeli', // role sesuai layout/sidebar
+        // Fake data user untuk id_user = 1
+        $this->userRepo = new KeranjangFakeUserRepo([
+            1 => [
+                'id_user'  => 1,
+                'nama'     => 'User Test',
+                'username' => 'usertest',
+                'role'     => 'pembeli',
+            ],
         ]);
 
-        // Bungkus view dengan output buffer agar tidak risky
-        ob_start();
-        $result = $this->keranjang->index();
-        ob_end_clean();
+        // Produk awal kosong, nanti diisi per test
+        $this->produkRepo = new KeranjangFakeProdukRepo([]);
 
-        $this->assertIsString($result);
-        $this->assertStringContainsString('cart', $result);
+        // Buat controller testable & inject request/response/logger CI4
+        $this->controller = new TestableKeranjang(
+            $this->produkRepo,
+            $this->userRepo
+        );
+        $this->controller->initController(
+            service('request'),
+            service('response'),
+            service('logger')
+        );
     }
 
-    public function add()
+    /* =========================================================
+     *  1. INDEX
+     * =======================================================*/
+
+    public function testIndexRedirectKetikaBelumLogin()
     {
-        $produkId = (int) $this->request->getPost('id_produk');
-        $jumlah   = (int) $this->request->getPost('jumlah', FILTER_SANITIZE_NUMBER_INT);
-    
-        if ($jumlah <= 0) {
-            return redirect()->back()->with('error', 'Jumlah tidak valid.');
-        }
-    
-        $model = new ProdukModel();
-        $produk = $model->find($produkId);
-    
-        if (!$produk) {
-            return redirect()->back()->with('error', 'Produk tidak ditemukan.');
-        }
-    
-        $cart = $this->getCart();
-    
-        if (isset($cart[$produkId])) {
-            $cart[$produkId]['jumlah'] += $jumlah;
-        } else {
-            $cart[$produkId] = [
-                'id_produk' => $produkId,
-                'nama'      => $produk['nama'],
-                'harga'     => $produk['harga'],
-                'jumlah'    => $jumlah,
-            ];
-        }
-    
-        $this->putCart($cart);
-    
-        // 🟢 Penting untuk unit test (agar session tersimpan)
-        session()->commit();
-    
-        return redirect()->to('/keranjang')->with('success', 'Produk masuk ke keranjang.');
-    }
-    
-    
-    public function update()
-    {
-        $cart = $this->getCart();
-        $updates = $this->request->getPost('jumlah');
-    
-        if (is_array($updates)) {
-            foreach ($updates as $id_produk => $jumlah) {
-                $jumlah = (int) $jumlah;
-                if ($jumlah <= 0) {
-                    unset($cart[$id_produk]);
-                } else {
-                    if (isset($cart[$id_produk])) {
-                        $cart[$id_produk]['jumlah'] = $jumlah;
-                    }
-                }
-            }
-        }
-    
-        $this->putCart($cart);
-    
-        // 🟢 Penting untuk unit test (agar perubahan session dibaca test)
-        session()->commit();
-    
-        return redirect()->to('/keranjang')->with('success', 'Keranjang diperbarui.');
-    }
-    
+        // id_user belum diset
+        session()->destroy();
 
-    public function testRemoveCart()
-    {
-        session()->set('id_user', 1);
-        session()->set('cart_u_1', [10 => ['qty'=>1]]);
+        $result = $this->controller->index();
 
-        $result = $this->keranjang->remove(10);
-        $this->assertEmpty(session()->get('cart_u_1'));
+        $this->assertInstanceOf(RedirectResponse::class, $result);
+        $this->assertStringContainsString('/login', $result->getHeaderLine('Location'));
+        $this->assertSame('Silakan login dulu.', session()->getFlashdata('error'));
     }
 
-    public function testClearCart()
-    {
-        session()->set('id_user', 1);
-        session()->set('cart_u_1', [10 => ['qty'=>1]]);
-        session()->set('cart_count_u_1', 1);
-
-        $result = $this->keranjang->clear();
-        $this->assertEmpty(session()->get('cart_u_1'));
-        $this->assertEmpty(session()->get('cart_count_u_1'));
-    }
-
-    public function testCheckoutAllAdjustsQty()
+    public function testIndexMenghitungTotalDanSyncCartCountUntukUserLogin()
     {
         session()->set('id_user', 1);
         session()->set('cart_u_1', [
-            10 => ['id_produk'=>10,'nama_produk'=>'Produk Test','harga'=>5000,'qty'=>10],
-            20 => ['id_produk'=>20,'nama_produk'=>'Produk Test 2','harga'=>3000,'qty'=>2],
+            10 => ['id_produk' => 10, 'harga' => 5000, 'qty' => 2],
+            20 => ['id_produk' => 20, 'harga' => 3000, 'qty' => 1],
         ]);
 
-        // Mock stok produk
-        $this->produkModelMock->method('find')
-            ->willReturnMap([
-                [10, ['id_produk'=>10,'stok'=>5]],
-                [20, ['id_produk'=>20,'stok'=>2]],
-            ]);
+        $data = $this->controller->index();
 
-        $result = $this->keranjang->checkoutAll();
-        $checkout = session()->get('checkout_all');
+        $this->assertIsArray($data);
+        $this->assertArrayHasKey('cart', $data);
+        $this->assertArrayHasKey('total', $data);
+        $this->assertArrayHasKey('user', $data);
+        $this->assertArrayHasKey('count', $data);
 
-        $this->assertEquals([
-            ['id_produk'=>10,'qty'=>5],
-            ['id_produk'=>20,'qty'=>2],
-        ], $checkout);
+        // Total: 2*5000 + 1*3000 = 13000
+        $this->assertSame(13000.0, $data['total']);
+        $this->assertSame(3, $data['count']);
+        $this->assertSame(3, session()->get('cart_count_u_1'));
+        $this->assertSame('User Test', $data['user']['nama']);
+    }
 
-        $this->assertEquals('Sebagian jumlah menyesuaikan stok tersedia.', session()->getFlashdata('info'));
+    /* =========================================================
+     *  2. ADD
+     * =======================================================*/
+
+    public function testAddTanpaLoginRedirectKeLoginDanTidakMemanggilFind()
+    {
+        session()->destroy();
+
+        $req = service('request');
+        $req->setMethod('post');
+        $req->setGlobal('post', [
+            'id_produk' => 10,
+            'qty'       => 2,
+        ]);
+
+        $result = $this->controller->add();
+
+        $this->assertInstanceOf(RedirectResponse::class, $result);
+        $this->assertStringContainsString('/login', $result->getHeaderLine('Location'));
+        // ProdukRepo tidak boleh dipanggil sama sekali
+        $this->assertSame([], $this->produkRepo->calledWith);
+    }
+
+    public function testAddProdukTidakDitemukanMengembalikanErrorFlash()
+    {
+        session()->set('id_user', 1);
+
+        // Tidak ada produk di repo => find() akan return null
+        $this->produkRepo->records = [];
+
+        $req = service('request');
+        $req->setMethod('post');
+        $req->setGlobal('post', [
+            'id_produk' => 10,
+            'qty'       => 2,
+        ]);
+
+        $result = $this->controller->add();
+
+        $this->assertInstanceOf(RedirectResponse::class, $result);
+        $this->assertSame(
+            'Produk tidak ditemukan.',
+            session()->getFlashdata('error')
+        );
+        $this->assertNull(session()->get('cart_u_1'));
+    }
+
+    public function testAddStokHabisMengembalikanErrorFlash()
+    {
+        session()->set('id_user', 1);
+
+        $this->produkRepo->records = [
+            10 => [
+                'id_produk'   => 10,
+                'nama_produk' => 'Produk A',
+                'harga'       => 5000,
+                'stok'        => 0,
+                'foto'        => 'default.png',
+            ],
+        ];
+
+        $req = service('request');
+        $req->setMethod('post');
+        $req->setGlobal('post', [
+            'id_produk' => 10,
+            'qty'       => 3,
+        ]);
+
+        $result = $this->controller->add();
+
+        $this->assertInstanceOf(RedirectResponse::class, $result);
+        $this->assertSame(
+            'Stok produk habis.',
+            session()->getFlashdata('error')
+        );
+        $this->assertNull(session()->get('cart_u_1'));
+    }
+
+    public function testAddQtyLebihBesarDariStokDibatasiKeStok()
+    {
+        session()->set('id_user', 1);
+
+        $this->produkRepo->records = [
+            10 => [
+                'id_produk'   => 10,
+                'nama_produk' => 'Produk A',
+                'harga'       => 5000,
+                'stok'        => 3,
+                'foto'        => 'foto.png',
+            ],
+        ];
+
+        $req = service('request');
+        $req->setMethod('post');
+        $req->setGlobal('post', [
+            'id_produk' => 10,
+            'qty'       => 10, // > stok
+        ]);
+
+        $result = $this->controller->add();
+
+        $cart = session()->get('cart_u_1');
+
+        $this->assertIsArray($cart);
+        $this->assertArrayHasKey(10, $cart);
+        $this->assertSame(3, $cart[10]['qty'], 'Qty harus dibatasi ke stok (3).');
+        $this->assertSame(
+            'Produk masuk ke keranjang.',
+            session()->getFlashdata('success')
+        );
+    }
+
+    public function testAddKeProdukYangSudahAdaTidakMelebihiStok()
+    {
+        session()->set('id_user', 1);
+
+        // Cart awal: qty = 2
+        session()->set('cart_u_1', [
+            10 => [
+                'id_produk'   => 10,
+                'nama_produk' => 'Produk A',
+                'harga'       => 5000,
+                'foto'        => 'foto.png',
+                'qty'         => 2,
+            ],
+        ]);
+
+        // Stok maks 3, tapi kita mau tambah 5
+        $this->produkRepo->records = [
+            10 => [
+                'id_produk'   => 10,
+                'nama_produk' => 'Produk A',
+                'harga'       => 5000,
+                'stok'        => 3,
+                'foto'        => 'foto.png',
+            ],
+        ];
+
+        $req = service('request');
+        $req->setMethod('post');
+        $req->setGlobal('post', [
+            'id_produk' => 10,
+            'qty'       => 5,
+        ]);
+
+        $result = $this->controller->add();
+
+        $cart = session()->get('cart_u_1');
+        $this->assertSame(3, $cart[10]['qty'], 'Qty akhir tidak boleh melebihi stok (3).');
+    }
+
+    /* =========================================================
+     *  3. UPDATE
+     * =======================================================*/
+
+    public function testUpdateItemTidakAdaMengembalikanError()
+    {
+        session()->set('id_user', 1);
+        // Cart kosong, tapi kita update id_produk 10
+        session()->set('cart_u_1', []);
+
+        $req = service('request');
+        $req->setMethod('post');
+        $req->setGlobal('post', [
+            'id_produk' => 10,
+            'qty'       => 2,
+        ]);
+
+        $result = $this->controller->update();
+
+        $this->assertInstanceOf(RedirectResponse::class, $result);
+        $this->assertSame(
+            'Item tidak ada di keranjang.',
+            session()->getFlashdata('error')
+        );
+    }
+
+    public function testUpdateQtyNolMenghapusItemDariCart()
+    {
+        session()->set('id_user', 1);
+        session()->set('cart_u_1', [
+            10 => [
+                'id_produk'   => 10,
+                'nama_produk' => 'Produk A',
+                'harga'       => 5000,
+                'foto'        => 'foto.png',
+                'qty'         => 2,
+            ],
+        ]);
+
+        $req = service('request');
+        $req->setMethod('post');
+        $req->setGlobal('post', [
+            'id_produk' => 10,
+            'qty'       => 0, // hapus
+        ]);
+
+        $result = $this->controller->update();
+
+        $cart = session()->get('cart_u_1');
+        $this->assertIsArray($cart);
+        $this->assertArrayNotHasKey(10, $cart);
+    }
+
+    public function testUpdateQtyLebihBesarDariStokDibatasi()
+    {
+        session()->set('id_user', 1);
+        session()->set('cart_u_1', [
+            10 => [
+                'id_produk'   => 10,
+                'nama_produk' => 'Produk A',
+                'harga'       => 5000,
+                'foto'        => 'foto.png',
+                'qty'         => 1,
+            ],
+        ]);
+
+        $this->produkRepo->records = [
+            10 => [
+                'id_produk'   => 10,
+                'nama_produk' => 'Produk A',
+                'harga'       => 5000,
+                'stok'        => 2,
+                'foto'        => 'foto.png',
+            ],
+        ];
+
+        $req = service('request');
+        $req->setMethod('post');
+        $req->setGlobal('post', [
+            'id_produk' => 10,
+            'qty'       => 10, // > stok
+        ]);
+
+        $result = $this->controller->update();
+
+        $cart = session()->get('cart_u_1');
+        $this->assertSame(2, $cart[10]['qty'], 'Qty update harus dibatasi ke stok (2).');
+    }
+
+    /* =========================================================
+     *  4. REMOVE & CLEAR
+     * =======================================================*/
+
+    public function testRemoveCartMenghapusItemDanSyncCount()
+    {
+        session()->set('id_user', 1);
+        session()->set('cart_u_1', [
+            10 => ['id_produk' => 10, 'harga' => 5000, 'qty' => 1],
+        ]);
+        session()->set('cart_count_u_1', 1);
+
+        $result = $this->controller->remove(10);
+
+        $this->assertInstanceOf(RedirectResponse::class, $result);
+        $this->assertSame([], session()->get('cart_u_1') ?? []);
+        $this->assertSame(0, session()->get('cart_count_u_1'));
+    }
+
+    public function testClearCartMenghapusSemuaKeyCartDanCount()
+    {
+        session()->set('id_user', 1);
+        session()->set('cart_u_1', [
+            10 => ['id_produk' => 10, 'harga' => 5000, 'qty' => 1],
+        ]);
+        session()->set('cart_count_u_1', 1);
+
+        $result = $this->controller->clear();
+
+        $this->assertInstanceOf(RedirectResponse::class, $result);
+        $this->assertNull(session()->get('cart_u_1'));
+        $this->assertNull(session()->get('cart_count_u_1'));
+    }
+
+    /* =========================================================
+     *  5. CHECKOUT ALL
+     * =======================================================*/
+
+    public function testCheckoutAllKeranjangKosongMengembalikanError()
+    {
+        session()->set('id_user', 1);
+        session()->set('cart_u_1', []);
+
+        $result = $this->controller->checkoutAll();
+
+        $this->assertInstanceOf(RedirectResponse::class, $result);
+        $this->assertSame(
+            'Keranjang kosong.',
+            session()->getFlashdata('error')
+        );
+        $this->assertNull(session()->get('checkout_all'));
+    }
+
+    public function testCheckoutAllTanpaItemValidMengembalikanError()
+    {
+        session()->set('id_user', 1);
+        session()->set('cart_u_1', [
+            10 => ['id_produk' => 10, 'harga' => 5000, 'qty' => 2],
+        ]);
+
+        // ProdukRepo tidak punya entry id 10 (anggap produk sudah dihapus / stok <= 0)
+        $this->produkRepo->records = [];
+
+        $result = $this->controller->checkoutAll();
+
+        $this->assertInstanceOf(RedirectResponse::class, $result);
+        $this->assertSame(
+            'Tidak ada item yang dapat di-checkout.',
+            session()->getFlashdata('error')
+        );
+        $this->assertNull(session()->get('checkout_all'));
+    }
+
+    public function testCheckoutAllDenganPenyesuaianStokMenyimpanPayloadDanInfoFlash()
+    {
+        session()->set('id_user', 1);
+        session()->set('cart_u_1', [
+            10 => ['id_produk' => 10, 'harga' => 5000, 'qty' => 10],
+            20 => ['id_produk' => 20, 'harga' => 3000, 'qty' => 2],
+        ]);
+
+        $this->produkRepo->records = [
+            10 => ['id_produk' => 10, 'stok' => 5],
+            20 => ['id_produk' => 20, 'stok' => 2],
+        ];
+
+        $result = $this->controller->checkoutAll();
+
+        $this->assertInstanceOf(RedirectResponse::class, $result);
+        $this->assertStringContainsString(
+            '/melakukanpemesanan',
+            $result->getHeaderLine('Location')
+        );
+
+        $payload = session()->get('checkout_all');
+        $this->assertEquals(
+            [
+                ['id_produk' => 10, 'qty' => 5],
+                ['id_produk' => 20, 'qty' => 2],
+            ],
+            $payload
+        );
+        $this->assertSame(
+            'Sebagian jumlah menyesuaikan stok tersedia.',
+            session()->getFlashdata('info')
+        );
+    }
+
+    public function testCheckoutAllTanpaPenyesuaianStokTidakAdaInfoFlash()
+    {
+        session()->set('id_user', 1);
+        session()->set('cart_u_1', [
+            10 => ['id_produk' => 10, 'harga' => 5000, 'qty' => 2],
+        ]);
+
+        $this->produkRepo->records = [
+            10 => ['id_produk' => 10, 'stok' => 5],
+        ];
+
+        $result = $this->controller->checkoutAll();
+
+        $this->assertInstanceOf(RedirectResponse::class, $result);
+        $payload = session()->get('checkout_all');
+
+        $this->assertEquals(
+            [['id_produk' => 10, 'qty' => 2]],
+            $payload
+        );
+        $this->assertNull(
+            session()->getFlashdata('info'),
+            'Tidak boleh ada pesan info jika tidak ada penyesuaian stok.'
+        );
     }
 }

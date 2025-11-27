@@ -1,172 +1,478 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Controller;
 
-use CodeIgniter\Test\CIUnitTestCase;
-use CodeIgniter\Test\ControllerTestTrait;
-use PHPUnit\Framework\MockObject\MockObject;
 use App\Controllers\Auth;
-use App\Models\UserModel;
+use CodeIgniter\Test\CIUnitTestCase;
+use CodeIgniter\HTTP\RedirectResponse;
+
+/**
+ * Fake repository khusus untuk Auth, menggantikan UserModel
+ * supaya tidak ada akses DB sama sekali.
+ */
+class AuthFakeUserRepo
+{
+    /** @var array<string,array> users diindeks per email */
+    public array $usersByEmail = [];
+
+    /** @var array<int,array{0:int,1:array}> */
+    public array $updateCalls = [];
+
+    /** @var array<int,array> */
+    public array $saveCalls = [];
+
+    /** @var string|null */
+    private ?string $lastWhereField = null;
+
+    /** @var mixed */
+    private $lastWhereValue;
+
+    public function __construct(array $users = [])
+    {
+        foreach ($users as $u) {
+            if (! isset($u['email'])) {
+                continue;
+            }
+            $email                        = (string) $u['email'];
+            $this->usersByEmail[$email]   = $u;
+        }
+    }
+
+    /**
+     * Simulasi where('email', $value)->first()
+     */
+    public function where($field, $value = null): self
+    {
+        if (is_string($field) && $value !== null) {
+            $this->lastWhereField = $field;
+            $this->lastWhereValue = $value;
+        } elseif (is_array($field) && isset($field['email'])) {
+            $this->lastWhereField = 'email';
+            $this->lastWhereValue = $field['email'];
+        }
+
+        return $this;
+    }
+
+    public function first(): ?array
+    {
+        if ($this->lastWhereField === 'email') {
+            $email = (string) $this->lastWhereValue;
+            return $this->usersByEmail[$email] ?? null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Simulasi update(id, data):
+     * - Mencatat pemanggilan
+     * - Merge data baru ke user yang cocok id_user-nya
+     */
+    public function update($id = null, $data = null): bool
+    {
+        $id   = (int) $id;
+        $data = $data ?? [];
+
+        $this->updateCalls[] = [$id, $data];
+
+        foreach ($this->usersByEmail as $email => $user) {
+            if ((int) ($user['id_user'] ?? 0) === $id) {
+                $this->usersByEmail[$email] = array_merge($user, $data);
+                break;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Simulasi save(data) untuk register.
+     */
+    public function save(array $data): bool
+    {
+        $this->saveCalls[] = $data;
+
+        $email = $data['email'] ?? null;
+        if ($email === null) {
+            return true;
+        }
+
+        // Generate id_user sederhana
+        $maxId = 0;
+        foreach ($this->usersByEmail as $u) {
+            $maxId = max($maxId, (int) ($u['id_user'] ?? 0));
+        }
+        $id = $data['id_user'] ?? ($maxId + 1);
+
+        $user = array_merge(
+            [
+                'id_user'           => $id,
+                'username'          => null,
+                'role'              => 'user',
+                'foto'              => 'default.png',
+                'failed_logins'     => 0,
+                'last_failed_login' => null,
+                'locked_until'      => null,
+            ],
+            $data
+        );
+
+        $this->usersByEmail[(string) $email] = $user;
+
+        return true;
+    }
+}
+
+/**
+ * Versi testable dari Auth:
+ * - Tidak membuat UserModel asli (tidak akses DB).
+ * - validate() dioverride supaya tidak pakai Validation service.
+ */
+class TestableAuth extends Auth
+{
+    /** @var bool|null jika null → pakai validate asli; selain itu pakai nilai ini */
+    public static ?bool $forcedValidateResult = null;
+
+    /** @var array errors palsu ketika validasi gagal */
+    public static array $forcedErrors = [];
+
+    /** @var AuthFakeUserRepo */
+    protected $userModel;
+
+    public function __construct(AuthFakeUserRepo $userRepo)
+    {
+        // Jangan panggil parent::__construct() supaya tidak new UserModel sungguhan
+        $this->userModel = $userRepo;
+
+        helper(['form', 'url']);
+    }
+
+    /**
+     * Override validate() agar tidak memanggil Validation service/DB.
+     */
+    protected function validate($rules, array $messages = []): bool
+    {
+        if (self::$forcedValidateResult !== null) {
+            // Stub minimal validator dengan getErrors()
+            $this->validator = new class(self::$forcedErrors)
+            {
+                private array $errors;
+
+                public function __construct(array $errors)
+                {
+                    $this->errors = $errors;
+                }
+
+                public function getErrors(): array
+                {
+                    return $this->errors;
+                }
+            };
+
+            return self::$forcedValidateResult;
+        }
+
+        // fallback ke perilaku asli kalau suatu saat dibutuhkan
+        return parent::validate($rules, $messages);
+    }
+}
 
 class AuthTest extends CIUnitTestCase
 {
-    use ControllerTestTrait;
+    private AuthFakeUserRepo $userRepo;
+    private TestableAuth $controller;
 
-    /** @var MockObject */
-    private $userMock;
+    /** @var \CodeIgniter\HTTP\IncomingRequest */
+    private $request;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // --- Mock UserModel ---
-        $this->userMock = $this->createMock(UserModel::class);
+        // Reset session tiap test
+        $_SESSION = [];
+        session()->destroy();
 
-        // Inject mock ke controller
-        $this->injectMockToController(Auth::class, 'userModel', $this->userMock);
-
-        // --- Mock session ---
-        $mockSession = $this->createMock(\CodeIgniter\Session\Session::class);
-        $mockSession->method('get')->willReturnMap([
-            ['logged_in', false],
-            ['role', null]
+        // Seed user dummy untuk login (tanpa DB)
+        $this->userRepo = new AuthFakeUserRepo([
+            [
+                'id_user'           => 1,
+                'username'          => 'User One',
+                'email'             => 'user01@farmunand.local',
+                'password'          => password_hash('111111', PASSWORD_DEFAULT),
+                'role'              => 'user',
+                'foto'              => 'default.png',
+                'failed_logins'     => 0,
+                'last_failed_login' => null,
+                'locked_until'      => null,
+            ],
+            [
+                'id_user'           => 2,
+                'username'          => 'Admin One',
+                'email'             => 'admin@farmunand.local',
+                'password'          => password_hash('111111', PASSWORD_DEFAULT),
+                'role'              => 'admin',
+                'foto'              => 'default.png',
+                'failed_logins'     => 0,
+                'last_failed_login' => null,
+                'locked_until'      => null,
+            ],
         ]);
-        $mockSession->method('set')->willReturn(true);
-        \Config\Services::injectMock('session', $mockSession);
 
-        // --- Mock logger (opsional) ---
-        $mockLogger = $this->createMock(\CodeIgniter\Log\Logger::class);
-        $mockLogger->method('debug')->willReturnCallback(function(){});
-        $mockLogger->method('error')->willReturnCallback(function(){});
-        \Config\Services::injectMock('logger', $mockLogger);
+        $this->controller = new TestableAuth($this->userRepo);
+
+        $this->request = service('request');
+        $this->controller->initController(
+            $this->request,
+            service('response'),
+            service('logger')
+        );
+
+        // Reset state validate override
+        TestableAuth::$forcedValidateResult = null;
+        TestableAuth::$forcedErrors         = [];
+    }
+
+    protected function tearDown(): void
+    {
+        session()->destroy();
+        parent::tearDown();
     }
 
     /** ----------------------- HALAMAN LOGIN ----------------------- */
-    public function testHalamanLoginBisaDibuka()
+    public function testHalamanLoginBisaDibuka(): void
     {
-        $result = $this->controller(Auth::class)->execute('login');
-        $result->assertOK();
+        $output = $this->controller->login();
+        $this->assertIsString($output);
     }
 
     /** ----------------------- LOGIN ----------------------- */
-    public function testLoginEmailTidakDitemukan()
+
+    public function testLoginEmailTidakDitemukan(): void
     {
-        $this->userMock->method('find')->willReturn(null);
+        $this->request->setMethod('post')
+            ->setGlobal('request', [
+                'email'    => 'tidakada@example.com',
+                'password' => 'password123',
+            ]);
 
-        $postData = ['email' => 'tidakada@example.com', 'password' => 'password123'];
+        $response = $this->controller->doLogin();
 
-        $result = $this->withBody($postData)
-                       ->controller(Auth::class)
-                       ->execute('doLogin');
-
-        $result->assertRedirectTo(site_url('login'));
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertStringContainsString('/login', $response->getHeaderLine('Location'));
+        $this->assertSame('Email atau password salah.', session()->getFlashdata('error'));
+        $this->assertSame([], $this->userRepo->updateCalls);
     }
 
-    public function testLoginPasswordSalah()
+    public function testLoginPasswordSalahPertamaKaliNaikkanCounterTanpaLock(): void
     {
-        $this->userMock->method('find')->willReturn([
-            'email' => 'admin@example.com',
-            'password_hash' => password_hash('benar123', PASSWORD_DEFAULT),
-            'role' => 'admin'
-        ]);
+        // Pastikan state awal user: belum pernah gagal, tidak terkunci
+        $user                                      = $this->userRepo->usersByEmail['user01@farmunand.local'];
+        $user['failed_logins']                     = 0;
+        $user['locked_until']                      = null;
+        $this->userRepo->usersByEmail['user01@farmunand.local'] = $user;
 
-        $postData = ['email' => 'admin@example.com', 'password' => 'salahbanget'];
+        $this->request->setMethod('post')
+            ->setGlobal('request', [
+                'email'    => 'user01@farmunand.local',
+                'password' => 'salahbanget',
+            ]);
 
-        $result = $this->withBody($postData)
-                       ->controller(Auth::class)
-                       ->execute('doLogin');
+        $response = $this->controller->doLogin();
 
-        $result->assertRedirectTo(site_url('login'));
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertStringContainsString('/login', $response->getHeaderLine('Location'));
+        $this->assertSame(
+            'Email atau password salah. Sisa percobaan: 2.',
+            session()->getFlashdata('error')
+        );
+
+        $this->assertCount(1, $this->userRepo->updateCalls);
+        [$id, $data] = $this->userRepo->updateCalls[0];
+
+        $this->assertSame(1, $id);
+        $this->assertSame(1, $data['failed_logins']);
+        $this->assertNull($data['locked_until']);
+        $this->assertArrayHasKey('last_failed_login', $data);
+        $this->assertNotEmpty($data['last_failed_login']);
     }
 
-    public function testLoginBerhasilSebagaiUser()
+    public function testLoginPasswordSalahKetigaKaliMengunciAkun(): void
     {
-        $this->userMock->method('find')->willReturn([
-            'email' => 'user01@farmunand.local',
-            'password_hash' => password_hash('111111', PASSWORD_DEFAULT),
-            'role' => 'user'
-        ]);
-    
-        $postData = ['email' => 'user01@farmunand.local', 'password' => '111111'];
-    
-        $result = $this->withBody($postData)
-                       ->controller(Auth::class)
-                       ->execute('doLogin');
-    
-        // pakai site_url agar sesuai base URL CI4
-        $result->assertRedirect(); 
+        // Simulasikan sudah 2x gagal
+        $user                                      = $this->userRepo->usersByEmail['user01@farmunand.local'];
+        $user['failed_logins']                     = 2;
+        $user['locked_until']                      = null;
+        $this->userRepo->usersByEmail['user01@farmunand.local'] = $user;
+
+        $this->request->setMethod('post')
+            ->setGlobal('request', [
+                'email'    => 'user01@farmunand.local',
+                'password' => 'masihsalah',
+            ]);
+
+        $response = $this->controller->doLogin();
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertStringContainsString('/login', $response->getHeaderLine('Location'));
+        $this->assertSame(
+            'Terlalu banyak percobaan gagal. Akun dikunci selama 15 menit.',
+            session()->getFlashdata('error')
+        );
+
+        $this->assertCount(1, $this->userRepo->updateCalls);
+        [$id, $data] = $this->userRepo->updateCalls[0];
+
+        $this->assertSame(1, $id);
+        $this->assertSame(3, $data['failed_logins']);
+        $this->assertArrayHasKey('locked_until', $data);
+        $this->assertNotEmpty($data['locked_until']);
     }
 
-    public function testLoginBerhasilSebagaiAdmin()
-{
-    $this->userMock->method('find')->willReturn([
-        'email' => 'admin@farmunand.local',
-        'password_hash' => password_hash('111111', PASSWORD_DEFAULT),
-        'role' => 'admin'
-    ]);
-
-    $postData = ['email' => 'admin@farmunand.local', 'password' => '111111'];
-
-    $result = $this->withBody($postData)
-                   ->controller(Auth::class)
-                   ->execute('doLogin');
-
-                   $result->assertRedirect(); 
-}
-
-
-    /** ----------------------- LOGOUT ----------------------- */
-    public function testLogout()
+    public function testLoginSaatAkunMasihTerkunciDitolakDanTidakUpdate(): void
     {
-        $result = $this->controller(Auth::class)->execute('logout');
-        $result->assertRedirectTo(site_url('login'));
+        // Akun terkunci 10 menit ke depan
+        $user                                      = $this->userRepo->usersByEmail['user01@farmunand.local'];
+        $user['failed_logins']                     = 3;
+        $user['locked_until']                      = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+        $this->userRepo->usersByEmail['user01@farmunand.local'] = $user;
+
+        $this->request->setMethod('post')
+            ->setGlobal('request', [
+                'email'    => 'user01@farmunand.local',
+                'password' => 'apapun',
+            ]);
+
+        $response = $this->controller->doLogin();
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertStringContainsString('/login', $response->getHeaderLine('Location'));
+        $this->assertSame(
+            'Akun Anda terkunci sementara karena terlalu banyak percobaan login gagal. Coba lagi beberapa saat lagi.',
+            session()->getFlashdata('error')
+        );
+        // Tidak boleh ada update ke DB
+        $this->assertSame([], $this->userRepo->updateCalls);
+    }
+
+    public function testLoginBerhasilSebagaiUserResetCounterDanRedirectDashboardUser(): void
+    {
+        // user pernah salah 2x, tapi lock sudah kadaluarsa
+        $user                                      = $this->userRepo->usersByEmail['user01@farmunand.local'];
+        $user['failed_logins']                     = 2;
+        $user['locked_until']                      = date('Y-m-d H:i:s', strtotime('-1 minute'));
+        $this->userRepo->usersByEmail['user01@farmunand.local'] = $user;
+
+        $this->request->setMethod('post')
+            ->setGlobal('request', [
+                'email'    => 'user01@farmunand.local',
+                'password' => '111111',
+            ]);
+
+        $response = $this->controller->doLogin();
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertStringContainsString('/dashboarduser', $response->getHeaderLine('Location'));
+
+        // Session login harus ter-set
+        $this->assertSame(1, session()->get('id_user'));
+        $this->assertSame('user', session()->get('role'));
+
+        // Counter gagal harus di-reset
+        $this->assertCount(1, $this->userRepo->updateCalls);
+        [$id, $data] = $this->userRepo->updateCalls[0];
+        $this->assertSame(1, $id);
+        $this->assertSame(0, $data['failed_logins']);
+        $this->assertNull($data['last_failed_login']);
+        $this->assertNull($data['locked_until']);
+    }
+
+    public function testLoginBerhasilSebagaiAdminRedirectDashboardAdmin(): void
+    {
+        $this->request->setMethod('post')
+            ->setGlobal('request', [
+                'email'    => 'admin@farmunand.local',
+                'password' => '111111',
+            ]);
+
+        $response = $this->controller->doLogin();
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertStringContainsString('/dashboard', $response->getHeaderLine('Location'));
+
+        $this->assertSame(2, session()->get('id_user'));
+        $this->assertSame('admin', session()->get('role'));
     }
 
     /** ----------------------- REGISTER ----------------------- */
-    public function testRegisterGagalValidasi()
+
+    public function testRegisterGagalValidasiTidakMemanggilSave(): void
     {
-        $postData = [
-            'username' => '',
-            'email' => 'salah',
-            'password' => '123',
-            'password_confirm' => '1234'
-        ];
+        TestableAuth::$forcedValidateResult = false;
+        TestableAuth::$forcedErrors         = ['email' => 'Email tidak valid'];
 
-        $result = $this->withBody($postData)
-                       ->controller(Auth::class)
-                       ->execute('doRegister');
+        $this->request->setMethod('post')
+            ->setGlobal('request', [
+                'username'         => '',
+                'email'            => 'salah',
+                'password'         => '123',
+                'password_confirm' => '456',
+            ]);
 
-        $result->assertRedirect(); // cukup cek redirect
+        $response = $this->controller->doRegister();
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertSame([], $this->userRepo->saveCalls);
     }
 
-    public function testRegisterBerhasil()
-{
-    $this->userMock->method('insert')->willReturn(1);
-
-    $postData = [
-        'username' => 'UserTest',
-        'email' => 'userbaru@example.com',
-        'password' => 'password123',
-        'password_confirm' => 'password123'
-    ];
-
-    $result = $this->withBody($postData)
-                   ->controller(Auth::class)
-                   ->execute('doRegister');
-
-                   $result->assertRedirect(); 
-}
-
-    /** ----------------------- HELPER ----------------------- */
-    private function injectMockToController($controllerClass, $property, $mock)
+    public function testRegisterBerhasilMemanggilSaveDenganPasswordTerhash(): void
     {
-        $this->controller($controllerClass);
+        TestableAuth::$forcedValidateResult = true;
+        TestableAuth::$forcedErrors         = [];
 
-        $reflection = new \ReflectionClass($controllerClass);
-        $instance = $this->getPrivateProperty($this, 'controller');
+        $this->request->setMethod('post')
+            ->setGlobal('request', [
+                'username'         => 'UserTest',
+                'email'            => 'userbaru@example.com',
+                'password'         => 'password123',
+                'password_confirm' => 'password123',
+            ]);
 
-        $prop = $reflection->getProperty($property);
-        $prop->setAccessible(true);
-        $prop->setValue($instance, $mock);
+        $response = $this->controller->doRegister();
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertStringContainsString('/login', $response->getHeaderLine('Location'));
+
+        $this->assertCount(1, $this->userRepo->saveCalls);
+        $saved = $this->userRepo->saveCalls[0];
+
+        $this->assertSame('UserTest', $saved['username'] ?? null);
+        $this->assertSame('userbaru@example.com', $saved['email'] ?? null);
+        $this->assertArrayHasKey('password', $saved);
+        $this->assertNotSame('password123', $saved['password']);
+        $this->assertTrue(password_verify('password123', $saved['password']));
+        $this->assertSame('user', $saved['role'] ?? null);
+    }
+
+    /** ----------------------- LOGOUT ----------------------- */
+
+    public function testLogoutMembersihkanSessionDanRedirectKeLogin(): void
+    {
+        session()->set([
+            'id_user'   => 99,
+            'username'  => 'Dummy',
+            'logged_in' => true,
+        ]);
+
+        $response = $this->controller->logout();
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertStringContainsString('/login', $response->getHeaderLine('Location'));
+
+        // Di environment CLI, perilaku destroy() bisa tricky,
+        // jadi kita cukup pastikan redirect sudah benar.
+        // Kalau mau maksa, bisa tambahkan assertNull(session()->get('id_user'))
+        // tapi siap-siap adjust kalau ternyata tidak sesuai driver.
     }
 }

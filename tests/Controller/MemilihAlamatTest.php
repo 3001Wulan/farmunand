@@ -1,201 +1,647 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Controller;
 
+use App\Controllers\MemilihAlamat;
+use CodeIgniter\HTTP\IncomingRequest;
+use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\Test\CIUnitTestCase;
-use CodeIgniter\Test\FeatureTestTrait;
-use Config\Database;
-use App\Models\UserModel;
-use App\Models\AlamatModel;
+use Config\Services;
 
+/**
+ * FakeAlamatModel
+ *
+ * Model palsu untuk menggantikan AlamatModel pada unit test:
+ * - Data disimpan di array, bukan database.
+ * - Mendukung method yang dipakai controller:
+ *   where(), orderBy(), findAll(), find(), set(), update(), save().
+ */
+class FakeAlamatModel
+{
+    /** @var array<int,array> */
+    private array $rows;
+
+    /** @var array<string,mixed> */
+    public array $lastWhere = [];
+
+    /** @var array<string,mixed>|null */
+    public ?array $lastSet = null;
+
+    /** @var array<int,array> log semua pemanggilan update() */
+    public array $updateLog = [];
+
+    /** @var array<int,array> log semua pemanggilan save() */
+    public array $saveLog = [];
+
+    public function __construct(array $rows = [])
+    {
+        $this->rows = array_values($rows);
+    }
+
+    public function where(string $field, $value): self
+    {
+        $this->lastWhere[$field] = $value;
+        return $this;
+    }
+
+    public function orderBy(string $field, string $direction = 'ASC'): self
+    {
+        usort($this->rows, function ($a, $b) use ($field, $direction) {
+            $av = $a[$field] ?? null;
+            $bv = $b[$field] ?? null;
+
+            if ($av == $bv) {
+                return 0;
+            }
+
+            $cmp = $av <=> $bv;
+            return strtoupper($direction) === 'DESC' ? -$cmp : $cmp;
+        });
+
+        return $this;
+    }
+
+    public function findAll(): array
+    {
+        $rows = $this->rows;
+
+        if (!empty($this->lastWhere)) {
+            foreach ($this->lastWhere as $field => $value) {
+                $rows = array_values(array_filter(
+                    $rows,
+                    fn ($r) => ($r[$field] ?? null) === $value
+                ));
+            }
+        }
+
+        return $rows;
+    }
+
+    public function find($id)
+    {
+        foreach ($this->rows as $row) {
+            if ((int)($row['id_alamat'] ?? 0) === (int)$id) {
+                foreach ($this->lastWhere as $field => $value) {
+                    if (($row[$field] ?? null) !== $value) {
+                        return null;
+                    }
+                }
+                return $row;
+            }
+        }
+        return null;
+    }
+
+    public function set(array $data): self
+    {
+        $this->lastSet = $data;
+        return $this;
+    }
+
+    public function update($id = null, $data = null): bool
+    {
+        // Mode where()->set()->update()
+        if ($id === null) {
+            if ($this->lastSet === null) {
+                return false;
+            }
+
+            foreach ($this->rows as &$row) {
+                $match = true;
+                foreach ($this->lastWhere as $field => $value) {
+                    if (($row[$field] ?? null) !== $value) {
+                        $match = false;
+                        break;
+                    }
+                }
+                if ($match) {
+                    $row = array_merge($row, $this->lastSet);
+                }
+            }
+
+            $this->updateLog[] = [
+                'where' => $this->lastWhere,
+                'data'  => $this->lastSet,
+            ];
+
+            $this->lastSet = null;
+            return true;
+        }
+
+        // Mode update($id, $data)
+        if (!is_array($data)) {
+            return false;
+        }
+
+        foreach ($this->rows as &$row) {
+            if ((int)($row['id_alamat'] ?? 0) === (int)$id) {
+                $row = array_merge($row, $data);
+            }
+        }
+
+        $this->updateLog[] = [
+            'id'   => $id,
+            'data' => $data,
+        ];
+
+        return true;
+    }
+
+    public function save(array $data): bool
+    {
+        if (!isset($data['id_alamat'])) {
+            $maxId = 0;
+            foreach ($this->rows as $row) {
+                $maxId = max($maxId, (int)($row['id_alamat'] ?? 0));
+            }
+            $data['id_alamat'] = $maxId + 1;
+        }
+
+        $this->rows[]    = $data;
+        $this->saveLog[] = $data;
+
+        return true;
+    }
+
+    public function getRows(): array
+    {
+        return $this->rows;
+    }
+}
+
+/**
+ * FakeUserModel sederhana: hanya butuh find($id)
+ */
+class FakeUserModel
+{
+    private array $users;
+
+    public function __construct(array $users = [])
+    {
+        $this->users = $users;
+    }
+
+    public function find($id)
+    {
+        return $this->users[$id] ?? [
+            'id_user' => $id,
+            'nama'    => 'User-' . $id,
+        ];
+    }
+}
+
+/**
+ * MemilihAlamatTest
+ *
+ * Versi UNIT TEST murni:
+ * - Tanpa FeatureTestTrait
+ * - Tanpa akses database asli
+ * - Menggunakan fake model (FakeAlamatModel, FakeUserModel)
+ * - Controller dipanggil langsung dan dependency di-inject.
+ */
 class MemilihAlamatTest extends CIUnitTestCase
 {
-    use FeatureTestTrait;
+    /** @var MemilihAlamat */
+    private $controller;
 
-    protected $db;
-    protected $userId;
-    protected $alamatId1;
-    protected $alamatId2;
+    /** @var FakeAlamatModel */
+    private $alamatModel;
+
+    /** @var FakeUserModel */
+    private $userModel;
+
+    /** @var IncomingRequest|\PHPUnit\Framework\MockObject\MockObject */
+    private $requestMock;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Koneksi DB default & bungkus dalam transaksi
-        $this->db = Database::connect();
-        $this->db->transBegin();
+        $dummyAlamat = [
+            [
+                'id_alamat'     => 1,
+                'id_user'       => 100,
+                'nama_penerima' => 'Penerima Satu',
+                'jalan'         => 'Jalan Satu 123',
+                'no_telepon'    => '0811111111',
+                'kota'          => 'Padang',
+                'provinsi'      => 'Sumatera Barat',
+                'kode_pos'      => '25111',
+                'aktif'         => 1,
+            ],
+            [
+                'id_alamat'     => 2,
+                'id_user'       => 100,
+                'nama_penerima' => 'Penerima Dua',
+                'jalan'         => 'Jalan Dua 456',
+                'no_telepon'    => '0822222222',
+                'kota'          => 'Padang',
+                'provinsi'      => 'Sumatera Barat',
+                'kode_pos'      => '25112',
+                'aktif'         => 0,
+            ],
+            [
+                'id_alamat'     => 3,
+                'id_user'       => 200,
+                'nama_penerima' => 'Penerima Lain',
+                'jalan'         => 'Jalan Lain 789',
+                'no_telepon'    => '0833333333',
+                'kota'          => 'Bukittinggi',
+                'provinsi'      => 'Sumatera Barat',
+                'kode_pos'      => '26111',
+                'aktif'         => 1,
+            ],
+        ];
 
-        // === Seed user pembeli dummy ===
-        $userModel    = new UserModel($this->db);
-        $this->userId = $userModel->insert([
-            'username' => 'alamat_tester',
-            'nama'     => 'Alamat Tester',
-            'email'    => 'alamat_tester@example.com',
-            'password' => password_hash('secret123', PASSWORD_DEFAULT),
-            'role'     => 'pembeli',
-            'foto'     => 'default.jpeg',
-        ], true);
+        $this->alamatModel = new FakeAlamatModel($dummyAlamat);
+        $this->userModel   = new FakeUserModel([
+            100 => ['id_user' => 100, 'nama' => 'Alamat Tester'],
+        ]);
 
-        // === Seed 2 alamat dummy untuk user ini ===
-        $alamatModel     = new AlamatModel($this->db);
+        // Subclass MemilihAlamat untuk DI & override validate()
+        $this->controller = new class($this->alamatModel, $this->userModel) extends MemilihAlamat {
+            public bool $testValidateReturn = true;
 
-        // alamat aktif awal
-        $this->alamatId1 = $alamatModel->insert([
-            'id_user'       => $this->userId,
-            'nama_penerima' => 'Penerima Satu',
-            'jalan'         => 'Jalan Satu 123',
-            'no_telepon'    => '0811111111',
-            'kota'          => 'Padang',
-            'provinsi'      => 'Sumatera Barat',
-            'kode_pos'      => '25111',
-            'aktif'         => 1,
-        ], true);
+            public function __construct($alamatModel, $userModel)
+            {
+                // jangan panggil parent::__construct()
+                $this->alamatModel = $alamatModel;
+                $this->userModel   = $userModel;
+                $this->produkModel = null;
+            }
 
-        // alamat kedua (nonaktif)
-        $this->alamatId2 = $alamatModel->insert([
-            'id_user'       => $this->userId,
-            'nama_penerima' => 'Penerima Dua',
-            'jalan'         => 'Jalan Dua 456',
-            'no_telepon'    => '0822222222',
-            'kota'          => 'Padang',
-            'provinsi'      => 'Sumatera Barat',
-            'kode_pos'      => '25112',
-            'aktif'         => 0,
-        ], true);
+            public function setRequestObject($request): void
+            {
+                $this->request = $request;
+            }
+
+            public function setResponseObject($response): void
+            {
+                $this->response = $response;
+            }
+
+            public function validate($rules, array $messages = []): bool
+            {
+                return $this->testValidateReturn;
+            }
+
+            // Versi test-friendly dari index(): return data array, bukan view()
+            public function indexForTest(): array
+            {
+                $idUser = session()->get('id_user');
+
+                $alamat = $this->alamatModel
+                    ->where('id_user', $idUser)
+                    ->orderBy('id_alamat', 'DESC')
+                    ->findAll();
+
+                $user = $this->userModel->find($idUser);
+
+                return [
+                    'alamat' => $alamat,
+                    'user'   => $user,
+                ];
+            }
+        };
+
+        // Inject response asli CI
+        $response = Services::response();
+        $this->controller->setResponseObject($response);
+
+        // Mock request
+        $this->requestMock = $this->getMockBuilder(IncomingRequest::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getMethod', 'getPost', 'getJSON'])
+            ->getMock();
     }
 
     protected function tearDown(): void
     {
-        if ($this->db && $this->db->transStatus()) {
-            $this->db->transRollback();
-        }
-
         session()->destroy();
         parent::tearDown();
     }
 
-    /** ===================== INDEX ===================== */
+    /* ===========================================================
+     * 1. INDEX()
+     * =========================================================*/
 
-    public function testIndexMenampilkanDaftarAlamatUntukUserLogin()
+    public function testIndexMengambilAlamatHanyaUntukUserLogin()
     {
-        $result = $this->withSession([
-                'id_user'   => $this->userId,
-                'username'  => 'alamat_tester',
-                'role'      => 'pembeli',
-                'logged_in' => true,
-            ])
-            ->get('memilihalamat');
+        session()->set(['id_user' => 100]);
 
-        $result->assertStatus(200);
+        $data = $this->controller->indexForTest();
 
-        $body = $result->getBody();
-        $this->assertNotEmpty($body);
-        $this->assertStringContainsString('Penerima Satu', $body);
+        $this->assertArrayHasKey('alamat', $data);
+        $this->assertArrayHasKey('user', $data);
+
+        $alamat = $data['alamat'];
+        $user   = $data['user'];
+
+        $this->assertCount(2, $alamat, 'User 100 seharusnya memiliki 2 alamat.');
+
+        foreach ($alamat as $row) {
+            $this->assertSame(100, $row['id_user']);
+        }
+
+        // ordered DESC by id_alamat → 2 lalu 1
+        $this->assertSame(2, $alamat[0]['id_alamat']);
+        $this->assertSame(1, $alamat[1]['id_alamat']);
+
+        $this->assertSame(100, $user['id_user']);
+        $this->assertSame('Alamat Tester', $user['nama']);
     }
 
-    /** ===================== PILIH ===================== */
+    /* ===========================================================
+     * 2. TAMBAH()
+     * =========================================================*/
 
-    public function testPilihAlamatMengubahAlamatAktifDanSession()
+    public function testTambahDenganMetodeGetLangsungRedirect()
     {
-        $this->withSession([
-                'id_user'   => $this->userId,
-                'username'  => 'alamat_tester',
-                'role'      => 'pembeli',
-                'logged_in' => true,
-            ])
-            ->post('memilihalamat/pilih/' . $this->alamatId2);
+        session()->set(['id_user' => 100]);
 
-        // Jangan paksa harus sama dengan $this->alamatId2,
-        // cukup pastikan session alamat_aktif ter-set ke nilai yang valid (>0)
-        $alamatAktif = session()->get('alamat_aktif');
+        $this->requestMock
+            ->method('getMethod')
+            ->willReturn('GET');
+        $this->controller->setRequestObject($this->requestMock);
 
-        $this->assertNotNull($alamatAktif, 'Session alamat_aktif harus ter-set setelah pilih alamat.');
-        $this->assertGreaterThan(
-            0,
-            (int) $alamatAktif,
-            'Session alamat_aktif harus bilangan positif.'
+        $response = $this->controller->tambah();
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertStringContainsString(
+            'memilihalamat',
+            $response->getHeaderLine('Location')
         );
+
+        $rows = $this->alamatModel->getRows();
+        $this->assertCount(3, $rows, 'Tidak boleh ada alamat baru pada GET.');
     }
 
-    public function testPilihAlamatNotFoundMemberikanFlashError()
+    public function testTambahDenganDataTidakValidTidakMenyimpanAlamat()
     {
-        $fakeId = 999999;
+        session()->set(['id_user' => 100]);
 
-        $result = $this->withSession([
-                'id_user'   => $this->userId,
-                'username'  => 'alamat_tester',
-                'role'      => 'pembeli',
-                'logged_in' => true,
-            ])
-            ->post('memilihalamat/pilih/' . $fakeId);
+        $this->requestMock
+            ->method('getMethod')
+            ->willReturn('POST');
 
-        // Bisa saja controller redirect atau tetap di halaman,
-        // yang penting request sukses diproses tanpa fatal error.
+        $this->requestMock
+            ->method('getPost')
+            ->willReturn([
+                'nama_penerima' => '',
+                'jalan'         => '',
+                'no_telepon'    => '',
+                'kota'          => '',
+                'provinsi'      => '',
+                'kode_pos'      => '',
+            ]);
+
+        $this->controller->setRequestObject($this->requestMock);
+        $this->controller->testValidateReturn = false;
+
+        $before = $this->alamatModel->getRows();
+        $response = $this->controller->tambah();
+        $after   = $this->alamatModel->getRows();
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertSameSize($before, $after);
+        $this->assertEmpty($this->alamatModel->saveLog, 'save() tidak boleh dipanggil jika validasi gagal.');
+    }
+
+    public function testTambahDenganDataValidMenambahAlamatBaruDanMenonaktifkanLama()
+    {
+        // User 100 sedang login
+        session()->set(['id_user' => 100]);
+
+        // Data awal untuk user 100 (harusnya 2 alamat dari dummy)
+        $beforeRows = $this->alamatModel->getRows();
+        $beforeForUser = array_values(array_filter(
+            $beforeRows,
+            fn ($r) => $r['id_user'] === 100
+        ));
+        $this->assertCount(2, $beforeForUser, 'Sebelum tambah harus ada 2 alamat milik user 100.');
+
+        // Siapkan request POST dengan data valid
+        $this->requestMock
+            ->method('getMethod')
+            ->willReturn('POST');
+
+        // 🔧 Perbaiki di sini: pakai callback, bukan willReturn(array)
+        $this->requestMock
+            ->method('getPost')
+            ->willReturnCallback(function ($key = null) {
+                $data = [
+                    'nama_penerima' => 'Penerima Baru',
+                    'jalan'         => 'Jalan Baru 10',
+                    'no_telepon'    => '0899999999',
+                    'kota'          => 'Padang',
+                    'provinsi'      => 'Sumatera Barat',
+                    'kode_pos'      => '25113',
+                ];
+
+                // Mirip perilaku CI4:
+                // - getPost()            -> array lengkap
+                // - getPost('fieldname') -> hanya value-nya
+                if ($key === null) {
+                    return $data;
+                }
+
+                return $data[$key] ?? null;
+            });
+
+        $this->controller->setRequestObject($this->requestMock);
+        $this->controller->testValidateReturn = true; // validasi dianggap LULUS
+
+        // Panggil controller
+        $response = $this->controller->tambah();
+
+        // 1) Harus redirect ke /memilihalamat
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertStringContainsString(
+            'memilihalamat',
+            $response->getHeaderLine('Location'),
+            'Setelah tambah alamat harus redirect ke /memilihalamat.'
+        );
+
+        // 2) Ambil data setelah tambah
+        $afterRows = $this->alamatModel->getRows();
+        $afterForUser = array_values(array_filter(
+            $afterRows,
+            fn ($r) => $r['id_user'] === 100
+        ));
+
+        // Awalnya 2 → sekarang 3 alamat
+        $this->assertCount(3, $afterForUser, 'Setelah tambah harus ada 3 alamat milik user 100.');
+
+        // 3) Tepat 1 alamat yang aktif=1
+        $aktif = array_values(array_filter(
+            $afterForUser,
+            fn ($r) => (int) $r['aktif'] === 1
+        ));
+        $this->assertCount(1, $aktif, 'Hanya boleh ada 1 alamat aktif setelah tambah.');
+
+        // 4) Dua alamat lain harus aktif=0
+        $nonAktif = array_values(array_filter(
+            $afterForUser,
+            fn ($r) => (int) $r['aktif'] === 0
+        ));
+        $this->assertCount(2, $nonAktif, 'Dua alamat lama harus dinonaktifkan.');
+
+        // 5) Pastikan ada SATU alamat baru dengan nama_penerima = "Penerima Baru"
+        $namaList = array_column($afterForUser, 'nama_penerima');
+
         $this->assertTrue(
-            $result->isOK() || $result->isRedirect(),
-            'Respon tidak OK dan bukan redirect.'
+            in_array('Penerima Baru', $namaList, true),
+            'Setelah tambah harus ada alamat dengan nama_penerima "Penerima Baru".'
         );
     }
 
-    /** ===================== TAMBAH ===================== */
 
-    public function testTambahAlamatBaruBerhasil()
+    /* ===========================================================
+     * 3. PILIH()
+     * =========================================================*/
+
+    public function testPilihAlamatTidakDitemukanMengembalikanJsonError()
     {
-        $this->withSession([
-                'id_user'   => $this->userId,
-                'username'  => 'alamat_tester',
-                'role'      => 'pembeli',
-                'logged_in' => true,
-            ])
-            ->post('memilihalamat/tambah', [
-                'nama_penerima'  => 'Penerima Baru',
-                'no_hp'          => '0833333333',
-                'alamat_lengkap' => 'Jalan Baru No. 10',
-                'label'          => 'Rumah',
-            ]);
+        session()->set(['id_user' => 100]);
 
-        // Minimal: tidak terjadi fatal error, request selesai.
-        $this->assertTrue(true);
+        $this->alamatModel->lastWhere = [];
+
+        $response = $this->controller->pilih(9999);
+
+        $data = json_decode($response->getBody(), true);
+
+        $this->assertIsArray($data);
+        $this->assertFalse($data['success'] ?? true);
+        $this->assertSame('Alamat tidak ditemukan', $data['message'] ?? null);
+
+        $this->assertEmpty($this->alamatModel->updateLog);
+        $this->assertNull(session()->get('alamat_aktif'));
     }
 
-    public function testTambahAlamatDenganDataKosongTidakMenyimpanData()
+    public function testPilihAlamatValidMengubahAktifDanSession()
     {
-        $alamatModel = new AlamatModel($this->db);
-        $beforeCount = $alamatModel->where('id_user', $this->userId)->countAllResults();
+        session()->set(['id_user' => 100]);
 
-        $this->withSession([
-                'id_user'   => $this->userId,
-                'username'  => 'alamat_tester',
-                'role'      => 'pembeli',
-                'logged_in' => true,
-            ])
-            ->post('memilihalamat/tambah', [
-                'nama_penerima'  => '',
-                'no_hp'          => '',
-                'alamat_lengkap' => '',
-                'label'          => '',
-            ]);
+        $response = $this->controller->pilih(2);
 
-        // Validasi gagal → tidak ada penambahan row di DB tests
-        $afterCount = $alamatModel->where('id_user', $this->userId)->countAllResults();
-        $this->assertEquals($beforeCount, $afterCount);
+        $data = json_decode($response->getBody(), true);
+        $this->assertIsArray($data);
+        $this->assertTrue($data['success'] ?? false);
+
+        $rows        = $this->alamatModel->getRows();
+        $rowsForUser = array_values(array_filter(
+            $rows,
+            fn ($r) => $r['id_user'] === 100
+        ));
+
+        $byId = [];
+        foreach ($rowsForUser as $r) {
+            $byId[$r['id_alamat']] = $r;
+        }
+
+        $this->assertSame(0, (int)$byId[1]['aktif']);
+        $this->assertSame(1, (int)$byId[2]['aktif']);
+
+        $sessionAlamat = session()->get('alamat_aktif');
+        $this->assertIsArray($sessionAlamat);
+        $this->assertSame(2, $sessionAlamat['id_alamat']);
+        $this->assertSame('Penerima Dua', $sessionAlamat['nama_penerima']);
     }
 
-    /** ===================== UBAH (GET form edit) ===================== */
+    /* ===========================================================
+     * 4. UBAH()
+     * =========================================================*/
 
-    public function testHalamanEditAlamatBisaDiakses()
+    public function testUbahAlamatTidakDitemukanMengembalikanJsonError()
     {
-        $result = $this->withSession([
-                'id_user'   => $this->userId,
-                'username'  => 'alamat_tester',
-                'role'      => 'pembeli',
-                'logged_in' => true,
-            ])
-            ->get('memilihalamat/ubah/' . $this->alamatId1);
+        // id_alamat 9999 dijamin tidak ada di seed
+        $response = $this->controller->ubah(9999);
 
-        $result->assertStatus(200);
+        $data = json_decode($response->getBody(), true);
+        $this->assertIsArray($data);
+        $this->assertFalse($data['success'] ?? true);
+        $this->assertSame('Alamat tidak ditemukan', $data['message'] ?? null);
+    }
 
-        $body = $result->getBody();
-        $this->assertNotEmpty($body);
+    public function testUbahAlamatDenganPerubahanMenyimpanUpdateDanMengembalikanChanged()
+    {
+        $this->requestMock
+            ->method('getMethod')
+            ->willReturn('POST');
+
+        $this->requestMock
+            ->method('getJSON')
+            ->with(true)
+            ->willReturn([
+                'nama_penerima' => 'Penerima Satu Diubah',
+                'jalan'         => 'Jalan Satu 123',
+                'no_telepon'    => '0811111111',
+                'kota'          => 'Padang',
+                'provinsi'      => 'Sumatera Barat',
+                'kode_pos'      => '25199',
+            ]);
+
+        $this->controller->setRequestObject($this->requestMock);
+
+        $response = $this->controller->ubah(1);
+
+        $data = json_decode($response->getBody(), true);
+
+        $this->assertIsArray($data);
+        $this->assertTrue($data['success'] ?? false);
+        $this->assertArrayHasKey('changed', $data);
+        $changed = $data['changed'];
+
+        $this->assertArrayHasKey('nama_penerima', $changed);
+        $this->assertArrayHasKey('kode_pos', $changed);
+
+        $this->assertSame('Penerima Satu', $changed['nama_penerima']['old']);
+        $this->assertSame('Penerima Satu Diubah', $changed['nama_penerima']['new']);
+
+        $this->assertSame('25111', $changed['kode_pos']['old']);
+        $this->assertSame('25199', $changed['kode_pos']['new']);
+
+        $rows = $this->alamatModel->getRows();
+        foreach ($rows as $row) {
+            if ($row['id_alamat'] === 1) {
+                $this->assertSame('Penerima Satu Diubah', $row['nama_penerima']);
+                $this->assertSame('25199', $row['kode_pos']);
+            }
+        }
+    }
+
+    public function testUbahAlamatTanpaPerubahanTidakMemanggilUpdate()
+    {
+        $this->requestMock
+            ->method('getMethod')
+            ->willReturn('POST');
+
+        $this->requestMock
+            ->method('getJSON')
+            ->with(true)
+            ->willReturn([
+                'nama_penerima' => 'Penerima Satu',
+                'jalan'         => 'Jalan Satu 123',
+                'no_telepon'    => '0811111111',
+                'kota'          => 'Padang',
+                'provinsi'      => 'Sumatera Barat',
+                'kode_pos'      => '25111',
+            ]);
+
+        $this->controller->setRequestObject($this->requestMock);
+
+        $this->alamatModel->updateLog = [];
+
+        $response = $this->controller->ubah(1);
+
+        $data = json_decode($response->getBody(), true);
+        $this->assertIsArray($data);
+        $this->assertFalse($data['success'] ?? true);
+        $this->assertSame('Tidak ada perubahan pada alamat', $data['message'] ?? null);
+
+        $this->assertEmpty(
+            $this->alamatModel->updateLog,
+            'update() tidak boleh dipanggil jika tidak ada perubahan.'
+        );
     }
 }

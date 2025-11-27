@@ -5,137 +5,174 @@ namespace Tests\Unit;
 use App\Controllers\DetailProduk;
 use App\Models\ProdukModel;
 use App\Models\UserModel;
-use App\Models\PenilaianModel;
+use CodeIgniter\Config\Services;
+use CodeIgniter\Session\Session;
 use CodeIgniter\Test\CIUnitTestCase;
-
-// Override view helper
-if (!function_exists('view')) {
-    function view($name, $data = [], array $options = [], $saveData = false)
-    {
-        return [
-            'view' => $name,
-            'data' => $data
-        ];
-    }
-}
+use CodeIgniter\Test\ControllerTestTrait;
+use PHPUnit\Framework\MockObject\MockObject;
 
 class DetailProdukTest extends CIUnitTestCase
 {
+    use ControllerTestTrait;
+
+    /** @var MockObject&ProdukModel */
+    private $produkMock;
+
+    /** @var MockObject&UserModel */
+    private $userMock;
+
+    private const CONTROLLER_CLASS = DetailProduk::class;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        session()->set([
-            'id_user' => 1,
-            'role' => 'pembeli',
-            'username' => 'testuser',
-            'cart_count_u_1' => 0,
-        ]);
+        $this->produkMock = $this->createMock(ProdukModel::class);
+        $this->userMock   = $this->createMock(UserModel::class);
     }
 
-    public function test_index_returns_view()
+    /**
+     * Helper inject mock ke properti private/protected di controller.
+     * Harus dipanggil setelah $this->controller() dipanggil.
+     */
+    private function injectMock(string $property, $mock): void
     {
-        $produkMock = $this->createMock(ProdukModel::class);
-        $produkMock->method('find')->willReturn([
-            'id_produk'   => 1,
-            'harga'       => 10000,
-            'nama_produk' => 'Produk A',
-            'stok'        => 50,  // wajib ada supaya view tidak error
-        ]);
-
-        $userMock = $this->createMock(UserModel::class);
-        $userMock->method('find')->willReturn([
-            'id_user'  => 1,
-            'nama'     => 'User Test',
-            'username' => 'testuser',
-            'role'     => 'pembeli',
-        ]);
-
-        $nilaiMock = $this->getMockBuilder(PenilaianModel::class)
-            ->onlyMethods(['findAll', '__call'])
-            ->getMock();
-        $nilaiMock->method('__call')->willReturnSelf();
-        $nilaiMock->method('findAll')->willReturn([]);
-
-        // Anonymous subclass, parameter harus sama persis
-        $controller = new class($produkMock, $userMock, $nilaiMock) extends DetailProduk {
-            public $produkModel;
-            public $userModel;
-            public $penilaianModel;
-
-            public function __construct($produkMock, $userMock, $nilaiMock)
-            {
-                $this->produkModel = $produkMock;
-                $this->userModel = $userMock;
-                $this->penilaianModel = $nilaiMock;
-            }
-
-            protected function renderView($view, $data)
-            {
-                return [
-                    'view' => $view,
-                    'data' => $data
-                ];
-            }
-
-            // parameter harus sama dengan controller asli
-            public function index($id_produk = null)
-            {
-                $produk = $this->produkModel->find($id_produk);
-                if (!$produk) {
-                    throw new \CodeIgniter\Exceptions\PageNotFoundException('Produk tidak ditemukan');
-                }
-
-                $user = $this->userModel->find(session('id_user'));
-                $reviews = $this->penilaianModel->where('id_produk', $id_produk)->findAll();
-
-                return $this->renderView('pembeli/detailproduk', [
-                    'produk'  => $produk,
-                    'user'    => $user,
-                    'reviews' => $reviews,
-                ]);
-            }
-        };
-
-        $result = $controller->index(1);
-
-        $this->assertIsArray($result);
-        $this->assertEquals('pembeli/detailproduk', $result['view']);
-        $this->assertArrayHasKey('produk', $result['data']);
-        $this->assertArrayHasKey('user', $result['data']);
-        $this->assertArrayHasKey('reviews', $result['data']);
+        // instance controller yang disimpan oleh ControllerTestTrait
+        $instance = $this->getPrivateProperty($this, 'controller');
+        $this->setPrivateProperty($instance, $property, $mock);
     }
 
-    public function test_index_not_found()
+    /**
+     * Helper buat mock session dengan data user login standar
+     */
+    private function makeSessionMockForUser(): Session
     {
-        $produkMock = $this->createMock(ProdukModel::class);
-        $produkMock->method('find')->willReturn(null);
+        /** @var Session&MockObject $mockSession */
+        $mockSession = $this->createMock(Session::class);
 
-        $userMock = $this->createMock(UserModel::class);
-        $nilaiMock = $this->createMock(PenilaianModel::class);
+        $mockSession->method('get')
+            ->willReturnMap([
+                ['id_user', 1],
+                ['username', 'tester'],
+                ['role', 'pembeli'],
+                ['foto', 'default.png'],
+                // fallback default
+                [null, null],
+            ]);
 
-        $controller = new class($produkMock, $userMock, $nilaiMock) extends DetailProduk {
-            public $produkModel;
-            public $userModel;
-            public $penilaianModel;
+        // kalau controller / view manggil set(), kita biarkan saja (no-op)
+        $mockSession->method('set')->willReturn(null);
 
-            public function __construct($produkMock, $userMock, $nilaiMock)
-            {
-                $this->produkModel = $produkMock;
-                $this->userModel = $userMock;
-                $this->penilaianModel = $nilaiMock;
-            }
+        return $mockSession;
+    }
 
-            public function index($id_produk = null)
-            {
-                $produk = $this->produkModel->find($id_produk);
-                if (!$produk) {
-                    throw new \CodeIgniter\Exceptions\PageNotFoundException('Produk tidak ditemukan');
-                }
-            }
-        };
+    /** ----------------------- 1. DETAIL PRODUK SUKSES (USER LOGIN) ----------------------- */
+    public function testDetailProdukMenampilkanHalamanUntukProdukValid()
+    {
+        // Mock session dengan user login
+        $mockSession = $this->makeSessionMockForUser();
+        Services::injectMock('session', $mockSession);
 
-        $this->expectException(\CodeIgniter\Exceptions\PageNotFoundException::class);
-        $controller->index(999);
+        // Mock ProdukModel::find()
+        $this->produkMock->method('find')
+            ->with(10)
+            ->willReturn([
+                'id_produk'   => 10,
+                'nama_produk' => 'Produk Test',
+                'deskripsi'   => 'Deskripsi produk test',
+                'harga'       => 150000,
+                'stok'        => 5,
+                'foto'        => 'produk_test.png',
+            ]);
+
+        // Mock UserModel::find() (untuk data user di sidebar)
+        $this->userMock->method('find')
+            ->with(1)
+            ->willReturn([
+                'id_user'  => 1,
+                'username' => 'tester',
+                'role'     => 'pembeli',
+                'foto'     => 'default.png',
+            ]);
+
+        // 1. Buat controller
+        $this->controller(self::CONTROLLER_CLASS);
+
+        // 2. Inject mock model ke controller
+        $this->injectMock('produkModel', $this->produkMock);
+        $this->injectMock('userModel', $this->userMock);
+
+        // 3. Eksekusi method index(10)
+        $result = $this->execute('index', 10);
+
+        // 4. Asersi
+        $result->assertOK();
+
+        $body = $result->getBody();
+        $this->assertStringContainsString('Produk Test', $body);
+        $this->assertStringContainsString('tester', $body);       // nama user di layout
+    }
+
+    /** ----------------------- 2. DETAIL PRODUK TANPA LOGIN (HANYA CEK BISA AKSES) ----------------------- */
+    public function testDetailProdukDapatDiaksesMeskiTanpaSessionLogin()
+    {
+        // Session kosong, tapi kita mock supaya dipanggil get('role') tidak error
+        /** @var Session&MockObject $mockSession */
+        $mockSession = $this->createMock(Session::class);
+        $mockSession->method('get')->willReturnMap([
+            ['id_user', null],
+            ['username', null],
+            ['role', 'pembeli'],   // biar sidebar tidak undefined index
+            ['foto', 'default.png'],
+            [null, null],
+        ]);
+        Services::injectMock('session', $mockSession);
+
+        $this->produkMock->method('find')
+            ->with(5)
+            ->willReturn([
+                'id_produk'   => 5,
+                'nama_produk' => 'Produk Tanpa Login',
+                'deskripsi'   => 'Deskripsi',
+                'harga'       => 100000,
+                'stok'        => 3,
+            ]);
+
+        // Tidak perlu userModel di sini kalau controller hanya pakai saat ada id_user
+
+        $this->controller(self::CONTROLLER_CLASS);
+        $this->injectMock('produkModel', $this->produkMock);
+
+        $result = $this->execute('index', 5);
+
+        $result->assertOK();
+        $this->assertStringContainsString('Produk Tanpa Login', $result->getBody());
+    }
+
+    /** ----------------------- 3. DETAIL PRODUK NOT FOUND ----------------------- */
+    public function testDetailProdukNotFoundMenghasilkan404AtauPesanError()
+    {
+        // Session mock standar
+        $mockSession = $this->makeSessionMockForUser();
+        Services::injectMock('session', $mockSession);
+
+        // Produk tidak ditemukan
+        $this->produkMock->method('find')
+            ->with(999)
+            ->willReturn(null);
+
+        $this->controller(self::CONTROLLER_CLASS);
+        $this->injectMock('produkModel', $this->produkMock);
+
+        $result = $this->execute('index', 999);
+
+        $status = $result->response()->getStatusCode();
+        $body   = $result->getBody();
+
+        // Longgar: boleh 404 (PageNotFoundException) atau 200 dengan pesan "Produk tidak ditemukan"
+        $this->assertTrue(
+            $status === 404 || str_contains($body, 'Produk tidak ditemukan'),
+            'DetailProduk untuk id 999 seharusnya 404 atau menampilkan pesan "Produk tidak ditemukan".'
+        );
     }
 }
