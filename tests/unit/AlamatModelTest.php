@@ -5,76 +5,115 @@ namespace Tests\Unit;
 use CodeIgniter\Test\CIUnitTestCase;
 use App\Models\AlamatModel;
 
+/**
+ * Versi testable dari AlamatModel:
+ * - Tidak memanggil constructor Model (jadi tidak nyentuh DB).
+ * - Override where() dan findAll() agar:
+ *   - Mencatat parameter pemanggilan.
+ *   - Mengembalikan data dummy yang sudah kita set di test.
+ */
+class TestableAlamatModel extends AlamatModel
+{
+    /** @var array<int,array{0:mixed,1:mixed,2:mixed}> */
+    public array $whereCalls = [];
+
+    /** @var array<int,array> */
+    public array $resultToReturn = [];
+
+    public function __construct(array $resultToReturn = [])
+    {
+        // JANGAN panggil parent::__construct() supaya tidak inisialisasi DB
+        $this->resultToReturn = $resultToReturn;
+    }
+
+    /**
+     * Fake dari Model::where() → cuma nyimpan parameter dan support chaining.
+     */
+    public function where($key, $value = null, ?string $escape = null)
+    {
+        $this->whereCalls[] = [$key, $value, $escape];
+        return $this; // chaining
+    }
+
+    /**
+     * Fake dari Model::findAll()
+     * Signature harus kompatibel dengan BaseModel::findAll(?int $limit = null, int $offset = 0)
+     */
+    public function findAll(?int $limit = null, int $offset = 0): array
+    {
+        return $this->resultToReturn;
+    }
+}
+
 class AlamatModelTest extends CIUnitTestCase
 {
-    protected $alamatModel;
-
-    protected function setUp(): void
+    public function testGetAlamatAktifByUserBuildsCorrectQueryAndReturnsData(): void
     {
-        parent::setUp();
-
-        // Buat mock untuk AlamatModel
-        $this->alamatModel = $this->createMock(AlamatModel::class);
-    }
-
-    public function testInsertAlamatBaru()
-    {
-        $data = [
-            'id_user' => 1,
-            'nama_penerima' => 'Budi Santoso',
-            'jalan' => 'Jl. Merdeka No. 45',
-            'kota' => 'Padang',
-            'provinsi' => 'Sumatera Barat',
-            'kode_pos' => '25134',
-            'aktif' => 1,
-            'no_telepon' => '08123456789'
+        $expected = [
+            [
+                'id_alamat'     => 10,
+                'id_user'       => 2,
+                'nama_penerima' => 'Siti Aminah',
+                'aktif'         => 1,
+            ],
+            [
+                'id_alamat'     => 11,
+                'id_user'       => 2,
+                'nama_penerima' => 'Budi',
+                'aktif'         => 1,
+            ],
         ];
 
-        // Atur perilaku mock: insert() return id, find() return data
-        $this->alamatModel->method('insert')->willReturn(123);
-        $this->alamatModel->method('find')->willReturn($data + ['id' => 123]);
+        // Model testable dengan hasil dummy
+        $model = new TestableAlamatModel($expected);
 
-        $insertId = $this->alamatModel->insert($data);
+        // Panggil method yang benar-benar ingin kita uji
+        $result = $model->getAlamatAktifByUser(2);
 
-        $this->assertIsNumeric($insertId);
-        $this->assertNotNull($this->alamatModel->find($insertId));
-    }
-
-    public function testGetAlamatAktifByUser()
-    {
-        $dummy = [[
-            'id_user' => 2,
-            'nama_penerima' => 'Siti Aminah',
-            'jalan' => 'Jl. Sudirman No. 12',
-            'kota' => 'Bukittinggi',
-            'provinsi' => 'Sumatera Barat',
-            'kode_pos' => '26125',
-            'aktif' => 1,
-            'no_telepon' => '08991234567'
-        ]];
-
-        // Atur perilaku mock: getAlamatAktifByUser(2) return dummy
-        $this->alamatModel->method('getAlamatAktifByUser')
-            ->with(2)
-            ->willReturn($dummy);
-
-        $result = $this->alamatModel->getAlamatAktifByUser(2);
-
+        // 1) Hasil pengembalian harus sama dengan dummy
+        $this->assertSame($expected, $result);
         $this->assertIsArray($result);
-        $this->assertGreaterThan(0, count($result));
-        $this->assertEquals(1, $result[0]['aktif']);
+        $this->assertCount(2, $result);
+
+        foreach ($result as $row) {
+            $this->assertSame(2, $row['id_user']);
+            $this->assertSame(1, $row['aktif']);
+        }
+
+        // 2) Pastikan query yang dibangun benar → urutan where()
+        $this->assertCount(2, $model->whereCalls);
+
+        $this->assertSame(['id_user', 2, null], $model->whereCalls[0]);
+        $this->assertSame(['aktif', 1, null], $model->whereCalls[1]);
     }
 
-    public function testGetAlamatAktifByUserKosong()
+    public function testGetAlamatAktifByUserReturnsEmptyArrayWhenNoData(): void
     {
-        // Atur perilaku mock: getAlamatAktifByUser(9999) return []
-        $this->alamatModel->method('getAlamatAktifByUser')
-            ->with(9999)
-            ->willReturn([]);
+        $model = new TestableAlamatModel([]);
 
-        $result = $this->alamatModel->getAlamatAktifByUser(9999);
+        $result = $model->getAlamatAktifByUser(9999);
 
         $this->assertIsArray($result);
         $this->assertCount(0, $result);
+
+        // Tetap harus memanggil dua where()
+        $this->assertCount(2, $model->whereCalls);
+        $this->assertSame(['id_user', 9999, null], $model->whereCalls[0]);
+        $this->assertSame(['aktif', 1, null], $model->whereCalls[1]);
+    }
+
+    public function testGetAlamatAktifByUserAcceptsStringUserId(): void
+    {
+        $model = new TestableAlamatModel([]);
+
+        $result = $model->getAlamatAktifByUser('5');
+
+        $this->assertIsArray($result);
+        $this->assertCount(0, $result);
+
+        // id_user dikirim apa adanya ('5'), sesuai pemanggilan kita
+        $this->assertCount(2, $model->whereCalls);
+        $this->assertSame(['id_user', '5', null], $model->whereCalls[0]);
+        $this->assertSame(['aktif', 1, null], $model->whereCalls[1]);
     }
 }
