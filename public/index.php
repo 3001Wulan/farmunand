@@ -3,57 +3,56 @@
 use CodeIgniter\Boot;
 use Config\Paths;
 
-/*
+/**
  *---------------------------------------------------------------
- * CHECK PHP VERSION
+ * SET THE FRONT CONTROLLER PATH
  *---------------------------------------------------------------
+ *
+ * FCPATH = folder tempat index.php berada (public/).
  */
-
-$minPhpVersion = '8.1'; // If you update this, don't forget to update `spark`.
-if (version_compare(PHP_VERSION, $minPhpVersion, '<')) {
-    $message = sprintf(
-        'Your PHP version must be %s or higher to run CodeIgniter. Current version: %s',
-        $minPhpVersion,
-        PHP_VERSION,
-    );
-
-    header('HTTP/1.1 503 Service Unavailable.', true, 503);
-    echo $message;
-
-    exit(1);
-}
-
-/*
- *---------------------------------------------------------------
- * SET THE CURRENT DIRECTORY
- *---------------------------------------------------------------
- */
-
-// Path to the front controller (this file)
 define('FCPATH', __DIR__ . DIRECTORY_SEPARATOR);
 
-// Ensure the current directory is pointing to the front controller's directory
-if (getcwd() . DIRECTORY_SEPARATOR !== FCPATH) {
-    chdir(FCPATH);
-}
-
-/*
+/**
  *---------------------------------------------------------------
- * BOOTSTRAP THE APPLICATION
+ * LOAD PATHS CONFIG
  *---------------------------------------------------------------
- * This process sets up the path constants, loads and registers
- * our autoloader, along with Composer's, loads our constants
- * and fires up an environment-specific bootstrapping.
+ * Memuat konfigurasi path (app, system, writable, tests, dll).
  */
-
-// LOAD OUR PATHS CONFIG FILE
-// This is the line that might need to be changed, depending on your folder structure.
 require FCPATH . '../app/Config/Paths.php';
-// ^^^ Change this line if you move your application folder
 
 $paths = new Paths();
 
-// LOAD THE FRAMEWORK BOOTSTRAP FILE
+/**
+ *---------------------------------------------------------------
+ * DEFINE SUPPORTPATH (FIX UNTUK VERSI CI4 BARU)
+ *---------------------------------------------------------------
+ * Beberapa versi CI4 butuh konstanta SUPPORTPATH sebelum
+ * AutoloadConfig dibuat. Di proyek lama ini belum ada,
+ * jadi kita definisikan manual dari $paths->supportDirectory.
+ */
+if (! defined('SUPPORTPATH')) {
+    $supportDir = property_exists($paths, 'supportDirectory')
+        ? $paths->supportDirectory
+        : $paths->testsDirectory . '_support';
+
+    if (is_dir($supportDir)) {
+        define('SUPPORTPATH', realpath($supportDir) . DIRECTORY_SEPARATOR);
+    } else {
+        // fallback aman walaupun folder belum ada
+        define('SUPPORTPATH', $supportDir . DIRECTORY_SEPARATOR);
+    }
+}
+
+/**
+ *---------------------------------------------------------------
+ * LOAD THE FRAMEWORK BOOTSTRAP FILE
+ *---------------------------------------------------------------
+ */
 require $paths->systemDirectory . '/Boot.php';
 
+/**
+ *---------------------------------------------------------------
+ * BOOT THE WEB APPLICATION
+ *---------------------------------------------------------------
+ */
 exit(Boot::bootWeb($paths));

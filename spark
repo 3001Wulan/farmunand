@@ -81,6 +81,25 @@ require FCPATH . '../app/Config/Paths.php';
 
 $paths = new Paths();
 
+/**
+ * Tambahan: definisikan SUPPORTPATH secara manual
+ * supaya AutoloadConfig tidak error.
+ */
+if (! defined('SUPPORTPATH')) {
+    // Kalau property supportDirectory ada, pakai itu.
+    // Kalau tidak, fallback ke tests/_support.
+    $supportDir = property_exists($paths, 'supportDirectory')
+        ? $paths->supportDirectory
+        : $paths->testsDirectory . '_support';
+
+    if (is_dir($supportDir)) {
+        define('SUPPORTPATH', realpath($supportDir) . DIRECTORY_SEPARATOR);
+    } else {
+        // fallback: walau folder belum ada, tetap define supaya tidak undefined
+        define('SUPPORTPATH', $supportDir . DIRECTORY_SEPARATOR);
+    }
+}
+
 // LOAD THE FRAMEWORK BOOTSTRAP FILE
 require $paths->systemDirectory . '/Boot.php';
 
