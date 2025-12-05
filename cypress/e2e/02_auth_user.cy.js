@@ -3,7 +3,7 @@
 describe('Sheet 01B - Auth User', () => {
   // GANTI sesuai data user nyata di DB
   const userEmail = 'user01@farmunand.local';
-  const userPassword = 'password_user01';
+  const userPassword = '111111';
 
   // USR-001: Halaman login bisa dibuka (boleh sama dgn admin)
   it('USR-001: Halaman login bisa dibuka', () => {

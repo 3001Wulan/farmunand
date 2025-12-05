@@ -2,8 +2,8 @@
 
 describe('Sheet 01A - Auth Admin', () => {
   // GANTI sesuai data admin nyata di DB
-  const adminEmail = 'admin@gmail.com';   // <- sesuaikan
-  const adminPassword = 'admin123';       // <- sesuaikan
+  const adminEmail = 'admin@farmunand.local';   // <- sesuaikan
+  const adminPassword = '111111';       // <- sesuaikan
 
   // ADM-001: Halaman login bisa dibuka
   it('ADM-001: Halaman login bisa dibuka', () => {
