@@ -52,4 +52,53 @@ describe('Sheet 01B - Auth User', () => {
     // Sesuaikan dengan teks di halamanmu.
     cy.contains(/Email atau password salah\./i).should('exist');
   });
+
+    // --------------------------------------------------------------------
+  // USR-FORGOT-001 s/d USR-FORGOT-002: Lupa Password
+  // --------------------------------------------------------------------
+
+  it('USR-FORGOT-001: Halaman lupa password bisa dibuka', () => {
+    cy.visit('/forgot-password');
+
+    cy.get('form').should('exist');
+    cy.get('input[name="email"]').should('exist');
+    cy.contains(/kirim link reset|reset password|kirim/i).should('exist');
+  });
+
+    it('USR-FORGOT-002: Lupa password mengirimkan notifikasi untuk email terdaftar', () => {
+    // Pakai email user yang memang terdaftar
+    const userEmail = 'user01@farmunand.local';
+
+    cy.visit('/forgot-password');
+
+    cy.get('input[name="email"]').clear().type(userEmail);
+
+    cy.contains('button', /kirim|reset|submit/i).click();
+
+    // Boleh redirect ke /login atau tetap di /forgot-password,
+    // tapi dari log kita tahu dia pindah ke /login
+    cy.url({ timeout: 10000 }).should('include', '/login');
+
+    // Cari elemen flash/alert di halaman login
+    cy.get('body').then(($body) => {
+      const selector = '.alert, .alert-success, .alert-info, .flash-message, #flash-message';
+
+      if ($body.find(selector).length) {
+        // Kalau ada alert, cek teksnya mengandung kata "email" dan "reset" atau "password"
+        cy.get(selector)
+          .first()
+          .invoke('text')
+          .then((text) => {
+            const lower = text.toLowerCase();
+            expect(lower).to.match(/email/);      // ada kata email
+            expect(lower).to.match(/reset|password/); // dan reset/password
+          });
+      } else {
+        // Fallback: kalau tidak ada kelas alert yang jelas, cari teks di seluruh halaman
+        cy.contains(/reset.*email|email.*reset|cek.*email/i).should('exist');
+      }
+    });
+  });
+
+
 });

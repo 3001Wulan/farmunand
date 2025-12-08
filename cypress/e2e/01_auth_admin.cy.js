@@ -51,4 +51,19 @@ describe('Sheet 01A - Auth Admin', () => {
     cy.contains(/Email atau password salah|Akun Anda terkunci sementara/i)
       .should('exist');
   });
+
+  // ADM-004: Logout admin
+  it('ADM-004: Logout admin mengembalikan ke halaman login', () => {
+    cy.visit('/login');
+    cy.get('input[name="email"]').type(adminEmail);
+    cy.get('input[name="password"]').type(adminPassword);
+    cy.contains('button', 'Login').click();
+
+    cy.url().should('include', '/dashboard');
+
+    cy.visit('/logout');
+
+    cy.url().should('match', /\/login/);
+  });
+
 });
