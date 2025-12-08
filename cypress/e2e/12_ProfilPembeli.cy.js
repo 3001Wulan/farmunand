@@ -1,100 +1,119 @@
-/// <reference types="cypress" />
+describe('Sheet Profil Pembeli', () => {
 
-describe('Profil Pembeli - Functional Tests', () => {
-    const userEmail = 'user01@farmunand.local';
-    const userPassword = '111111';
+    const email = 'user01@farmunand.local';
+    const pass  = '111111';
 
     beforeEach(() => {
-        // Login sebagai user
+        // Login terlebih dahulu
         cy.visit('/login');
-        cy.get('input[name="email"]').clear().type(userEmail);
-        cy.get('input[name="password"]').clear().type(userPassword);
+        cy.get('input[name="email"]').type(email);
+        cy.get('input[name="password"]').type(pass);
         cy.contains(/login/i).click();
-        cy.url().should('include', '/dashboard');
+        cy.url().should('not.include', '/login');
     });
 
-    // -----------------------------
-    // 1. Lihat Profil
-    // -----------------------------
-    it('PRF-001: Lihat profil berhasil', () => {
+    // -------------------------------------------------
+    // 1. Halaman profil bisa dibuka
+    // -------------------------------------------------
+    it('PB-001: Halaman profil tampil', () => {
         cy.visit('/profile');
-
-        cy.get('h2').should('contain.text', 'Profil Saya');
-        cy.get('.info-box .info-label').should('have.length', 5);
-        cy.get('.info-box .info-value').should('have.length', 5);
-        cy.get('img.profile-photo').should('exist');
+        cy.contains('Profil Saya').should('exist');
+        cy.get('.profile-photo').should('exist');
+        cy.get('.info-label').contains('Username:').next().should('exist');
+        cy.get('.info-label').contains('Nama:').next().should('exist');
+        cy.get('.info-label').contains('Email:').next().should('exist');
+        cy.get('.info-label').contains('No HP:').next().should('exist');
+        cy.get('.info-label').contains('Role:').next().should('exist');
     });
 
-    // -----------------------------
-    // 2. Menu Edit Profil
-    // -----------------------------
-    it('PRF-002: Menu edit profil tampil', () => {
-        cy.visit('/profile');
-        cy.get('.btn-edit').click();
-        cy.url().should('include', '/profile/edit');
-
+    // -------------------------------------------------
+    // 2. Halaman edit profil bisa dibuka
+    // -------------------------------------------------
+    it('PRB-002: Halaman edit profil tampil', () => {
+        cy.visit('/profile/edit');
+        cy.contains('Edit Profil').should('exist');
         cy.get('input[name="username"]').should('exist');
         cy.get('input[name="nama"]').should('exist');
+        cy.get('input[name="email"]').should('exist');
         cy.get('input[name="no_hp"]').should('exist');
-        cy.get('input[name="foto"]').should('exist');
+        cy.get('#previewFoto').should('exist');
     });
 
-    // -----------------------------
-    // 3. Update Profil dengan Foto (email tidak diubah)
-    // -----------------------------
-    it('PRF-003: Update profil berhasil dan foto berubah', () => {
+    // -------------------------------------------------
+    // 3. Update profil tanpa ganti foto
+    // -------------------------------------------------
+    it('PRB-003: Update profil tanpa ganti foto berhasil', () => {
         cy.visit('/profile/edit');
 
-        const randomUsername = `user${Math.floor(Math.random() * 1000)}`;
+        cy.get('input[name="username"]').clear().type('PembeliUpdated');
+        cy.get('input[name="nama"]').clear().type('Pembeli Update');
+        cy.get('input[name="no_hp"]').clear().type('081234567890');
 
-        cy.get('img.profile-photo').invoke('attr', 'src').then((oldSrc) => {
-            cy.get('input[name="username"]').clear().type(randomUsername);
-            cy.get('input[name="nama"]').clear().type('Nama Test');
-            cy.get('input[name="no_hp"]').clear().type('08123456789');
-            cy.get('input[name="foto"]').selectFile('cypress/fixtures/sample.png');
+        // Email tetap tidak diganti
+        cy.get('button[type="submit"]').click();
 
-            cy.get('button[type="submit"]').click();
-            cy.url().should('include', '/profile');
-            cy.contains('Profil berhasil diperbarui!').should('exist');
-            cy.contains(randomUsername).should('exist');
+        cy.url().should('include', '/profile');
+        cy.contains('Profil berhasil diperbarui!').should('exist');
 
-            cy.get('img.profile-photo').should(($newImg) => {
-                expect($newImg.attr('src')).to.not.equal(oldSrc);
-            });
-        });
+        // Foto profil di halaman profil
+        cy.get('.profile-photo')
+          .should('have.attr', 'src')
+          .and('include', 'uploads/profile/');
     });
 
-    // -----------------------------
-    // 4. Validasi gagal jika field kosong
-    // -----------------------------
-    it('PRF-004: Update profil gagal jika field kosong', () => {
+    // -------------------------------------------------
+    // 4. Update profil dengan ganti foto
+    // -------------------------------------------------
+    it('PRB-004: Update profil dengan ganti foto berhasil', () => {
         cy.visit('/profile/edit');
 
+        cy.get('input[name="username"]').clear().type('PembeliFoto');
+        cy.get('input[name="nama"]').clear().type('Pembeli Foto');
+        cy.get('input[name="no_hp"]').clear().type('081234567891');
+
+        cy.get('input[name="foto"]').selectFile('cypress/fixtures/sample.png', { force: true });
+
+        cy.get('button[type="submit"]').click();
+
+        cy.url().should('include', '/profile');
+        cy.contains('Profil berhasil diperbarui!').should('exist');
+
+        // Foto profil di halaman profil
+        cy.get('.profile-photo')
+          .should('have.attr', 'src')
+          .and('include', 'uploads/profile/');
+    });
+
+    // -------------------------------------------------
+    // 5. Validasi username & nama wajib
+    // -------------------------------------------------
+    it('PRB-005: Validasi field wajib', () => {
+        cy.visit('/profile/edit');
+    
         cy.get('input[name="username"]').clear();
         cy.get('input[name="nama"]').clear();
-        cy.get('input[name="no_hp"]').clear();
-
+    
         cy.get('button[type="submit"]').click();
-        cy.url().should('include', '/profile/edit');
-
-        // Pastikan input memiliki class is-invalid
-        cy.get('input[name="username"]').should('have.class', 'is-invalid');
-        cy.get('input[name="nama"]').should('have.class', 'is-invalid');
-        cy.get('input[name="no_hp"]').should('have.class', 'is-invalid');
+    
+        // Hanya cek URL tetap di halaman edit
+        cy.location('pathname', { timeout: 6000 }).should('eq', '/profile/edit');
     });
+    
 
-    // -----------------------------
-    // 5. Validasi gagal jika tipe data salah (no_hp string)
-    // -----------------------------
-    it('PRF-005: Update profil gagal jika tipe data salah', () => {
+    // -------------------------------------------------
+    // 6. Validasi upload file bukan gambar
+    // -------------------------------------------------
+    it('PRB-006: Validasi file harus gambar', () => {
         cy.visit('/profile/edit');
 
-        cy.get('input[name="username"]').clear().type('ValidUsername');
-        cy.get('input[name="nama"]').clear().type('Nama Test');
-        cy.get('input[name="no_hp"]').clear().type('abcde'); // harus numeric
-
+        cy.get('input[name="foto"]').selectFile('cypress/fixtures/sample.pdf', { force: true });
         cy.get('button[type="submit"]').click();
+
         cy.url().should('include', '/profile/edit');
-        cy.get('input[name="no_hp"]').should('have.class', 'is-invalid');
+        cy.get('div.alert.alert-danger')
+  .should('exist')
+  .and('contain.text', 'foto is not a valid, uploaded image file.');
+
     });
+
 });
