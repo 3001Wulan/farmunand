@@ -3,29 +3,26 @@
 namespace App\Controllers;
 
 use App\Models\ProdukModel;
-use App\Models\PenilaianModel; // diarahkan ke tabel detail_pemesanan
+use App\Models\PenilaianModel; 
 use App\Models\PesananModel;
 use App\Models\UserModel;
 
 class Penilaian extends BaseController
 {
     protected $produkModel;
-    protected $penilaianModel; // <- ini model utk table detail_pemesanan
+    protected $penilaianModel; 
     protected $pesananModel;
     protected $userModel;
 
     public function __construct()
     {
         $this->produkModel    = new ProdukModel();
-        $this->penilaianModel = new PenilaianModel(); // table: detail_pemesanan
+        $this->penilaianModel = new PenilaianModel(); 
         $this->pesananModel   = new PesananModel();
         $this->userModel      = new UserModel();
         helper(['form']);
     }
 
-    /**
-     * Daftar item dari pesanan user yang belum dinilai (per-detail).
-     */
     public function daftar()
     {
         $idUser = session()->get('id_user');
@@ -35,19 +32,14 @@ class Penilaian extends BaseController
 
         $user = $this->userModel->find($idUser);
 
-        // Pastikan PesananModel punya method ini (lihat snippet PesananModel di bawah)
         $pesanan = $this->pesananModel->getDetailBelumDinilai($idUser);
 
         return view('pembeli/penilaianproduk', [
-            'pesanan' => $pesanan, // berisi baris per id_detail_pemesanan
+            'pesanan' => $pesanan, 
             'user'    => $user
         ]);
     }
 
-    /**
-     * (Opsional) Form penilaian jika dibuka khusus product tertentu.
-     * Direkomendasikan pindah ke per-detail id, tapi kubiarkan kompatibel.
-     */
     public function index($id_produk)
     {
         $produk = $this->produkModel->find($id_produk);
@@ -62,17 +54,12 @@ class Penilaian extends BaseController
 
         $user = $this->userModel->find($idUser);
 
-        // View bisa menampilkan info produk (opsional),
-        // tapi untuk submit tetap gunakan route simpan/<id_detail_pemesanan>.
         return view('pembeli/penilaianproduk', [
             'produk' => $produk,
             'user'   => $user
         ]);
     }
 
-    /**
-     * Simpan penilaian per-item (per id_detail_pemesanan).
-     */
     public function simpan($id_detail_pemesanan)
     {
         $idUser = session()->get('id_user');
@@ -82,13 +69,10 @@ class Penilaian extends BaseController
 
         $id_detail_pemesanan = (int) $id_detail_pemesanan;
 
-        // ===== Validasi input rating/ulasan + file =====
         $validation = \Config\Services::validation();
         $rules = [
             'rating'        => 'required|in_list[1,2,3,4,5]',
             'ulasan'        => 'permit_empty|max_length[1000]',
-            // Catatan: pakai permit_empty agar upload opsional.
-            // Validasi per-file akan dicek manual juga.
             'media.*'       => 'permit_empty|max_size[media,10240]|ext_in[media,jpg,jpeg,png,gif,mp4,webm,ogg]',
         ];
 
@@ -98,7 +82,6 @@ class Penilaian extends BaseController
                 ->with('errors', $validation->getErrors());
         }
 
-        // ===== Ambil detail + pastikan milik user ini + status Selesai =====
         $db = \Config\Database::connect();
         $detail = $db->table('detail_pemesanan dp')
             ->select('dp.*, p.id_user, p.status_pemesanan, pr.nama_produk')
@@ -114,17 +97,14 @@ class Penilaian extends BaseController
             return redirect()->back()->with('error', 'Anda tidak berhak menilai item ini.');
         }
 
-        // (Opsional kuat): hanya boleh menilai setelah pesanan Selesai
         if (($detail['status_pemesanan'] ?? '') !== 'Selesai') {
             return redirect()->back()->with('error', 'Penilaian hanya dapat dilakukan setelah pesanan berstatus Selesai.');
         }
 
-        // Cegah double rating
         if (!empty($detail['user_rating'])) {
             return redirect()->back()->with('info', 'Item ini sudah pernah dinilai.');
         }
 
-        // ===== Persiapan upload =====
         $uploadDir = rtrim(FCPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'penilaian';
         if (!is_dir($uploadDir)) {
             @mkdir($uploadDir, 0755, true);
@@ -133,10 +113,8 @@ class Penilaian extends BaseController
         $mediaNames = [];
         $files = $this->request->getFiles();
 
-        // Normalisasi: dukung <input type="file" name="media"> (single) atau name="media[]" (multiple)
         $mediaFiles = [];
         if (isset($files['media'])) {
-            // Bisa array file atau single UploadedFile
             if (is_array($files['media'])) {
                 $mediaFiles = $files['media'];
             } else {
@@ -144,37 +122,32 @@ class Penilaian extends BaseController
             }
         }
 
-        // Batasi jumlah file (misal maks 5)
         $MAX_FILES = 5;
         if (count($mediaFiles) > $MAX_FILES) {
             return redirect()->back()->withInput()->with('error', "Maksimal {$MAX_FILES} file media.");
         }
 
-        // Validasi manual tambahan (mime/ukuran) + move
         $totalMoved = 0;
         $uploadErrors = [];
 
         foreach ($mediaFiles as $idx => $file) {
             if (!$file || !$file->isValid()) {
-                // Abaikan slot kosong (misal user tidak memilih file sama sekali)
                 continue;
             }
 
-            // Double guard: ekstensi & ukuran sudah divalidasi rules, tapi kita cek lagi
             $ext  = strtolower($file->getClientExtension());
-            $size = (int) $file->getSizeByUnit('kb'); // KB
+            $size = (int) $file->getSizeByUnit('kb'); 
 
             $allowedExt = ['jpg','jpeg','png','gif','mp4','webm','ogg'];
             if (!in_array($ext, $allowedExt, true)) {
                 $uploadErrors[] = "File #".($idx+1)." memiliki ekstensi tidak diizinkan.";
                 continue;
             }
-            if ($size > 10240) { // 10MB
+            if ($size > 10240) { 
                 $uploadErrors[] = "File #".($idx+1)." melebihi 4MB.";
                 continue;
             }
 
-            // Move aman (hindari nama asli)
             try {
                 $newName = $file->getRandomName();
                 $file->move($uploadDir, $newName, true);
@@ -182,16 +155,13 @@ class Penilaian extends BaseController
                 $totalMoved++;
             } catch (\Throwable $e) {
                 $uploadErrors[] = "Gagal mengunggah file #".($idx+1).".";
-                // lanjut ke file berikutnya
             }
         }
 
-        // Jika semua file gagal diunggah (padahal user kirim file), boleh dianggap error
         if (!empty($mediaFiles) && $totalMoved === 0 && !empty($uploadErrors)) {
             return redirect()->back()->withInput()->with('error', implode(' ', $uploadErrors));
         }
 
-        // ===== Sanitasi ulasan & simpan =====
         $rating = (int) $this->request->getPost('rating');
         $ulasan = (string) ($this->request->getPost('ulasan') ?? '');
         if (mb_strlen($ulasan) > 1000) {
@@ -200,7 +170,6 @@ class Penilaian extends BaseController
 
         $mediaJson = $mediaNames ? json_encode($mediaNames) : null;
 
-        // Update tabel detail_pemesanan langsung (model PenilaianModel = table detail_pemesanan)
         $ok = $this->penilaianModel->update($id_detail_pemesanan, [
             'user_rating' => $rating,
             'user_ulasan' => $ulasan,
@@ -209,12 +178,10 @@ class Penilaian extends BaseController
         ]);
 
         if (!$ok) {
-            // (Opsional) bersihkan file yang sudah ter-upload jika ingin atomic
-            // foreach ($mediaNames as $n) { @unlink($uploadDir . DIRECTORY_SEPARATOR . $n); }
+
             return redirect()->back()->withInput()->with('error', 'Gagal menyimpan penilaian. Coba lagi.');
         }
 
-        // (Opsional) Beri tahu user jika ada sebagian file gagal
         if (!empty($uploadErrors)) {
             return redirect()->to('/penilaian/daftar')->with('success', 'Penilaian tersimpan, namun sebagian file gagal diunggah: ' . implode(' ', $uploadErrors));
         }

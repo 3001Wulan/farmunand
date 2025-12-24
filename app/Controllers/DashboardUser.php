@@ -31,27 +31,22 @@ class DashboardUser extends BaseController
 
         $user = $userModel->find($userId);
 
-        // ===== METRIK =====
-        // Sukses = Selesai
         $pesananSukses = (new PesananModel())
             ->where('id_user', $userId)
             ->where('status_pemesanan', 'Selesai')
             ->countAllResults();
 
-        // Pending = Dikemas + Dikirim + Belum Bayar
         $pendingStatuses = ['Dikemas', 'Dikirim', 'Belum Bayar'];
         $pesananPending = (new PesananModel())
             ->where('id_user', $userId)
             ->whereIn('status_pemesanan', $pendingStatuses)
             ->countAllResults();
 
-        // Dibatalkan
         $pesananBatal = (new PesananModel())
             ->where('id_user', $userId)
             ->where('status_pemesanan', 'Dibatalkan')
             ->countAllResults();
 
-        // ===== PRODUK + RATING =====
         $produk = $db->table('produk pr')
             ->select("
                 pr.*,

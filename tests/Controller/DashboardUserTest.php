@@ -5,18 +5,10 @@ namespace Tests\Controller;
 use CodeIgniter\Test\CIUnitTestCase;
 use App\Controllers\DashboardUser as RealDashboardUser;
 
-/**
- * Fake repository user untuk DashboardUser.
- * Semua data disimpan di array (in-memory), tanpa DB.
- */
 class DashboardUserFakeUserRepo
 {
-    /** @var array<int,array> */
     public array $users = [];
 
-    /**
-     * @param array<int,array> $users
-     */
     public function __construct(array $users = [])
     {
         foreach ($users as $u) {
@@ -30,29 +22,12 @@ class DashboardUserFakeUserRepo
     }
 }
 
-/**
- * Fake repository statistik pesanan per user.
- * Kita sederhanakan jadi 3 counter:
- *  - sukses (status Selesai)
- *  - pending (status Dikemas/Dikirim/Belum Bayar)
- *  - batal (status Dibatalkan)
- */
 class DashboardUserFakePesananRepo
 {
-    /** @var array<int,int> */
     public array $sukses = [];
-
-    /** @var array<int,int> */
     public array $pending = [];
-
-    /** @var array<int,int> */
     public array $batal = [];
 
-    /**
-     * @param array<int,int> $sukses
-     * @param array<int,int> $pending
-     * @param array<int,int> $batal
-     */
     public function __construct(
         array $sukses = [],
         array $pending = [],
@@ -79,40 +54,21 @@ class DashboardUserFakePesananRepo
     }
 }
 
-/**
- * Fake sumber data produk + rating.
- * Menggantikan query join ke tabel produk + detail_pemesanan.
- */
 class DashboardUserFakeProdukSource
 {
-    /** @var array<int,array> */
     public array $produk = [];
 
-    /**
-     * @param array<int,array> $produk
-     */
     public function __construct(array $produk = [])
     {
         $this->produk = $produk;
     }
 
-    /**
-     * Mengembalikan list produk beserta avg_rating & rating_count (kalau ada).
-     *
-     * @return array<int,array>
-     */
     public function getProdukWithRating(): array
     {
         return $this->produk;
     }
 }
 
-/**
- * Versi testable dari DashboardUser:
- *  - TIDAK memanggil DB sama sekali.
- *  - TIDAK memanggil view().
- *  - index() dikembalikan sebagai ARRAY data.
- */
 class TestableDashboardUser extends RealDashboardUser
 {
     private DashboardUserFakeUserRepo $userRepo;
@@ -124,19 +80,11 @@ class TestableDashboardUser extends RealDashboardUser
         ?DashboardUserFakePesananRepo $pesananRepo = null,
         ?DashboardUserFakeProdukSource $produkSource = null
     ) {
-        // JANGAN panggil parent::__construct() supaya tidak buat UserModel/PesananModel asli.
         $this->userRepo     = $userRepo     ?? new DashboardUserFakeUserRepo();
         $this->pesananRepo  = $pesananRepo  ?? new DashboardUserFakePesananRepo();
         $this->produkSource = $produkSource ?? new DashboardUserFakeProdukSource();
     }
 
-    /**
-     * index() versi unit-test:
-     *  - Kalau belum login → return ['redirect' => '/login', 'error' => '...']
-     *  - Kalau login → hitung metrik & ambil produk dari fake repo, return array data.
-     *
-     * @return array<string,mixed>
-     */
     public function index()
     {
         $userId = (int) (session()->get('id_user') ?? 0);
@@ -169,9 +117,6 @@ class TestableDashboardUser extends RealDashboardUser
     }
 }
 
-/**
- * Test murni unit untuk DashboardUser.
- */
 class DashboardUserTest extends CIUnitTestCase
 {
     private DashboardUserFakeUserRepo $userRepo;
@@ -183,11 +128,9 @@ class DashboardUserTest extends CIUnitTestCase
     {
         parent::setUp();
 
-        // Reset session tiap test
         $_SESSION = [];
         session()->destroy();
 
-        // Seed user dummy
         $this->userRepo = new DashboardUserFakeUserRepo([
             [
                 'id_user'  => 1,
@@ -197,17 +140,12 @@ class DashboardUserTest extends CIUnitTestCase
             ],
         ]);
 
-        // Seed metrik dummy:
-        //  - sukses = 5
-        //  - pending = 2
-        //  - batal = 1
         $this->pesananRepo = new DashboardUserFakePesananRepo(
             sukses:  [1 => 5],
             pending: [1 => 2],
             batal:   [1 => 1],
         );
 
-        // Seed produk dummy dengan rating
         $this->produkSource = new DashboardUserFakeProdukSource([
             [
                 'id_produk'     => 10,
@@ -223,7 +161,6 @@ class DashboardUserTest extends CIUnitTestCase
             ],
         ]);
 
-        // Buat controller testable
         $this->controller = new TestableDashboardUser(
             $this->userRepo,
             $this->pesananRepo,
@@ -237,12 +174,8 @@ class DashboardUserTest extends CIUnitTestCase
         parent::tearDown();
     }
 
-    /**
-     * Skenario: user belum login → harus diarahkan ke /login.
-     */
     public function testDashboardUserRedirectsToLoginWhenNotLoggedIn(): void
     {
-        // Pastikan tidak ada id_user di session
         session()->remove('id_user');
 
         $data = $this->controller->index();
@@ -252,30 +185,23 @@ class DashboardUserTest extends CIUnitTestCase
         $this->assertSame('Silakan login dulu.', $data['error'] ?? null);
     }
 
-    /**
-     * Skenario: user login → data dashboard (metrik + produk + user) terbangun dengan benar.
-     */
     public function testDashboardUserBuildsMetricsAndProdukForLoggedInUser(): void
     {
-        // Login sebagai user id=1
         session()->set('id_user', 1);
 
         $data = $this->controller->index();
 
         $this->assertIsArray($data);
 
-        // Title & info user
         $this->assertSame('Dashboard User', $data['title']);
         $this->assertSame('user_test', $data['username']);
         $this->assertSame('user', $data['role']);
         $this->assertSame('user.png', $data['foto']);
 
-        // Metrik pesanan
         $this->assertSame(5, $data['pesanan_sukses']);
         $this->assertSame(2, $data['pending']);
         $this->assertSame(1, $data['batal']);
 
-        // Produk + rating
         $this->assertIsArray($data['produk']);
         $this->assertCount(2, $data['produk']);
 
@@ -287,7 +213,6 @@ class DashboardUserTest extends CIUnitTestCase
         $this->assertSame(0.0, $data['produk'][1]['avg_rating']);
         $this->assertSame(0, $data['produk'][1]['rating_count']);
 
-        // User object di dalam data
         $this->assertIsArray($data['user']);
         $this->assertSame(1, $data['user']['id_user']);
         $this->assertSame('user_test', $data['user']['username']);

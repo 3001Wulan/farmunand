@@ -6,9 +6,6 @@ use App\Controllers\Dashboard;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\Test\CIUnitTestCase;
 
-/**
- * Fake repository pengganti ProdukModel.
- */
 class DashboardFakeProdukRepo
 {
     public int $totalProduk   = 0;
@@ -24,16 +21,13 @@ class DashboardFakeProdukRepo
         return $this->stokRendah;
     }
 
-    // Fallback kalau suatu saat cabang countAllResults dipakai
     public function countAllResults(): int
     {
         return $this->totalProduk;
     }
 }
 
-/**
- * Fake repository pengganti UserModel.
- */
+
 class DashboardFakeUserRepo
 {
     /** @var array<int,array> */
@@ -67,9 +61,7 @@ class DashboardFakeUserRepo
     }
 }
 
-/**
- * Fake repository pengganti PesananModel.
- */
+
 class DashboardFakePesananRepo
 {
     public int $transaksiHariIni = 0;
@@ -78,7 +70,6 @@ class DashboardFakePesananRepo
     public int $pesanMasukCount  = 0;
     public int $totalPesanan     = 0;
 
-    /** flag untuk membedakan countAllResults() setelah where('Belum Bayar') */
     private bool $lastWhereBelumBayar = false;
 
     public function getTransaksiHariIni(): int
@@ -104,7 +95,6 @@ class DashboardFakePesananRepo
     public function countAllResults(): int
     {
         if ($this->lastWhereBelumBayar) {
-            // reset flag agar panggilan berikutnya pakai totalPesanan
             $this->lastWhereBelumBayar = false;
             return $this->pesanMasukCount;
         }
@@ -113,11 +103,7 @@ class DashboardFakePesananRepo
     }
 }
 
-/**
- * Versi testable dari Dashboard:
- * - Tidak membuat Model asli, hanya pakai fake repo.
- * - index() mengembalikan ARRAY data, bukan view().
- */
+
 class TestableDashboard extends Dashboard
 {
     public function __construct(
@@ -125,7 +111,6 @@ class TestableDashboard extends Dashboard
         DashboardFakeUserRepo $userRepo,
         DashboardFakePesananRepo $pesananRepo
     ) {
-        // Jangan panggil parent::__construct() → tidak buat model asli
         $this->produkModel  = $produkRepo;
         $this->userModel    = $userRepo;
         $this->pesananModel = $pesananRepo;
@@ -163,7 +148,6 @@ class TestableDashboard extends Dashboard
             'user'            => $user,
         ];
 
-        // UNIT-TEST: kita kembalikan array, bukan view()
         return $data;
     }
 }
@@ -179,11 +163,9 @@ class DashboardTest extends CIUnitTestCase
     {
         parent::setUp();
 
-        // Reset session tiap test
         $_SESSION = [];
         session()->destroy();
 
-        // Seed data dummy untuk dashboard
         $this->produkRepo = new DashboardFakeProdukRepo();
         $this->produkRepo->totalProduk = 10;
         $this->produkRepo->stokRendah  = 3;
@@ -203,7 +185,7 @@ class DashboardTest extends CIUnitTestCase
                     'role'     => 'user',
                 ],
             ],
-            5 // misal total_user = 5 (2 ini + 3 lain)
+            5 
         );
 
         $this->pesananRepo = new DashboardFakePesananRepo();
@@ -211,8 +193,6 @@ class DashboardTest extends CIUnitTestCase
         $this->pesananRepo->penjualanBulan   = 1500000;
         $this->pesananRepo->pesanMasukCount  = 4;
         $this->pesananRepo->totalPesanan     = 20;
-
-        // Buat controller testable & inject request/response/logger
         $this->controller = new TestableDashboard(
             $this->produkRepo,
             $this->userRepo,
@@ -232,9 +212,7 @@ class DashboardTest extends CIUnitTestCase
         parent::tearDown();
     }
 
-    /**
-     * Skenario: belum login → harus redirect ke /login dengan flash error.
-     */
+   
     public function testDashboardRedirectsToLoginWhenNotLoggedIn(): void
     {
         session()->remove('id_user');
@@ -246,10 +224,7 @@ class DashboardTest extends CIUnitTestCase
         $this->assertSame('Silakan login dulu.', session()->getFlashdata('error'));
     }
 
-    /**
-     * Skenario: admin login → index mengembalikan data ringkasan yang benar
-     * dan user yang sedang login.
-     */
+   
     public function testDashboardAccessibleForAdminBuildsCorrectStats(): void
     {
         session()->set('id_user', 1);
@@ -258,7 +233,6 @@ class DashboardTest extends CIUnitTestCase
 
         $this->assertIsArray($data);
 
-        // Pastikan key utama ada
         foreach ([
             'title',
             'total_produk',
@@ -273,7 +247,6 @@ class DashboardTest extends CIUnitTestCase
             $this->assertArrayHasKey($key, $data);
         }
 
-        // Cek nilai sesuai fake repo
         $this->assertSame('Dashboard', $data['title']);
         $this->assertSame(10, $data['total_produk']);
         $this->assertSame(5, $data['total_user']);
@@ -283,27 +256,21 @@ class DashboardTest extends CIUnitTestCase
         $this->assertSame(4, $data['pesan_masuk']);
         $this->assertSame(20, $data['total_pesanan']);
 
-        // User harus sesuai dengan id_user 1
         $this->assertIsArray($data['user']);
         $this->assertSame(1, $data['user']['id_user']);
         $this->assertSame('admin_test', $data['user']['username']);
     }
 
-    /**
-     * Skenario tambahan: user login tapi datanya tidak ditemukan di repo
-     * → user di view = null, namun statistik tetap bisa dihitung.
-     */
+
     public function testDashboardWhenUserRecordMissingStillReturnsStats(): void
     {
-        session()->set('id_user', 999); // id yang tidak ada di repo
+        session()->set('id_user', 999); 
 
         $data = $this->controller->index();
 
         $this->assertIsArray($data);
         $this->assertArrayHasKey('user', $data);
         $this->assertNull($data['user']);
-
-        // Statistik tetap dari fake repo
         $this->assertSame(10, $data['total_produk']);
         $this->assertSame(5, $data['total_user']);
     }

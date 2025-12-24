@@ -5,12 +5,8 @@ namespace Tests\Controller;
 use CodeIgniter\Test\CIUnitTestCase;
 use App\Controllers\MelakukanPemesanan as RealMelakukanPemesanan;
 
-/**
- * Fake repository sederhana untuk produk (tanpa DB).
- */
 class FakeProdukRepo
 {
-    /** @var array<int,array> */
     public array $data = [];
 
     public function __construct(array $products = [])
@@ -26,12 +22,8 @@ class FakeProdukRepo
     }
 }
 
-/**
- * Fake repository alamat, disimpan per user.
- */
 class FakeAlamatRepo
 {
-    /** @var array<int,array<int,array>>  userId => list alamat */
     public array $byUser = [];
 
     public function __construct(array $dataByUser = [])
@@ -45,12 +37,8 @@ class FakeAlamatRepo
     }
 }
 
-/**
- * Fake repository user.
- */
 class MelakukanPemesananFakeUserRepo
 {
-    /** @var array<int,array> */
     public array $data = [];
 
     public function __construct(array $users = [])
@@ -66,19 +54,10 @@ class MelakukanPemesananFakeUserRepo
     }
 }
 
-/**
- * Fake gateway untuk menyimpan "pesanan" tanpa DB.
- * Hanya mencatat payload yang dikirim controller.
- */
 class FakeOrderGateway
 {
-    /** @var array<int,array{ id:int, header:array, detail:array }> */
     public array $singleCalls = [];
-
-    /** @var array<int,array{ id:int, header:array, details:array[] }> */
     public array $batchCalls = [];
-
-    /** Jika true, createSingle/createBatch akan "gagal" (return 0). */
     public bool $fail = false;
 
     public function createSingle(array $header, array $detail): int
@@ -114,21 +93,10 @@ class FakeOrderGateway
     }
 }
 
-/**
- * Versi testable dari MelakukanPemesanan:
- * - Tidak memanggil DB.
- * - Tidak memanggil view().
- * - Mengembalikan ARRAY untuk index/simpan/simpanBatch.
- */
 class TestableMelakukanPemesanan extends RealMelakukanPemesanan
 {
-    /** @var FakeOrderGateway */
     protected $gateway;
-
-    /** Input "POST" buatan untuk unit-test. */
     public array $post = [];
-
-    /** Payload batch buatan untuk unit-test. */
     public array $batchPayload = [];
 
     public function __construct(
@@ -137,7 +105,6 @@ class TestableMelakukanPemesanan extends RealMelakukanPemesanan
         MelakukanPemesananFakeUserRepo $user,
         FakeOrderGateway $gateway
     ) {
-        // JANGAN panggil parent::__construct() agar tidak buat model/DB sungguhan
         $this->produkModel = $produk;
         $this->alamatModel = $alamat;
         $this->userModel   = $user;
@@ -161,11 +128,6 @@ class TestableMelakukanPemesanan extends RealMelakukanPemesanan
         return $this->post[$key] ?? $default;
     }
 
-    /**
-     * Versi index() unit-test:
-     * - Hanya cover alur single-item (idProdukFromSegment + qty dari post).
-     * - Return array data untuk view.
-     */
     public function index($idProdukFromSegment = null)
     {
         $session = session();
@@ -229,10 +191,6 @@ class TestableMelakukanPemesanan extends RealMelakukanPemesanan
         ];
     }
 
-    /**
-     * Versi simpan() murni tanpa DB.
-     * Mengembalikan array status, bukan JSON Response.
-     */
     public function simpan(): array
     {
         $session = session();
@@ -271,7 +229,6 @@ class TestableMelakukanPemesanan extends RealMelakukanPemesanan
         $status = $isCOD ? 'Dikemas' : 'Menunggu Pembayaran';
         $total  = $harga * $qty;
 
-        // "Simpan" lewat FakeOrderGateway
         $orderId = $this->gateway->createSingle(
             [
                 'id_user'          => $idUser,
@@ -291,7 +248,6 @@ class TestableMelakukanPemesanan extends RealMelakukanPemesanan
             return ['success' => false, 'message' => 'Gagal menyimpan pesanan.'];
         }
 
-        // Simulasi bereskan keranjang seperti controller asli
         $cartKey  = 'cart_u_' . $idUser;
         $countKey = 'cart_count_u_' . $idUser;
         $cart     = $session->get($cartKey) ?? [];
@@ -322,9 +278,6 @@ class TestableMelakukanPemesanan extends RealMelakukanPemesanan
         ];
     }
 
-    /**
-     * Versi simpanBatch() murni tanpa DB.
-     */
     public function simpanBatch(): array
     {
         $session = session();
@@ -343,7 +296,6 @@ class TestableMelakukanPemesanan extends RealMelakukanPemesanan
             return ['success' => false, 'message' => 'Payload tidak valid.'];
         }
 
-        // Gabung qty per id_produk
         $wanted = [];
         foreach ($items as $it) {
             $pid = (int) ($it['id_produk'] ?? 0);
@@ -409,7 +361,6 @@ class TestableMelakukanPemesanan extends RealMelakukanPemesanan
             return ['success' => false, 'message' => 'Gagal menyimpan pesanan.'];
         }
 
-        // Bersihkan keranjang & context batch
         $cartKey  = 'cart_u_' . $idUser;
         $countKey = 'cart_count_u_' . $idUser;
         $session->remove([$cartKey, $countKey, 'checkout_all', 'checkout_data_multi', 'checkout_data']);
@@ -423,9 +374,6 @@ class TestableMelakukanPemesanan extends RealMelakukanPemesanan
     }
 }
 
-/**
- * Test murni unit untuk MelakukanPemesanan (tanpa DB).
- */
 class MelakukanPemesananTest extends CIUnitTestCase
 {
     private FakeProdukRepo $produkRepo;
@@ -438,11 +386,9 @@ class MelakukanPemesananTest extends CIUnitTestCase
     {
         parent::setUp();
 
-        // Reset session
         $_SESSION = [];
         session()->destroy();
 
-        // Seed session user login
         session()->set([
             'id_user'   => 1,
             'username'  => 'Test User',
@@ -450,7 +396,6 @@ class MelakukanPemesananTest extends CIUnitTestCase
             'logged_in' => true,
         ]);
 
-        // Seed produk dummy
         $this->produkRepo = new FakeProdukRepo([
             [
                 'id_produk'    => 1,
@@ -468,7 +413,6 @@ class MelakukanPemesananTest extends CIUnitTestCase
             ],
         ]);
 
-        // Seed alamat dummy
         $this->alamatRepo = new FakeAlamatRepo([
             1 => [
                 [
@@ -485,7 +429,6 @@ class MelakukanPemesananTest extends CIUnitTestCase
             ],
         ]);
 
-        // Seed user dummy
         $this->userRepo = new MelakukanPemesananFakeUserRepo([
             [
                 'id_user'  => 1,
@@ -512,11 +455,10 @@ class MelakukanPemesananTest extends CIUnitTestCase
         parent::tearDown();
     }
 
-    /** 🔹 Index single item: data checkout, alamat, dan user harus benar. */
     public function testIndexSingleItemBuildsCheckoutData(): void
     {
         $data = $this->controller
-            ->withPost(['qty' => 2]) // id_produk dari segment
+            ->withPost(['qty' => 2])
             ->index(1);
 
         $this->assertIsArray($data);
@@ -536,7 +478,6 @@ class MelakukanPemesananTest extends CIUnitTestCase
         $this->assertSame('testuser', $data['user']['username']);
     }
 
-    /** 🔹 Index: qty > stok → qty disesuaikan & ada flash info. */
     public function testIndexAdjustsQtyWhenExceedsStock(): void
     {
         $data = $this->controller
@@ -544,16 +485,14 @@ class MelakukanPemesananTest extends CIUnitTestCase
             ->index(1);
 
         $checkout = $data['checkout'];
-        $this->assertSame(10, $checkout['qty']); // stok = 10
+        $this->assertSame(10, $checkout['qty']);
 
         $info = session()->getFlashdata('info');
         $this->assertSame('Jumlah melebihi stok, disesuaikan.', $info);
     }
 
-    /** 🔹 Simpan single item sukses (COD). */
     public function testSimpanSingleItemSuccessCod(): void
     {
-        // Keranjang berisi 2 item, salah satunya akan dihapus
         session()->set('cart_u_1', [
             1 => ['id_produk' => 1, 'qty' => 3],
             2 => ['id_produk' => 2, 'qty' => 1],
@@ -571,9 +510,8 @@ class MelakukanPemesananTest extends CIUnitTestCase
 
         $this->assertTrue($result['success']);
         $this->assertSame('Dikemas', $result['status']);
-        $this->assertSame(30000.0, $result['total']); // 3 * 10000
+        $this->assertSame(30000.0, $result['total']);
 
-        // Pastikan gateway dipanggil dengan payload yang tepat
         $this->assertCount(1, $this->gateway->singleCalls);
         $call = $this->gateway->singleCalls[0];
 
@@ -582,7 +520,6 @@ class MelakukanPemesananTest extends CIUnitTestCase
         $this->assertSame(1, $call['detail']['id_produk']);
         $this->assertSame(3, $call['detail']['jumlah_produk']);
 
-        // Item produk 1 dihapus dari keranjang, produk 2 masih ada
         $cart  = session()->get('cart_u_1') ?? [];
         $count = session()->get('cart_count_u_1') ?? 0;
 
@@ -591,7 +528,6 @@ class MelakukanPemesananTest extends CIUnitTestCase
         $this->assertSame(1, $count);
     }
 
-    /** 🔹 Simpan gagal ketika qty > stok (tanpa menulis order). */
     public function testSimpanFailsWhenQtyExceedsStock(): void
     {
         $result = $this->controller
@@ -608,7 +544,6 @@ class MelakukanPemesananTest extends CIUnitTestCase
         $this->assertCount(0, $this->gateway->singleCalls);
     }
 
-    /** 🔹 Simpan batch sukses (COD) dengan 2 produk. */
     public function testSimpanBatchSuccess(): void
     {
         $result = $this->controller
@@ -625,7 +560,6 @@ class MelakukanPemesananTest extends CIUnitTestCase
         $this->assertTrue($result['success']);
         $this->assertSame('Dikemas', $result['status']);
 
-        // 2*10000 + 1*20000 = 40000
         $this->assertSame(40000.0, $result['total']);
 
         $this->assertCount(1, $this->gateway->batchCalls);
@@ -634,14 +568,12 @@ class MelakukanPemesananTest extends CIUnitTestCase
         $this->assertSame(40000.0, $call['header']['total_harga']);
         $this->assertCount(2, $call['details']);
 
-        // Session cart & context batch harus dibersihkan
         $this->assertNull(session()->get('cart_u_1'));
         $this->assertNull(session()->get('cart_count_u_1'));
         $this->assertNull(session()->get('checkout_all'));
         $this->assertNull(session()->get('checkout_data_multi'));
     }
 
-    /** 🔹 Simpan batch gagal ketika qty > stok untuk salah satu produk. */
     public function testSimpanBatchFailsWhenQtyExceedsStock(): void
     {
         $result = $this->controller
@@ -649,7 +581,7 @@ class MelakukanPemesananTest extends CIUnitTestCase
                 'id_alamat' => 1,
                 'metode'    => 'cod',
                 'items'     => [
-                    ['id_produk' => 1, 'qty' => 999], // stok cuma 10
+                    ['id_produk' => 1, 'qty' => 999],
                 ],
             ])
             ->simpanBatch();

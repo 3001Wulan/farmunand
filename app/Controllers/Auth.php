@@ -14,23 +14,17 @@ class Auth extends BaseController
         helper(['form', 'url']);
     }
 
-    // ====== FORM LOGIN ======
     public function login()
     {
         return view('auth/login');
     }
-
-    // ====== PROSES LOGIN (dengan lock 3x gagal) ======
     public function doLogin()
 {
     $session  = session();
     $email    = trim((string) $this->request->getVar('email'));
     $password = (string) $this->request->getVar('password');
 
-    // Cari user berdasarkan email
     $user = $this->userModel->where('email', $email)->first();
-
-    // Jangan bocorkan apakah email ada atau tidak
     if (!$user) {
         $session->setFlashdata('error', 'Email atau password salah.');
         return redirect()->to('/login')->withInput();
@@ -38,7 +32,6 @@ class Auth extends BaseController
 
     $now = date('Y-m-d H:i:s');
 
-    // Cek apakah akun sedang dikunci
     if (!empty($user['locked_until']) && $user['locked_until'] > $now) {
         $session->setFlashdata(
             'error',
@@ -47,12 +40,9 @@ class Auth extends BaseController
         return redirect()->to('/login')->withInput();
     }
 
-    // Verifikasi password
     if (!password_verify($password, $user['password'])) {
-        // Hitung gagal login
         $failed = (int) ($user['failed_logins'] ?? 0) + 1;
 
-        // Jika gagal >= 3 → kunci 15 menit
         if ($failed >= 3) {
             $lockMinutes = 15;
             $lockUntil   = date('Y-m-d H:i:s', strtotime("+{$lockMinutes} minutes"));
@@ -68,7 +58,7 @@ class Auth extends BaseController
                 "Terlalu banyak percobaan gagal. Akun dikunci selama {$lockMinutes} menit."
             );
         } else {
-            // Belum mencapai batas → hanya simpan counter & timestamp
+
             $this->userModel->update($user['id_user'], [
                 'failed_logins'     => $failed,
                 'last_failed_login' => $now,
@@ -85,14 +75,12 @@ class Auth extends BaseController
         return redirect()->to('/login')->withInput();
     }
 
-    // Password benar → reset counter & unlock
     $this->userModel->update($user['id_user'], [
         'failed_logins'     => 0,
         'last_failed_login' => null,
         'locked_until'      => null,
     ]);
 
-    // Set session login
     $session->set([
         'id_user'   => $user['id_user'],
         'username'  => $user['username'],
@@ -102,7 +90,6 @@ class Auth extends BaseController
         'logged_in' => true,
     ]);
 
-    // Redirect sesuai role
     if ($user['role'] === 'admin') {
         return redirect()->to('/dashboard');
     }
@@ -111,19 +98,16 @@ class Auth extends BaseController
         return redirect()->to('/dashboarduser');
     }
 
-    // Fallback kalau role aneh
     $session->setFlashdata('error', 'Role tidak dikenali.');
     return redirect()->to('/login');
 }
 
 
-    // ====== FORM REGISTER ======
     public function register()
     {
         return view('auth/register');
     }
 
-    // ====== PROSES REGISTER ======
     public function doRegister()
     {
         $rules = [
@@ -150,14 +134,12 @@ class Auth extends BaseController
         return redirect()->to('/login');
     }
 
-    // ====== LOGOUT ======
     public function logout()
     {
         session()->destroy();
         return redirect()->to('/login');
     }
 
-    // ====== LUPA PASSWORD & RESET (tetap sama) ======
     public function forgotPassword()
     {
         return view('auth/forgot_password');

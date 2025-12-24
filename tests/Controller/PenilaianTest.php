@@ -1,5 +1,4 @@
 <?php
-// tests/Controller/PenilaianTest.php
 
 namespace Tests\Controller;
 
@@ -7,18 +6,9 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\HTTP\RedirectResponse;
 use App\Controllers\Penilaian;
 
-/**
- * FakePenilaianModel
- *
- * Model dummy yang hanya merekam pemanggilan update(),
- * TANPA menyentuh database asli.
- */
 class FakePenilaianModel
 {
-    /** @var array<int, array> daftar update yang pernah dipanggil */
     public array $updates = [];
-
-    /** @var bool nilai yang dikembalikan oleh update() (default: true) */
     public bool $updateReturn = true;
 
     public function update(int $id, array $data): bool
@@ -32,40 +22,11 @@ class FakePenilaianModel
     }
 }
 
-/**
- * TestablePenilaian
- *
- * Versi "test-safe" dari controller Penilaian:
- * - Tidak memakai Database::connect()
- * - Tidak memakai upload file
- * - Menggunakan dummy detail (array) yang bisa diatur dari test
- * - Menggunakan FakePenilaianModel untuk menguji pemanggilan update()
- *
- * Catatan penting:
- * - TIDAK override __construct() → pakai constructor parent apa adanya
- * - Properti $penilaianModel TIDAK boleh diberi type-hint, cukup PHPDoc
- */
 class TestablePenilaian extends Penilaian
 {
-    /** @var FakePenilaianModel */
-    public $penilaianModel; // jangan diberi type-hint biar kompatibel dgn parent
-
-    /**
-     * Dummy detail_pemesanan:
-     *   [ id_detail => [
-     *       'id_detail_pemesanan' => int,
-     *       'id_user'             => int,
-     *       'status_pemesanan'    => string,
-     *       'user_rating'         => int|null,
-     *       'user_ulasan'         => string|null,
-     *     ], ... ]
-     */
+    public $penilaianModel;
     protected array $dummyDetails = [];
-
-    /** @var array fake POST data */
     protected array $fakePost = [];
-
-    // ====== Helper untuk test ======
 
     public function setDummyDetails(array $details): void
     {
@@ -77,9 +38,6 @@ class TestablePenilaian extends Penilaian
         $this->fakePost = $post;
     }
 
-    /**
-     * Helper kecil buat bikin RedirectResponse manual
-     */
     private function redirectTo(string $path): RedirectResponse
     {
         $response = new RedirectResponse('');
@@ -90,21 +48,12 @@ class TestablePenilaian extends Penilaian
 
     private function redirectBack(): RedirectResponse
     {
-        // Untuk test, kita tidak butuh URL spesifik.
-        // Cukup tandai sebagai redirect "kembali".
         $response = new RedirectResponse('');
         $response->setStatusCode(302);
         $response->setHeader('Location', '/back');
         return $response;
     }
 
-    /**
-     * Versi test dari simpan(), tanpa DB & upload:
-     * - Cek login
-     * - Validasi rating (required & 1..5)
-     * - Cek kepemilikan & status & double rating menggunakan dummy detail
-     * - Memanggil FakePenilaianModel::update pada jalur sukses
-     */
     public function simpan($id_detail_pemesanan)
     {
         $idUser = session()->get('id_user');
@@ -115,7 +64,6 @@ class TestablePenilaian extends Penilaian
 
         $id_detail_pemesanan = (int) $id_detail_pemesanan;
 
-        // ===== Validasi sederhana (mengimitasi rules asli) =====
         $ratingRaw = $this->fakePost['rating'] ?? null;
         $ulasanRaw = (string) ($this->fakePost['ulasan'] ?? '');
 
@@ -132,7 +80,6 @@ class TestablePenilaian extends Penilaian
 
         if (!empty($errors)) {
             session()->setFlashdata('errors', $errors);
-            // Simulasikan redirect back dengan membawa input
             return $this->redirectBack();
         }
 
@@ -142,7 +89,6 @@ class TestablePenilaian extends Penilaian
             $ulasan = mb_substr($ulasan, 0, 1000);
         }
 
-        // ===== Ambil detail dari dummy, bukan dari DB =====
         $detail = $this->dummyDetails[$id_detail_pemesanan] ?? null;
 
         if (!$detail) {
@@ -165,11 +111,10 @@ class TestablePenilaian extends Penilaian
             return $this->redirectBack();
         }
 
-        // ===== Simpan (via fake model) =====
         $ok = $this->penilaianModel->update($id_detail_pemesanan, [
             'user_rating' => $rating,
             'user_ulasan' => $ulasan,
-            'user_media'  => null, // upload di-skip di versi test ini
+            'user_media'  => null,
         ]);
 
         if (!$ok) {
@@ -182,21 +127,9 @@ class TestablePenilaian extends Penilaian
     }
 }
 
-/**
- * PenilaianTest
- *
- * Unit test murni untuk logika simpan penilaian:
- * - Tanpa database
- * - Tanpa upload file
- * - PenilaianModel diganti FakePenilaianModel
- * - Detail pemesanan diganti dummy array (dummyDetails)
- */
 class PenilaianTest extends CIUnitTestCase
 {
-    /** @var FakePenilaianModel */
     private FakePenilaianModel $fakeModel;
-
-    /** @var TestablePenilaian */
     private TestablePenilaian $controller;
 
     protected function setUp(): void
@@ -204,23 +137,17 @@ class PenilaianTest extends CIUnitTestCase
         parent::setUp();
         helper(['session']);
 
-        // Reset session
         $_SESSION = [];
         session()->destroy();
 
-        // Siapkan fake model
         $this->fakeModel  = new FakePenilaianModel();
-
-        // Pakai controller turunan yang override simpan()
         $this->controller = new TestablePenilaian();
 
-        // Override penilaianModel milik parent dengan fake model via Reflection
         $ref  = new \ReflectionClass($this->controller);
         $prop = $ref->getProperty('penilaianModel');
         $prop->setAccessible(true);
         $prop->setValue($this->controller, $this->fakeModel);
 
-        // Dummy dasar: 1 detail milik user 10, status Selesai, belum dinilai
         $this->controller->setDummyDetails([
             1 => [
                 'id_detail_pemesanan' => 1,
@@ -232,12 +159,8 @@ class PenilaianTest extends CIUnitTestCase
         ]);
     }
 
-    /* ===========================================================
-     * 1. Simpan TANPA login → redirect ke /login, tidak update
-     * =========================================================*/
     public function testSimpanTanpaLoginRedirectKeLogin()
     {
-        // Tidak set session id_user → dianggap belum login
         $this->controller->setFakePost([
             'rating' => 5,
             'ulasan' => 'Mantap'
@@ -251,13 +174,9 @@ class PenilaianTest extends CIUnitTestCase
             'Silakan login terlebih dahulu.',
             session()->getFlashdata('error')
         );
-        $this->assertCount(0, $this->fakeModel->updates, 'Tidak boleh ada update() ketika belum login.');
+        $this->assertCount(0, $this->fakeModel->updates);
     }
 
-    /* ===========================================================
-     * 2. Rating KOSONG → validasi gagal, redirect back,
-     *    errors['rating'] terisi, tidak update()
-     * =========================================================*/
     public function testSimpanGagalKarenaRatingKosong()
     {
         session()->set(['id_user' => 10]);
@@ -275,12 +194,9 @@ class PenilaianTest extends CIUnitTestCase
         $errors = session()->getFlashdata('errors');
         $this->assertIsArray($errors);
         $this->assertArrayHasKey('rating', $errors);
-        $this->assertCount(0, $this->fakeModel->updates, 'Tidak boleh ada update() jika rating invalid.');
+        $this->assertCount(0, $this->fakeModel->updates);
     }
 
-    /* ===========================================================
-     * 3. Rating di luar range (misal 11) → validasi gagal
-     * =========================================================*/
     public function testSimpanGagalKarenaRatingDiLuarRange()
     {
         session()->set(['id_user' => 10]);
@@ -301,15 +217,10 @@ class PenilaianTest extends CIUnitTestCase
         $this->assertCount(0, $this->fakeModel->updates);
     }
 
-    /* ===========================================================
-     * 4. Detail pemesanan TIDAK ditemukan (tanpa DB)
-     *    → error flash & redirect back, tidak update()
-     * =========================================================*/
     public function testSimpanDetailPemesananTidakAdaTidakMemanggilUpdate()
     {
         session()->set(['id_user' => 10]);
 
-        // Dummy details tidak memiliki ID 999
         $this->controller->setDummyDetails([
             1 => [
                 'id_detail_pemesanan' => 1,
@@ -337,9 +248,6 @@ class PenilaianTest extends CIUnitTestCase
         $this->assertCount(0, $this->fakeModel->updates);
     }
 
-    /* ===========================================================
-     * 5. Detail milik user lain → tidak boleh dinilai
-     * =========================================================*/
     public function testSimpanDetailMilikUserLainTidakMemanggilUpdate()
     {
         session()->set(['id_user' => 10]);
@@ -347,7 +255,7 @@ class PenilaianTest extends CIUnitTestCase
         $this->controller->setDummyDetails([
             1 => [
                 'id_detail_pemesanan' => 1,
-                'id_user'             => 99, // BUKAN user 10
+                'id_user'             => 99,
                 'status_pemesanan'    => 'Selesai',
                 'user_rating'         => null,
                 'user_ulasan'         => null,
@@ -371,9 +279,6 @@ class PenilaianTest extends CIUnitTestCase
         $this->assertCount(0, $this->fakeModel->updates);
     }
 
-    /* ===========================================================
-     * 6. Status pesanan belum "Selesai" → tidak boleh dinilai
-     * =========================================================*/
     public function testSimpanGagalJikaStatusBelumSelesai()
     {
         session()->set(['id_user' => 10]);
@@ -382,7 +287,7 @@ class PenilaianTest extends CIUnitTestCase
             1 => [
                 'id_detail_pemesanan' => 1,
                 'id_user'             => 10,
-                'status_pemesanan'    => 'Dikirim', // BUKAN Selesai
+                'status_pemesanan'    => 'Dikirim',
                 'user_rating'         => null,
                 'user_ulasan'         => null,
             ],
@@ -405,9 +310,6 @@ class PenilaianTest extends CIUnitTestCase
         $this->assertCount(0, $this->fakeModel->updates);
     }
 
-    /* ===========================================================
-     * 7. Detail sudah pernah dinilai → info flash, tidak update()
-     * =========================================================*/
     public function testSimpanGagalJikaSudahPernahDinilai()
     {
         session()->set(['id_user' => 10]);
@@ -417,7 +319,7 @@ class PenilaianTest extends CIUnitTestCase
                 'id_detail_pemesanan' => 1,
                 'id_user'             => 10,
                 'status_pemesanan'    => 'Selesai',
-                'user_rating'         => 4, // sudah pernah dinilai
+                'user_rating'         => 4,
                 'user_ulasan'         => 'Sebelumnya',
             ],
         ]);
@@ -439,13 +341,6 @@ class PenilaianTest extends CIUnitTestCase
         $this->assertCount(0, $this->fakeModel->updates);
     }
 
-    /* ===========================================================
-     * 8. Skenario sukses:
-     *    - Detail milik user login
-     *    - Status Selesai
-     *    - Belum pernah dinilai
-     *    → update() dipanggil sekali dengan data yang benar
-     * =========================================================*/
     public function testSimpanBerhasilMemanggilUpdateDanRedirectKeDaftar()
     {
         session()->set(['id_user' => 10]);
@@ -475,7 +370,6 @@ class PenilaianTest extends CIUnitTestCase
             session()->getFlashdata('success')
         );
 
-        // Pastikan update() tepat sekali
         $this->assertCount(1, $this->fakeModel->updates);
 
         $call = $this->fakeModel->updates[0];
@@ -485,14 +379,11 @@ class PenilaianTest extends CIUnitTestCase
         $this->assertNull($call['data']['user_media']);
     }
 
-    /* ===========================================================
-     * 9. Ulasan terlalu panjang → dipotong menjadi 1000 karakter
-     * =========================================================*/
     public function testUlasanDipangkasMenjadiMaksimalSeribuKarakter()
     {
         session()->set(['id_user' => 10]);
 
-        $longText = str_repeat('x', 1200); // 1200 karakter
+        $longText = str_repeat('x', 1200);
 
         $this->controller->setDummyDetails([
             1 => [
@@ -547,5 +438,4 @@ class PenilaianTest extends CIUnitTestCase
         $this->assertCount(1, $this->fakeModel->updates);
         $this->assertSame(1, $this->fakeModel->updates[0]['data']['user_rating']);
     }
-
 }

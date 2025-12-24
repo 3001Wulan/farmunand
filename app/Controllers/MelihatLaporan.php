@@ -16,9 +16,8 @@ class MelihatLaporan extends BaseController
 
         $start  = $this->request->getGet('start');
         $end    = $this->request->getGet('end');
-        $status = $this->request->getGet('status'); // dari dropdown
+        $status = $this->request->getGet('status'); 
 
-        // Padanan status (konsisten untuk index & export)
         $statusAliases = [
             'Belum Bayar' => ['Belum Bayar', 'Menunggu Pembayaran', 'Pending', 'Pending Payment'],
             'Dikemas'     => ['Dikemas', 'Dipacking'],
@@ -71,9 +70,8 @@ class MelihatLaporan extends BaseController
         $db     = Database::connect();
         $start  = $this->request->getGet('start');
         $end    = $this->request->getGet('end');
-        $status = $this->request->getGet('status'); // ikut filter
+        $status = $this->request->getGet('status'); 
 
-        // Padanan status (konsisten dengan index)
         $statusAliases = [
             'Belum Bayar' => ['Belum Bayar', 'Menunggu Pembayaran', 'Pending', 'Pending Payment'],
             'Dikemas'     => ['Dikemas', 'Dipacking'],
@@ -97,13 +95,11 @@ class MelihatLaporan extends BaseController
             ->join('produk pr', 'dp.id_produk = pr.id_produk', 'left')
             ->orderBy('p.created_at', 'DESC');
 
-        // Filter tanggal (opsional)
         if ($start && $end) {
             $builder->where("DATE(p.created_at) >=", $start)
                     ->where("DATE(p.created_at) <=", $end);
         }
 
-        // Filter status (opsional)
         if ($status !== null && $status !== '') {
             $values = $statusAliases[$status] ?? [$status];
             $builder->whereIn('p.status_pemesanan', $values);
@@ -111,7 +107,6 @@ class MelihatLaporan extends BaseController
 
         $laporan = $builder->get()->getResultArray();
 
-        // Ringkasan
         $totalPemasukan = 0;
         $totalItem      = 0;
         $orderIds       = [];
@@ -130,11 +125,9 @@ class MelihatLaporan extends BaseController
             : 'Semua Tanggal';
         $statusTitle = ($status !== null && $status !== '') ? strtoupper($status) : 'SEMUA STATUS';
 
-        // Spreadsheet (format TETAP)
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
-        // Header summary (tidak mengubah format)
         $sheet->mergeCells('A1:H1');
         $sheet->setCellValue('A1', 'LAPORAN PENJUALAN (Status: ' . $statusTitle . ')');
         $sheet->getRowDimension('1')->setRowHeight(24);
@@ -148,7 +141,6 @@ class MelihatLaporan extends BaseController
         $sheet->setCellValue('A4', 'Total Item');       $sheet->setCellValue('B4', $totalItem);
         $sheet->setCellValue('D4', 'Total Pemasukan');  $sheet->setCellValue('E4', $totalPemasukan);
 
-        // Styling summary (tetap)
         $sheet->getStyle('A1:H1')->applyFromArray([
             'font'      => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
             'fill'      => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '198754']],
@@ -163,7 +155,6 @@ class MelihatLaporan extends BaseController
         $sheet->getStyle('D2:D4')->getFont()->setBold(true);
         $sheet->getStyle('E4')->getNumberFormat()->setFormatCode('"Rp"#,##0');
 
-        // Tabel data (tetap)
         $startRow = 6;
         $headers = ['No', 'Nama Pembeli', 'Produk', 'Tanggal', 'Jumlah', 'Harga Satuan', 'Total', 'Status'];
         $col = 'A';
@@ -177,7 +168,6 @@ class MelihatLaporan extends BaseController
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER]
         ]);
 
-        // Isi data (tetap)
         $row = $startRow + 1;
         $no  = 1;
         foreach ($laporan as $data) {
@@ -197,7 +187,6 @@ class MelihatLaporan extends BaseController
         }
         $lastRow = $row - 1;
 
-        // Footer totals (tetap)
         $footerRow = $lastRow + 1;
         $sheet->setCellValue('A'.$footerRow, 'TOTAL');
         $sheet->mergeCells('A'.$footerRow.':E'.$footerRow);

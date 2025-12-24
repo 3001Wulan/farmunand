@@ -6,25 +6,12 @@ use App\Controllers\Auth;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\HTTP\RedirectResponse;
 
-/**
- * Fake repository khusus untuk Auth, menggantikan UserModel
- * supaya tidak ada akses DB sama sekali.
- */
 class AuthFakeUserRepo
 {
-    /** @var array<string,array> users diindeks per email */
     public array $usersByEmail = [];
-
-    /** @var array<int,array{0:int,1:array}> */
     public array $updateCalls = [];
-
-    /** @var array<int,array> */
     public array $saveCalls = [];
-
-    /** @var string|null */
     private ?string $lastWhereField = null;
-
-    /** @var mixed */
     private $lastWhereValue;
 
     public function __construct(array $users = [])
@@ -38,9 +25,6 @@ class AuthFakeUserRepo
         }
     }
 
-    /**
-     * Simulasi where('email', $value)->first()
-     */
     public function where($field, $value = null): self
     {
         if (is_string($field) && $value !== null) {
@@ -64,11 +48,6 @@ class AuthFakeUserRepo
         return null;
     }
 
-    /**
-     * Simulasi update(id, data):
-     * - Mencatat pemanggilan
-     * - Merge data baru ke user yang cocok id_user-nya
-     */
     public function update($id = null, $data = null): bool
     {
         $id   = (int) $id;
@@ -86,9 +65,6 @@ class AuthFakeUserRepo
         return true;
     }
 
-    /**
-     * Simulasi save(data) untuk register.
-     */
     public function save(array $data): bool
     {
         $this->saveCalls[] = $data;
@@ -98,7 +74,6 @@ class AuthFakeUserRepo
             return true;
         }
 
-        // Generate id_user sederhana
         $maxId = 0;
         foreach ($this->usersByEmail as $u) {
             $maxId = max($maxId, (int) ($u['id_user'] ?? 0));
@@ -124,37 +99,21 @@ class AuthFakeUserRepo
     }
 }
 
-/**
- * Versi testable dari Auth:
- * - Tidak membuat UserModel asli (tidak akses DB).
- * - validate() dioverride supaya tidak pakai Validation service.
- */
 class TestableAuth extends Auth
 {
-    /** @var bool|null jika null → pakai validate asli; selain itu pakai nilai ini */
     public static ?bool $forcedValidateResult = null;
-
-    /** @var array errors palsu ketika validasi gagal */
     public static array $forcedErrors = [];
-
-    /** @var AuthFakeUserRepo */
     protected $userModel;
 
     public function __construct(AuthFakeUserRepo $userRepo)
     {
-        // Jangan panggil parent::__construct() supaya tidak new UserModel sungguhan
         $this->userModel = $userRepo;
-
         helper(['form', 'url']);
     }
 
-    /**
-     * Override validate() agar tidak memanggil Validation service/DB.
-     */
     protected function validate($rules, array $messages = []): bool
     {
         if (self::$forcedValidateResult !== null) {
-            // Stub minimal validator dengan getErrors()
             $this->validator = new class(self::$forcedErrors)
             {
                 private array $errors;
@@ -173,7 +132,6 @@ class TestableAuth extends Auth
             return self::$forcedValidateResult;
         }
 
-        // fallback ke perilaku asli kalau suatu saat dibutuhkan
         return parent::validate($rules, $messages);
     }
 }
@@ -182,19 +140,15 @@ class AuthTest extends CIUnitTestCase
 {
     private AuthFakeUserRepo $userRepo;
     private TestableAuth $controller;
-
-    /** @var \CodeIgniter\HTTP\IncomingRequest */
     private $request;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Reset session tiap test
         $_SESSION = [];
         session()->destroy();
 
-        // Seed user dummy untuk login (tanpa DB)
         $this->userRepo = new AuthFakeUserRepo([
             [
                 'id_user'           => 1,
@@ -229,7 +183,6 @@ class AuthTest extends CIUnitTestCase
             service('logger')
         );
 
-        // Reset state validate override
         TestableAuth::$forcedValidateResult = null;
         TestableAuth::$forcedErrors         = [];
     }
@@ -240,14 +193,11 @@ class AuthTest extends CIUnitTestCase
         parent::tearDown();
     }
 
-    /** ----------------------- HALAMAN LOGIN ----------------------- */
     public function testHalamanLoginBisaDibuka(): void
     {
         $output = $this->controller->login();
         $this->assertIsString($output);
     }
-
-    /** ----------------------- LOGIN ----------------------- */
 
     public function testLoginEmailTidakDitemukan(): void
     {
@@ -267,7 +217,6 @@ class AuthTest extends CIUnitTestCase
 
     public function testLoginPasswordSalahPertamaKaliNaikkanCounterTanpaLock(): void
     {
-        // Pastikan state awal user: belum pernah gagal, tidak terkunci
         $user                                      = $this->userRepo->usersByEmail['user01@farmunand.local'];
         $user['failed_logins']                     = 0;
         $user['locked_until']                      = null;
@@ -300,7 +249,6 @@ class AuthTest extends CIUnitTestCase
 
     public function testLoginPasswordSalahKetigaKaliMengunciAkun(): void
     {
-        // Simulasikan sudah 2x gagal
         $user                                      = $this->userRepo->usersByEmail['user01@farmunand.local'];
         $user['failed_logins']                     = 2;
         $user['locked_until']                      = null;
@@ -332,7 +280,6 @@ class AuthTest extends CIUnitTestCase
 
     public function testLoginSaatAkunMasihTerkunciDitolakDanTidakUpdate(): void
     {
-        // Akun terkunci 10 menit ke depan
         $user                                      = $this->userRepo->usersByEmail['user01@farmunand.local'];
         $user['failed_logins']                     = 3;
         $user['locked_until']                      = date('Y-m-d H:i:s', strtotime('+10 minutes'));
@@ -352,13 +299,11 @@ class AuthTest extends CIUnitTestCase
             'Akun Anda terkunci sementara karena terlalu banyak percobaan login gagal. Coba lagi beberapa saat lagi.',
             session()->getFlashdata('error')
         );
-        // Tidak boleh ada update ke DB
         $this->assertSame([], $this->userRepo->updateCalls);
     }
 
     public function testLoginBerhasilSebagaiUserResetCounterDanRedirectDashboardUser(): void
     {
-        // user pernah salah 2x, tapi lock sudah kadaluarsa
         $user                                      = $this->userRepo->usersByEmail['user01@farmunand.local'];
         $user['failed_logins']                     = 2;
         $user['locked_until']                      = date('Y-m-d H:i:s', strtotime('-1 minute'));
@@ -374,12 +319,8 @@ class AuthTest extends CIUnitTestCase
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertStringContainsString('/dashboarduser', $response->getHeaderLine('Location'));
-
-        // Session login harus ter-set
         $this->assertSame(1, session()->get('id_user'));
         $this->assertSame('user', session()->get('role'));
-
-        // Counter gagal harus di-reset
         $this->assertCount(1, $this->userRepo->updateCalls);
         [$id, $data] = $this->userRepo->updateCalls[0];
         $this->assertSame(1, $id);
@@ -404,8 +345,6 @@ class AuthTest extends CIUnitTestCase
         $this->assertSame(2, session()->get('id_user'));
         $this->assertSame('admin', session()->get('role'));
     }
-
-    /** ----------------------- REGISTER ----------------------- */
 
     public function testRegisterGagalValidasiTidakMemanggilSave(): void
     {
@@ -455,8 +394,6 @@ class AuthTest extends CIUnitTestCase
         $this->assertSame('user', $saved['role'] ?? null);
     }
 
-    /** ----------------------- LOGOUT ----------------------- */
-
     public function testLogoutMembersihkanSessionDanRedirectKeLogin(): void
     {
         session()->set([
@@ -470,9 +407,5 @@ class AuthTest extends CIUnitTestCase
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertStringContainsString('/login', $response->getHeaderLine('Location'));
 
-        // Di environment CLI, perilaku destroy() bisa tricky,
-        // jadi kita cukup pastikan redirect sudah benar.
-        // Kalau mau maksa, bisa tambahkan assertNull(session()->get('id_user'))
-        // tapi siap-siap adjust kalau ternyata tidak sesuai driver.
     }
 }

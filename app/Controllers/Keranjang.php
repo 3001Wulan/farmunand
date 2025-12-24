@@ -17,7 +17,6 @@ class Keranjang extends BaseController
         helper(['form']);
     }
 
-    /* ===== Helpers ===== */
 
     private function ensureLogin()
     {
@@ -33,7 +32,6 @@ class Keranjang extends BaseController
         return $this->userModel->find($id);
     }
 
-    // Key session per-user
     private function cartKey(): string
     {
         return 'cart_u_' . (session()->get('id_user') ?? 0);
@@ -53,7 +51,6 @@ class Keranjang extends BaseController
     {
         session()->set($this->cartKey(), $cart);
 
-        // hitung total qty untuk badge
         $count = 0;
         foreach ($cart as $row) {
             $count += (int)($row['qty'] ?? 0);
@@ -65,8 +62,6 @@ class Keranjang extends BaseController
     {
         $this->putCart($this->getCart());
     }
-
-    /* ===== Actions ===== */
 
     public function index()
     {
@@ -98,7 +93,6 @@ class Keranjang extends BaseController
             return redirect()->back()->with('error', 'Produk tidak ditemukan.');
         }
 
-        // Validasi stok
         $stok = (int)($produk['stok'] ?? 0);
         if ($stok <= 0) {
             return redirect()->back()->with('error', 'Stok produk habis.');
@@ -130,7 +124,7 @@ class Keranjang extends BaseController
         if ($redir = $this->ensureLogin()) return $redir;
 
         $idProduk = (int)$this->request->getPost('id_produk');
-        $qty      = max(0, (int)$this->request->getPost('qty')); // 0 = hapus
+        $qty      = max(0, (int)$this->request->getPost('qty')); 
 
         $cart = $this->getCart();
         if (!isset($cart[$idProduk])) {
@@ -140,7 +134,6 @@ class Keranjang extends BaseController
         if ($qty === 0) {
             unset($cart[$idProduk]);
         } else {
-            // Validasi stok saat update
             $produk = $this->produkModel->find($idProduk);
             if ($produk) {
                 $stok = (int)($produk['stok'] ?? 0);
@@ -185,7 +178,6 @@ class Keranjang extends BaseController
             return redirect()->to('/keranjang')->with('error', 'Keranjang kosong.');
         }
 
-        // Normalisasi qty vs stok, dan siapkan payload ringkas
         $payload = [];
         $adjusted = false;
 
@@ -209,14 +201,11 @@ class Keranjang extends BaseController
             return redirect()->to('/keranjang')->with('error', 'Tidak ada item yang dapat di-checkout.');
         }
 
-        // Simpan ke session agar diproses oleh MelakukanPemesanan
         session()->set('checkout_all', $payload);
 
         if ($adjusted) {
             session()->setFlashdata('info', 'Sebagian jumlah menyesuaikan stok tersedia.');
         }
-
-        // Arahkan ke halaman melakukan pemesanan (tanpa ubah alur)
         return redirect()->to('/melakukanpemesanan?from=cart_all');
     }
 }

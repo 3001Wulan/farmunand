@@ -6,16 +6,9 @@ use App\Controllers\Keranjang;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\HTTP\RedirectResponse;
 
-/**
- * Fake repo sederhana pengganti ProdukModel.
- * Hanya perlu method find() dan menyimpan jejak pemanggilan.
- */
 class KeranjangFakeProdukRepo
 {
-    /** @var array<int,array> */
     public array $records = [];
-
-    /** @var array<int> */
     public array $calledWith = [];
 
     public function __construct(array $records = [])
@@ -32,12 +25,8 @@ class KeranjangFakeProdukRepo
     }
 }
 
-/**
- * Fake repo sederhana pengganti UserModel untuk KeranjangTest.
- */
 class KeranjangFakeUserRepo
 {
-    /** @var array<int,array> */
     public array $records = [];
 
     public function __construct(array $records = [])
@@ -52,31 +41,16 @@ class KeranjangFakeUserRepo
     }
 }
 
-/**
- * Versi testable dari Keranjang:
- * - Tidak memanggil konstruktor asli (tidak bikin ProdukModel/UserModel sungguhan).
- * - index() dikembalikan sebagai array, bukan view HTML.
- */
 class TestableKeranjang extends Keranjang
 {
     public function __construct($produkRepo, $userRepo)
     {
-        // Jangan panggil parent::__construct() supaya tidak bikin Model asli.
         $this->produkModel = $produkRepo;
         $this->userModel   = $userRepo;
 
         helper(['form']);
     }
 
-    /**
-     * index() versi test:
-     * - Jika belum login -> redirect ke /login (sama seperti ensureLogin()).
-     * - Jika sudah login:
-     *   - Ambil cart dari session (cart_u_{id_user})
-     *   - Hitung total harga & total qty
-     *   - Sinkronkan badge count ke cart_count_u_{id_user}
-     *   - Kembalikan array data (bukan view).
-     */
     public function index()
     {
         $idUser = session()->get('id_user');
@@ -100,10 +74,8 @@ class TestableKeranjang extends Keranjang
             $count += $qty;
         }
 
-        // Simulasikan syncCartCount()
         session()->set($countKey, $count);
 
-        // Ambil user dari fake repo
         $user = $this->userModel ? $this->userModel->find($idUser) : null;
 
         return [
@@ -117,24 +89,17 @@ class TestableKeranjang extends Keranjang
 
 class KeranjangTest extends CIUnitTestCase
 {
-    /** @var TestableKeranjang */
     private $controller;
-
-    /** @var KeranjangFakeProdukRepo */
     private $produkRepo;
-
-    /** @var KeranjangFakeUserRepo */
     private $userRepo;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Reset session setiap test
         $_SESSION = [];
         session()->destroy();
 
-        // Fake data user untuk id_user = 1
         $this->userRepo = new KeranjangFakeUserRepo([
             1 => [
                 'id_user'  => 1,
@@ -144,10 +109,8 @@ class KeranjangTest extends CIUnitTestCase
             ],
         ]);
 
-        // Produk awal kosong, nanti diisi per test
         $this->produkRepo = new KeranjangFakeProdukRepo([]);
 
-        // Buat controller testable & inject request/response/logger CI4
         $this->controller = new TestableKeranjang(
             $this->produkRepo,
             $this->userRepo
@@ -159,13 +122,8 @@ class KeranjangTest extends CIUnitTestCase
         );
     }
 
-    /* =========================================================
-     *  1. INDEX
-     * =======================================================*/
-
     public function testIndexRedirectKetikaBelumLogin()
     {
-        // id_user belum diset
         session()->destroy();
 
         $result = $this->controller->index();
@@ -191,16 +149,11 @@ class KeranjangTest extends CIUnitTestCase
         $this->assertArrayHasKey('user', $data);
         $this->assertArrayHasKey('count', $data);
 
-        // Total: 2*5000 + 1*3000 = 13000
         $this->assertSame(13000.0, $data['total']);
         $this->assertSame(3, $data['count']);
         $this->assertSame(3, session()->get('cart_count_u_1'));
         $this->assertSame('User Test', $data['user']['nama']);
     }
-
-    /* =========================================================
-     *  2. ADD
-     * =======================================================*/
 
     public function testAddTanpaLoginRedirectKeLoginDanTidakMemanggilFind()
     {
@@ -217,7 +170,6 @@ class KeranjangTest extends CIUnitTestCase
 
         $this->assertInstanceOf(RedirectResponse::class, $result);
         $this->assertStringContainsString('/login', $result->getHeaderLine('Location'));
-        // ProdukRepo tidak boleh dipanggil sama sekali
         $this->assertSame([], $this->produkRepo->calledWith);
     }
 
@@ -225,7 +177,6 @@ class KeranjangTest extends CIUnitTestCase
     {
         session()->set('id_user', 1);
 
-        // Tidak ada produk di repo => find() akan return null
         $this->produkRepo->records = [];
 
         $req = service('request');
@@ -294,7 +245,7 @@ class KeranjangTest extends CIUnitTestCase
         $req->setMethod('post');
         $req->setGlobal('post', [
             'id_produk' => 10,
-            'qty'       => 10, // > stok
+            'qty'       => 10,
         ]);
 
         $result = $this->controller->add();
@@ -303,7 +254,7 @@ class KeranjangTest extends CIUnitTestCase
 
         $this->assertIsArray($cart);
         $this->assertArrayHasKey(10, $cart);
-        $this->assertSame(3, $cart[10]['qty'], 'Qty harus dibatasi ke stok (3).');
+        $this->assertSame(3, $cart[10]['qty']);
         $this->assertSame(
             'Produk masuk ke keranjang.',
             session()->getFlashdata('success')
@@ -314,7 +265,6 @@ class KeranjangTest extends CIUnitTestCase
     {
         session()->set('id_user', 1);
 
-        // Cart awal: qty = 2
         session()->set('cart_u_1', [
             10 => [
                 'id_produk'   => 10,
@@ -325,7 +275,6 @@ class KeranjangTest extends CIUnitTestCase
             ],
         ]);
 
-        // Stok maks 3, tapi kita mau tambah 5
         $this->produkRepo->records = [
             10 => [
                 'id_produk'   => 10,
@@ -346,17 +295,12 @@ class KeranjangTest extends CIUnitTestCase
         $result = $this->controller->add();
 
         $cart = session()->get('cart_u_1');
-        $this->assertSame(3, $cart[10]['qty'], 'Qty akhir tidak boleh melebihi stok (3).');
+        $this->assertSame(3, $cart[10]['qty']);
     }
-
-    /* =========================================================
-     *  3. UPDATE
-     * =======================================================*/
 
     public function testUpdateItemTidakAdaMengembalikanError()
     {
         session()->set('id_user', 1);
-        // Cart kosong, tapi kita update id_produk 10
         session()->set('cart_u_1', []);
 
         $req = service('request');
@@ -392,7 +336,7 @@ class KeranjangTest extends CIUnitTestCase
         $req->setMethod('post');
         $req->setGlobal('post', [
             'id_produk' => 10,
-            'qty'       => 0, // hapus
+            'qty'       => 0,
         ]);
 
         $result = $this->controller->update();
@@ -429,18 +373,14 @@ class KeranjangTest extends CIUnitTestCase
         $req->setMethod('post');
         $req->setGlobal('post', [
             'id_produk' => 10,
-            'qty'       => 10, // > stok
+            'qty'       => 10,
         ]);
 
         $result = $this->controller->update();
 
         $cart = session()->get('cart_u_1');
-        $this->assertSame(2, $cart[10]['qty'], 'Qty update harus dibatasi ke stok (2).');
+        $this->assertSame(2, $cart[10]['qty']);
     }
-
-    /* =========================================================
-     *  4. REMOVE & CLEAR
-     * =======================================================*/
 
     public function testRemoveCartMenghapusItemDanSyncCount()
     {
@@ -472,10 +412,6 @@ class KeranjangTest extends CIUnitTestCase
         $this->assertNull(session()->get('cart_count_u_1'));
     }
 
-    /* =========================================================
-     *  5. CHECKOUT ALL
-     * =======================================================*/
-
     public function testCheckoutAllKeranjangKosongMengembalikanError()
     {
         session()->set('id_user', 1);
@@ -498,7 +434,6 @@ class KeranjangTest extends CIUnitTestCase
             10 => ['id_produk' => 10, 'harga' => 5000, 'qty' => 2],
         ]);
 
-        // ProdukRepo tidak punya entry id 10 (anggap produk sudah dihapus / stok <= 0)
         $this->produkRepo->records = [];
 
         $result = $this->controller->checkoutAll();
@@ -567,8 +502,7 @@ class KeranjangTest extends CIUnitTestCase
             $payload
         );
         $this->assertNull(
-            session()->getFlashdata('info'),
-            'Tidak boleh ada pesan info jika tidak ada penyesuaian stok.'
+            session()->getFlashdata('info')
         );
     }
 }

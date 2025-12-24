@@ -1,11 +1,7 @@
-// cypress/e2e/01_auth_admin.cy.js
-
 describe('Sheet 01A - Auth Admin', () => {
-  // GANTI sesuai data admin nyata di DB
-  const adminEmail = 'admin@farmunand.local';   // <- sesuaikan
-  const adminPassword = '111111';       // <- sesuaikan
+  const adminEmail = 'admin@farmunand.local';   
+  const adminPassword = '111111';       
 
-  // ADM-001: Halaman login bisa dibuka
   it('ADM-001: Halaman login bisa dibuka', () => {
     cy.visit('/login');
 
@@ -15,7 +11,6 @@ describe('Sheet 01A - Auth Admin', () => {
     cy.contains(/login/i).should('exist');
   });
 
-  // ADM-002: Login sukses sebagai admin
   it('ADM-002: Login sukses sebagai admin', () => {
     cy.visit('/login');
 
@@ -24,18 +19,13 @@ describe('Sheet 01A - Auth Admin', () => {
 
     cy.contains('button', 'Login').click();
 
-    // Redirect ke dashboard admin
     cy.url().should((url) => {
-      // contoh: http://localhost:8080/index.php/dashboard
       expect(url).to.match(/\/dashboard(\b|\/|\?)/);
     });
 
-    // Cek teks "Dashboard" muncul di halaman
     cy.contains(/Dashboard/i).should('exist');
   });
 
-  // ADM-003: Login gagal dengan password salah
-  // (untuk sekarang: cukup cek ada pesan error, entah "salah" atau "akun terkunci")
   it('ADM-003: Login gagal dengan password salah', () => {
     cy.visit('/login');
 
@@ -44,15 +34,12 @@ describe('Sheet 01A - Auth Admin', () => {
 
     cy.contains('button', 'Login').click();
 
-    // Harus tetap di halaman login
     cy.url().should('include', '/login');
 
-    // Pesan error bisa salah password atau akun terkunci
     cy.contains(/Email atau password salah|Akun Anda terkunci sementara/i)
       .should('exist');
   });
 
-  // ADM-004: Logout admin
   it('ADM-004: Logout admin mengembalikan ke halaman login', () => {
     cy.visit('/login');
     cy.get('input[name="email"]').type(adminEmail);

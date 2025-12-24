@@ -23,7 +23,6 @@ class MengelolaRiwayatPesanan extends BaseController
         $keyword = $this->request->getGet('keyword') ?: '';
         $sort    = strtoupper($this->request->getGet('sort') ?? 'DESC');
 
-        // Auto-close: pesanan "Dikirim" yang melewati masa konfirmasi 7 hari
         $this->pesananModel->where('status_pemesanan', 'Dikirim')
             ->where('konfirmasi_expires_at IS NOT NULL', null, false)
             ->where('confirmed_at IS NULL', null, false)
@@ -75,7 +74,6 @@ class MengelolaRiwayatPesanan extends BaseController
     {
         $target = (string) $this->request->getPost('status_pemesanan');
 
-        // Admin tidak boleh set 'Selesai' manual
         $allowedTargets = ['Belum Bayar','Dikemas','Dikirim','Dibatalkan'];
         if (!in_array($target, $allowedTargets, true)) {
             return redirect()->to('/MengelolaRiwayatPesanan')
@@ -97,12 +95,11 @@ class MengelolaRiwayatPesanan extends BaseController
                 ->with('success', 'Status pesanan tidak berubah (sama dengan sebelumnya).');
         }
 
-        // State machine final (rapi, tanpa duplikasi)
         $allowedByCurrent = [
             'Selesai'     => [],
             'Dikemas'     => ['Dikirim'],
             'Dikirim'     => [],
-            'Belum Bayar' => [],        // tidak bisa diubah oleh admin
+            'Belum Bayar' => [],        
             'Dibatalkan'  => [],
         ];
 

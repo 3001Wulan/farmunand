@@ -3,7 +3,6 @@ describe('Mengelola Riwayat Pesanan (Admin)', () => {
     const adminPassword = '111111';
   
     beforeEach(() => {
-      // Login sebagai admin
       cy.visit('/login');
       cy.get('input[name="email"]').clear().type(adminEmail);
       cy.get('input[name="password"]').clear().type(adminPassword);
@@ -32,24 +31,16 @@ describe('Mengelola Riwayat Pesanan (Admin)', () => {
     });
   
     it('Update status pesanan valid', () => {
-        // Intercept request GET agar Cypress menunggu data selesai dimuat
         cy.intercept('GET', '/MengelolaRiwayatPesanan*').as('getOrders');
-      
-        // Visit halaman riwayat pesanan admin
         cy.visit('/MengelolaRiwayatPesanan');
-        cy.wait('@getOrders'); // Tunggu data selesai dimuat
-      
-        // Ambil row pertama yang memiliki badge "Dikemas"
+        cy.wait('@getOrders'); 
         cy.get('table tbody tr td span.badge')
           .contains('Dikemas')
           .first()
-          .closest('tr') // <-- pakai closest, bukan parent
+          .closest('tr') 
           .within(() => {
-            // Pilih status baru "Dikirim"
             cy.get('select[name="status_pemesanan"]').select('Dikirim');
           });
-      
-        // Pastikan alert sukses muncul
         cy.get('.alert-success', { timeout: 5000 })
           .should('be.visible')
           .and('contain.text', 'Status pesanan berhasil diperbarui');
@@ -57,18 +48,13 @@ describe('Mengelola Riwayat Pesanan (Admin)', () => {
       
       it('Update status pesanan tidak valid', () => {
         cy.visit('/MengelolaRiwayatPesanan');
-      
-        // Ambil row pertama dengan badge "Dikirim"
         cy.get('table tbody tr td span.badge')
           .contains('Dikirim')
           .first()
           .closest('tr')
           .within(() => {
-            // Pilih status yang ada di dropdown tapi tidak diizinkan dari "Dikirim"
             cy.get('select[name="status_pemesanan"]').select('Dibatalkan', { force: true });
           });
-      
-        // Pastikan alert error muncul
         cy.get('.alert-danger', { timeout: 5000 })
           .should('be.visible')
           .and('contain.text', 'Pesanan "Dikirim" tidak dapat diubah lagi');

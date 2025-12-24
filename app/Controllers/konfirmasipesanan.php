@@ -23,7 +23,6 @@ class KonfirmasiPesanan extends BaseController
             return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
-        // Ambil hanya pesanan berstatus Dikirim (sudah otomatis orderBy created_at DESC dari model)
         $pesananUser = $this->pesananModel->getPesananByStatus((int)$idUser, 'Dikirim');
 
         $data = [
@@ -41,7 +40,6 @@ class KonfirmasiPesanan extends BaseController
         return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
     }
 
-    // Gunakan helper method di model
     $row = $this->pesananModel->getPesananByIdAndUser((int)$id_pemesanan, (int)$idUser);
 
     if (!$row) {

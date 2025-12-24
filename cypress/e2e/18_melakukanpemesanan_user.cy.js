@@ -1,10 +1,9 @@
 /// <reference types="cypress" />
 
-// Sheet 18 - Melakukan Pemesanan (User)
 describe('Sheet 18 - Melakukan Pemesanan (User)', () => {
   const userEmail = 'user01@farmunand.local';
   const userPassword = '111111';
-  const sampleProductId = 1; // sesuaikan kalau ID produk utamanya beda
+  const sampleProductId = 1; 
 
   const ALLOWED_STATUSES = [200, 201, 400, 401, 404, 422];
 
@@ -17,15 +16,12 @@ describe('Sheet 18 - Melakukan Pemesanan (User)', () => {
   }
 
   function getAnyAlamatId() {
-    // Ambil ID alamat dari halaman checkout.
-    // Tidak memakai cy.log di dalam .then supaya tidak bentrok async/sync.
     return cy.get('body').then(($body) => {
       const $field = $body.find(
         'select[name="id_alamat"], input[name="id_alamat"], [data-id-alamat]'
       );
 
       if (!$field.length) {
-        // fallback 1 kalau memang tidak ada field alamat sama sekali
         return 1;
       }
 
@@ -56,7 +52,6 @@ describe('Sheet 18 - Melakukan Pemesanan (User)', () => {
   it('ORD-001: Redirect ke login jika user belum login', () => {
     cy.visit(`/melakukanpemesanan?id_produk=${sampleProductId}&qty=1`);
 
-    // Karena di controller dicek session id_user dulu
     cy.url().should('include', '/login');
     cy.contains(/silakan login terlebih dahulu|login/i).should('exist');
   });
@@ -67,13 +62,9 @@ describe('Sheet 18 - Melakukan Pemesanan (User)', () => {
     cy.visit(`/melakukanpemesanan?id_produk=${sampleProductId}&qty=1`);
 
     cy.url().should('include', '/melakukanpemesanan');
-
-    // Judul halaman checkout (pakai regex longgar)
     cy.contains('h1, h2, h3', /pemesanan|checkout|konfirmasi pesanan/i).should(
       'exist'
     );
-
-    // Harus ada indikasi alamat & ringkasan pesanan
     cy.contains(/alamat|pengiriman/i).should('exist');
     cy.contains(/total|ringkasan/i).should('exist');
   });
@@ -84,7 +75,6 @@ describe('Sheet 18 - Melakukan Pemesanan (User)', () => {
     cy.visit('/melakukanpemesanan');
 
     cy.url().then(() => {
-      // Bisa redirect ke /keranjang atau tetap di halaman dengan flash error
       cy.contains(
         /data pesanan tidak ditemukan|tidak ada item valid untuk checkout|produk tidak tersedia/i
       ).should('exist');
@@ -101,7 +91,7 @@ describe('Sheet 18 - Melakukan Pemesanan (User)', () => {
       failOnStatusCode: false,
       body: {
         id_produk: sampleProductId,
-        id_alamat: '', // sengaja kosong
+        id_alamat: '', 
         qty: 1,
         metode: 'cod',
       },
@@ -110,8 +100,6 @@ describe('Sheet 18 - Melakukan Pemesanan (User)', () => {
       assertNoFatalErrorInHtml(res.body);
 
       if (!hasSuccessFlag(res.body)) {
-        // Endpoint mungkin masih 404 / error default CI4
-        // yang penting tidak fatal.
         return;
       }
 
@@ -145,7 +133,6 @@ describe('Sheet 18 - Melakukan Pemesanan (User)', () => {
         assertNoFatalErrorInHtml(res.body);
 
         if (!hasSuccessFlag(res.body)) {
-          // Misal masih 404 / error default
           return;
         }
 
@@ -178,11 +165,9 @@ describe('Sheet 18 - Melakukan Pemesanan (User)', () => {
         assertNoFatalErrorInHtml(res.body);
 
         if (!hasSuccessFlag(res.body)) {
-          // Kalau belum JSON kontrak final (misalnya 404 HTML/JSON bawaan)
           return;
         }
 
-        // Struktur minimal yang kita harapkan
         expect(res.body).to.have.property('success');
         expect(res.body).to.have.property('status');
         expect(res.body).to.have.property('id_pemesanan');
@@ -204,7 +189,6 @@ describe('Sheet 18 - Melakukan Pemesanan (User)', () => {
       url: '/melakukanpemesanan/simpanBatch',
       failOnStatusCode: false,
       body: {
-        // Payload sengaja salah / tidak lengkap
         id_alamat: 0,
         items: [],
       },
@@ -226,7 +210,6 @@ describe('Sheet 18 - Melakukan Pemesanan (User)', () => {
   it('ORD-008: Simpan pesanan batch menolak qty melebihi stok', () => {
     loginUser();
 
-    // Ambil alamat valid dari halaman checkout
     cy.visit(`/melakukanpemesanan?id_produk=${sampleProductId}&qty=1`);
 
     getAnyAlamatId().then((alamatId) => {
@@ -264,7 +247,6 @@ describe('Sheet 18 - Melakukan Pemesanan (User)', () => {
   it('ORD-009: Simpan pesanan batch mengembalikan struktur JSON yang benar', () => {
     loginUser();
 
-    // Lagi-lagi pakai alamat yang benar dari halaman checkout
     cy.visit(`/melakukanpemesanan?id_produk=${sampleProductId}&qty=1`);
 
     getAnyAlamatId().then((alamatId) => {

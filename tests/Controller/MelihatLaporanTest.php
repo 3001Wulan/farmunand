@@ -5,39 +5,15 @@ namespace Tests\Controller;
 use CodeIgniter\Test\CIUnitTestCase;
 use App\Controllers\MelihatLaporan;
 
-/**
- * TestableMelihatLaporan
- *
- * Versi test-safe dari controller MelihatLaporan:
- * - TANPA Database::connect()
- * - TANPA Query Builder
- * - Tidak memanggil view()
- * - Hanya menguji logika filter tanggal & status + sorting
- */
 class TestableMelihatLaporan extends MelihatLaporan
 {
-    /**
-     * Dummy data laporan:
-     * array<array{
-     *   id_pemesanan:int,
-     *   nama_pembeli:string,
-     *   nama_produk:string,
-     *   jumlah_produk:int,
-     *   harga_produk:float|int,
-     *   status_pemesanan:string,
-     *   created_at:string (Y-m-d H:i:s)
-     * }>
-     */
     protected array $dummyRows = [];
 
-    /** @var array fake query string (start, end, status) */
     protected array $fakeGet = [
         'start'  => null,
         'end'    => null,
         'status' => null,
     ];
-
-    // ===== Setter untuk test =====
 
     public function setDummyRows(array $rows): void
     {
@@ -49,23 +25,12 @@ class TestableMelihatLaporan extends MelihatLaporan
         $this->fakeGet = array_merge($this->fakeGet, $params);
     }
 
-    /**
-     * index() versi unit-test:
-     * - Memakai $fakeGet, bukan Request asli
-     * - Memakai $dummyRows, bukan DB
-     * - Menerapkan:
-     *   - Filter tanggal start–end (pakai DATE(created_at))
-     *   - Filter status dengan alias (Belum Bayar, Dikemas, dst)
-     *   - Sorting created_at DESC
-     * - RETURN: array, BUKAN view()
-     */
     public function index()
     {
         $start  = $this->fakeGet['start']  ?? null;
         $end    = $this->fakeGet['end']    ?? null;
         $status = $this->fakeGet['status'] ?? null;
 
-        // Padanan status – sama persis dengan controller asli
         $statusAliases = [
             'Belum Bayar' => ['Belum Bayar', 'Menunggu Pembayaran', 'Pending', 'Pending Payment'],
             'Dikemas'     => ['Dikemas', 'Dipacking'],
@@ -76,15 +41,13 @@ class TestableMelihatLaporan extends MelihatLaporan
 
         $rows = $this->dummyRows;
 
-        // ===== Filter tanggal (DATE(p.created_at) antara start..end) =====
         if ($start && $end) {
             $rows = array_values(array_filter($rows, static function ($row) use ($start, $end) {
-                $date = substr((string) ($row['created_at'] ?? ''), 0, 10); // ambil YYYY-MM-DD
+                $date = substr((string) ($row['created_at'] ?? ''), 0, 10);
                 return $date >= $start && $date <= $end;
             }));
         }
 
-        // ===== Filter status dengan alias =====
         if ($status !== null && $status !== '') {
             $values = $statusAliases[$status] ?? [$status];
 
@@ -94,14 +57,12 @@ class TestableMelihatLaporan extends MelihatLaporan
             }));
         }
 
-        // ===== Sorting created_at DESC =====
         usort($rows, static function ($a, $b) {
             $aTime = (string) ($a['created_at'] ?? '');
             $bTime = (string) ($b['created_at'] ?? '');
-            return strcmp($bTime, $aTime); // DESC
+            return strcmp($bTime, $aTime);
         });
 
-        // Alih-alih view(), return data mentah utk diuji
         return [
             'laporan' => $rows,
             'start'   => $start,
@@ -111,17 +72,8 @@ class TestableMelihatLaporan extends MelihatLaporan
     }
 }
 
-/**
- * MelihatLaporanTest
- *
- * Fokus:
- * - Logika filter tanggal & status (dengan alias)
- * - Sorting berdasarkan created_at DESC
- * - Tanpa DB, tanpa view, tanpa FeatureTestTrait
- */
 class MelihatLaporanTest extends CIUnitTestCase
 {
-    /** @var TestableMelihatLaporan */
     private TestableMelihatLaporan $controller;
 
     protected function setUp(): void
@@ -130,8 +82,6 @@ class MelihatLaporanTest extends CIUnitTestCase
 
         $this->controller = new TestableMelihatLaporan();
 
-        // Dummy data meniru hasil join pemesanan + detail
-        // Campuran status & tanggal supaya filter bisa diuji
         $this->controller->setDummyRows([
             [
                 'id_pemesanan'     => 1,
@@ -157,7 +107,7 @@ class MelihatLaporanTest extends CIUnitTestCase
                 'nama_produk'      => 'Produk C',
                 'jumlah_produk'    => 3,
                 'harga_produk'     => 15000,
-                'status_pemesanan' => 'Completed', // alias dari "Selesai"
+                'status_pemesanan' => 'Completed',
                 'created_at'       => '2025-02-01 09:30:00',
             ],
             [
@@ -166,12 +116,11 @@ class MelihatLaporanTest extends CIUnitTestCase
                 'nama_produk'      => 'Produk D',
                 'jumlah_produk'    => 5,
                 'harga_produk'     => 5000,
-                'status_pemesanan' => 'Batal', // alias dari "Dibatalkan"
+                'status_pemesanan' => 'Batal',
                 'created_at'       => '2024-12-31 23:59:00',
             ],
         ]);
 
-        // Default: tanpa filter
         $this->controller->setFakeGet([
             'start'  => null,
             'end'    => null,
@@ -179,9 +128,6 @@ class MelihatLaporanTest extends CIUnitTestCase
         ]);
     }
 
-    /* ===========================================================
-     * 1. Tanpa filter → semua data dikembalikan & sorting DESC
-     * =========================================================*/
     public function testIndexTanpaFilterMengembalikanSemuaDanSortingDesc()
     {
         $out = $this->controller->index();
@@ -191,26 +137,18 @@ class MelihatLaporanTest extends CIUnitTestCase
 
         $rows = $out['laporan'];
 
-        // Ada 4 baris (semua dummy)
         $this->assertCount(4, $rows, 'Tanpa filter harus mengembalikan semua baris.');
 
-        // Urutan harus berdasarkan created_at DESC
-        $this->assertSame(3, $rows[0]['id_pemesanan']); // 2025-02-01
-        $this->assertSame(2, $rows[1]['id_pemesanan']); // 2025-01-20
-        $this->assertSame(1, $rows[2]['id_pemesanan']); // 2025-01-05
-        $this->assertSame(4, $rows[3]['id_pemesanan']); // 2024-12-31
+        $this->assertSame(3, $rows[0]['id_pemesanan']);
+        $this->assertSame(2, $rows[1]['id_pemesanan']);
+        $this->assertSame(1, $rows[2]['id_pemesanan']);
+        $this->assertSame(4, $rows[3]['id_pemesanan']);
 
-        // Pastikan field start/end/status null (tidak di-set)
         $this->assertNull($out['start']);
         $this->assertNull($out['end']);
         $this->assertNull($out['status']);
     }
 
-    /* ===========================================================
-     * 2. Filter tanggal + status "Selesai"
-     *    - Hanya status yang alias ke Selesai
-     *    - Tanggal antara 2025-01-01 s/d 2025-01-31
-     * =========================================================*/
     public function testIndexDenganFilterTanggalDanStatusSelesai()
     {
         $this->controller->setFakeGet([
@@ -222,27 +160,19 @@ class MelihatLaporanTest extends CIUnitTestCase
         $out  = $this->controller->index();
         $rows = $out['laporan'];
 
-        // Dari dummy:
-        // - id 1: Selesai, 2025-01-05 → MASUK
-        // - id 3: Completed (alias Selesai), 2025-02-01 → KELUAR (di luar range tanggal)
         $this->assertCount(1, $rows, 'Filter tanggal + status Selesai harus menyisakan 1 baris.');
 
         $row = $rows[0];
         $this->assertSame(1, $row['id_pemesanan']);
         $this->assertSame('Selesai', $row['status_pemesanan']);
 
-        // Pastikan parameter yang dikembalikan konsisten
         $this->assertSame('2025-01-01', $out['start']);
         $this->assertSame('2025-01-31', $out['end']);
         $this->assertSame('Selesai', $out['status']);
     }
 
-    /* ===========================================================
-     * 3. Filter status "Dikemas" → harus kena alias "Dipacking" juga
-     * =========================================================*/
     public function testIndexDenganFilterStatusDikemasMengambilAliasDipacking()
     {
-        // Tambah 1 data dengan status "Dipacking"
         $this->controller->setDummyRows(array_merge(
             [],
             [
@@ -261,7 +191,7 @@ class MelihatLaporanTest extends CIUnitTestCase
                     'nama_produk'      => 'Produk Y',
                     'jumlah_produk'    => 1,
                     'harga_produk'     => 30000,
-                    'status_pemesanan' => 'Dipacking', // alias
+                    'status_pemesanan' => 'Dipacking',
                     'created_at'       => '2025-01-16 12:00:00',
                 ],
             ]
@@ -276,7 +206,6 @@ class MelihatLaporanTest extends CIUnitTestCase
         $out  = $this->controller->index();
         $rows = $out['laporan'];
 
-        // Hanya baris dengan status "Dikemas" atau "Dipacking" yang boleh masuk
         $this->assertNotEmpty($rows);
         foreach ($rows as $r) {
             $this->assertContains(
@@ -287,10 +216,6 @@ class MelihatLaporanTest extends CIUnitTestCase
         }
     }
 
-    /* ===========================================================
-     * 4. Filter status yang tidak ada di alias → match exact
-     *    (misal "UnknownStatus" → hampir pasti 0 baris)
-     * =========================================================*/
     public function testIndexDenganStatusCustomTanpaAliasMenghasilkanKosong()
     {
         $this->controller->setFakeGet([

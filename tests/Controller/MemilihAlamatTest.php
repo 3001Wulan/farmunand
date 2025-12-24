@@ -8,29 +8,12 @@ use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\Services;
 
-/**
- * FakeAlamatModel
- *
- * Model palsu untuk menggantikan AlamatModel pada unit test:
- * - Data disimpan di array, bukan database.
- * - Mendukung method yang dipakai controller:
- *   where(), orderBy(), findAll(), find(), set(), update(), save().
- */
 class FakeAlamatModel
 {
-    /** @var array<int,array> */
     private array $rows;
-
-    /** @var array<string,mixed> */
     public array $lastWhere = [];
-
-    /** @var array<string,mixed>|null */
     public ?array $lastSet = null;
-
-    /** @var array<int,array> log semua pemanggilan update() */
     public array $updateLog = [];
-
-    /** @var array<int,array> log semua pemanggilan save() */
     public array $saveLog = [];
 
     public function __construct(array $rows = [])
@@ -100,7 +83,6 @@ class FakeAlamatModel
 
     public function update($id = null, $data = null): bool
     {
-        // Mode where()->set()->update()
         if ($id === null) {
             if ($this->lastSet === null) {
                 return false;
@@ -128,7 +110,6 @@ class FakeAlamatModel
             return true;
         }
 
-        // Mode update($id, $data)
         if (!is_array($data)) {
             return false;
         }
@@ -169,9 +150,6 @@ class FakeAlamatModel
     }
 }
 
-/**
- * FakeUserModel sederhana: hanya butuh find($id)
- */
 class FakeUserModel
 {
     private array $users;
@@ -190,27 +168,11 @@ class FakeUserModel
     }
 }
 
-/**
- * MemilihAlamatTest
- *
- * Versi UNIT TEST murni:
- * - Tanpa FeatureTestTrait
- * - Tanpa akses database asli
- * - Menggunakan fake model (FakeAlamatModel, FakeUserModel)
- * - Controller dipanggil langsung dan dependency di-inject.
- */
 class MemilihAlamatTest extends CIUnitTestCase
 {
-    /** @var MemilihAlamat */
     private $controller;
-
-    /** @var FakeAlamatModel */
     private $alamatModel;
-
-    /** @var FakeUserModel */
     private $userModel;
-
-    /** @var IncomingRequest|\PHPUnit\Framework\MockObject\MockObject */
     private $requestMock;
 
     protected function setUp(): void
@@ -258,13 +220,11 @@ class MemilihAlamatTest extends CIUnitTestCase
             100 => ['id_user' => 100, 'nama' => 'Alamat Tester'],
         ]);
 
-        // Subclass MemilihAlamat untuk DI & override validate()
         $this->controller = new class($this->alamatModel, $this->userModel) extends MemilihAlamat {
             public bool $testValidateReturn = true;
 
             public function __construct($alamatModel, $userModel)
             {
-                // jangan panggil parent::__construct()
                 $this->alamatModel = $alamatModel;
                 $this->userModel   = $userModel;
                 $this->produkModel = null;
@@ -285,7 +245,6 @@ class MemilihAlamatTest extends CIUnitTestCase
                 return $this->testValidateReturn;
             }
 
-            // Versi test-friendly dari index(): return data array, bukan view()
             public function indexForTest(): array
             {
                 $idUser = session()->get('id_user');
@@ -304,11 +263,9 @@ class MemilihAlamatTest extends CIUnitTestCase
             }
         };
 
-        // Inject response asli CI
         $response = Services::response();
         $this->controller->setResponseObject($response);
 
-        // Mock request
         $this->requestMock = $this->getMockBuilder(IncomingRequest::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['getMethod', 'getPost', 'getJSON'])
@@ -320,10 +277,6 @@ class MemilihAlamatTest extends CIUnitTestCase
         session()->destroy();
         parent::tearDown();
     }
-
-    /* ===========================================================
-     * 1. INDEX()
-     * =========================================================*/
 
     public function testIndexMengambilAlamatHanyaUntukUserLogin()
     {
@@ -337,23 +290,18 @@ class MemilihAlamatTest extends CIUnitTestCase
         $alamat = $data['alamat'];
         $user   = $data['user'];
 
-        $this->assertCount(2, $alamat, 'User 100 seharusnya memiliki 2 alamat.');
+        $this->assertCount(2, $alamat);
 
         foreach ($alamat as $row) {
             $this->assertSame(100, $row['id_user']);
         }
 
-        // ordered DESC by id_alamat → 2 lalu 1
         $this->assertSame(2, $alamat[0]['id_alamat']);
         $this->assertSame(1, $alamat[1]['id_alamat']);
 
         $this->assertSame(100, $user['id_user']);
         $this->assertSame('Alamat Tester', $user['nama']);
     }
-
-    /* ===========================================================
-     * 2. TAMBAH()
-     * =========================================================*/
 
     public function testTambahDenganMetodeGetLangsungRedirect()
     {
@@ -373,7 +321,7 @@ class MemilihAlamatTest extends CIUnitTestCase
         );
 
         $rows = $this->alamatModel->getRows();
-        $this->assertCount(3, $rows, 'Tidak boleh ada alamat baru pada GET.');
+        $this->assertCount(3, $rows);
     }
 
     public function testTambahDenganDataTidakValidTidakMenyimpanAlamat()
@@ -404,28 +352,24 @@ class MemilihAlamatTest extends CIUnitTestCase
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertSameSize($before, $after);
-        $this->assertEmpty($this->alamatModel->saveLog, 'save() tidak boleh dipanggil jika validasi gagal.');
+        $this->assertEmpty($this->alamatModel->saveLog);
     }
 
     public function testTambahDenganDataValidMenambahAlamatBaruDanMenonaktifkanLama()
     {
-        // User 100 sedang login
         session()->set(['id_user' => 100]);
 
-        // Data awal untuk user 100 (harusnya 2 alamat dari dummy)
         $beforeRows = $this->alamatModel->getRows();
         $beforeForUser = array_values(array_filter(
             $beforeRows,
             fn ($r) => $r['id_user'] === 100
         ));
-        $this->assertCount(2, $beforeForUser, 'Sebelum tambah harus ada 2 alamat milik user 100.');
+        $this->assertCount(2, $beforeForUser);
 
-        // Siapkan request POST dengan data valid
         $this->requestMock
             ->method('getMethod')
             ->willReturn('POST');
 
-        // 🔧 Perbaiki di sini: pakai callback, bukan willReturn(array)
         $this->requestMock
             ->method('getPost')
             ->willReturnCallback(function ($key = null) {
@@ -438,9 +382,6 @@ class MemilihAlamatTest extends CIUnitTestCase
                     'kode_pos'      => '25113',
                 ];
 
-                // Mirip perilaku CI4:
-                // - getPost()            -> array lengkap
-                // - getPost('fieldname') -> hanya value-nya
                 if ($key === null) {
                     return $data;
                 }
@@ -449,56 +390,42 @@ class MemilihAlamatTest extends CIUnitTestCase
             });
 
         $this->controller->setRequestObject($this->requestMock);
-        $this->controller->testValidateReturn = true; // validasi dianggap LULUS
+        $this->controller->testValidateReturn = true;
 
-        // Panggil controller
         $response = $this->controller->tambah();
 
-        // 1) Harus redirect ke /memilihalamat
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertStringContainsString(
             'memilihalamat',
-            $response->getHeaderLine('Location'),
-            'Setelah tambah alamat harus redirect ke /memilihalamat.'
+            $response->getHeaderLine('Location')
         );
 
-        // 2) Ambil data setelah tambah
         $afterRows = $this->alamatModel->getRows();
         $afterForUser = array_values(array_filter(
             $afterRows,
             fn ($r) => $r['id_user'] === 100
         ));
 
-        // Awalnya 2 → sekarang 3 alamat
-        $this->assertCount(3, $afterForUser, 'Setelah tambah harus ada 3 alamat milik user 100.');
+        $this->assertCount(3, $afterForUser);
 
-        // 3) Tepat 1 alamat yang aktif=1
         $aktif = array_values(array_filter(
             $afterForUser,
             fn ($r) => (int) $r['aktif'] === 1
         ));
-        $this->assertCount(1, $aktif, 'Hanya boleh ada 1 alamat aktif setelah tambah.');
+        $this->assertCount(1, $aktif);
 
-        // 4) Dua alamat lain harus aktif=0
         $nonAktif = array_values(array_filter(
             $afterForUser,
             fn ($r) => (int) $r['aktif'] === 0
         ));
-        $this->assertCount(2, $nonAktif, 'Dua alamat lama harus dinonaktifkan.');
+        $this->assertCount(2, $nonAktif);
 
-        // 5) Pastikan ada SATU alamat baru dengan nama_penerima = "Penerima Baru"
         $namaList = array_column($afterForUser, 'nama_penerima');
 
         $this->assertTrue(
-            in_array('Penerima Baru', $namaList, true),
-            'Setelah tambah harus ada alamat dengan nama_penerima "Penerima Baru".'
+            in_array('Penerima Baru', $namaList, true)
         );
     }
-
-
-    /* ===========================================================
-     * 3. PILIH()
-     * =========================================================*/
 
     public function testPilihAlamatTidakDitemukanMengembalikanJsonError()
     {
@@ -548,13 +475,8 @@ class MemilihAlamatTest extends CIUnitTestCase
         $this->assertSame('Penerima Dua', $sessionAlamat['nama_penerima']);
     }
 
-    /* ===========================================================
-     * 4. UBAH()
-     * =========================================================*/
-
     public function testUbahAlamatTidakDitemukanMengembalikanJsonError()
     {
-        // id_alamat 9999 dijamin tidak ada di seed
         $response = $this->controller->ubah(9999);
 
         $data = json_decode($response->getBody(), true);
@@ -640,8 +562,7 @@ class MemilihAlamatTest extends CIUnitTestCase
         $this->assertSame('Tidak ada perubahan pada alamat', $data['message'] ?? null);
 
         $this->assertEmpty(
-            $this->alamatModel->updateLog,
-            'update() tidak boleh dipanggil jika tidak ada perubahan.'
+            $this->alamatModel->updateLog
         );
     }
 }

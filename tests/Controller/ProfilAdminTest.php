@@ -5,21 +5,11 @@ namespace Tests\Controller;
 use CodeIgniter\Test\CIUnitTestCase;
 use App\Controllers\ProfileAdmin as RealProfileAdmin;
 
-/**
- * Fake repository pengganti UserModel untuk ProfileAdmin.
- * Semua data user disimpan di array in-memory.
- */
 class ProfileAdminFakeUserRepo
 {
-    /** @var array<int,array> */
     public array $users = [];
-
-    /** @var array<int,array{0:int,1:array}> */
     public array $updateCalls = [];
 
-    /**
-     * @param array<int,array> $users
-     */
     public function __construct(array $users = [])
     {
         foreach ($users as $u) {
@@ -46,10 +36,6 @@ class ProfileAdminFakeUserRepo
     }
 }
 
-/**
- * Fake uploaded file untuk mensimulasikan upload foto profil
- * tanpa benar-benar menyentuh filesystem.
- */
 class FakeUploadedFile
 {
     private bool $valid;
@@ -86,27 +72,16 @@ class FakeUploadedFile
     }
 }
 
-/**
- * Versi testable dari ProfileAdmin:
- *  - Tidak pakai UserModel asli → pakai ProfileAdminFakeUserRepo.
- *  - Tidak memanggil view() → index/edit/update mengembalikan ARRAY data.
- *  - Update foto disimulasikan dengan FakeUploadedFile (tanpa file_exists/unlink).
- */
 class TestableProfileAdmin extends RealProfileAdmin
 {
     private ProfileAdminFakeUserRepo $userRepo;
-
-    /** Data POST buatan untuk unit test */
     public array $fakePost = [];
-
-    /** File upload buatan untuk unit test */
     public ?FakeUploadedFile $fakeFile = null;
 
     public function __construct(ProfileAdminFakeUserRepo $userRepo)
     {
-        // Jangan panggil parent::__construct() agar tidak membuat UserModel asli.
         $this->userRepo  = $userRepo;
-        $this->userModel = $userRepo; // supaya properti tetap ada kalau sewaktu-waktu dipakai.
+        $this->userModel = $userRepo;
     }
 
     public function withPost(array $data): self
@@ -121,13 +96,6 @@ class TestableProfileAdmin extends RealProfileAdmin
         return $this;
     }
 
-    /**
-     * index() versi unit-test:
-     *  - jika belum login → array redirect + error
-     *  - jika login       → array data profil
-     *
-     * @return array<string,mixed>
-     */
     public function index()
     {
         $userId = (int) (session()->get('id_user') ?? 0);
@@ -144,13 +112,6 @@ class TestableProfileAdmin extends RealProfileAdmin
         ];
     }
 
-    /**
-     * edit() versi unit-test:
-     *  - jika belum login → array redirect + error
-     *  - jika login       → array data profil untuk form edit
-     *
-     * @return array<string,mixed>
-     */
     public function edit()
     {
         $userId = (int) (session()->get('id_user') ?? 0);
@@ -167,14 +128,6 @@ class TestableProfileAdmin extends RealProfileAdmin
         ];
     }
 
-    /**
-     * update() versi unit-test:
-     *  - menggunakan $fakePost & $fakeFile, bukan $this->request.
-     *  - tidak memanggil file_exists/unlink (tidak sentuh filesystem).
-     *  - mengembalikan array hasil update (bukan RedirectResponse).
-     *
-     * @return array<string,mixed>
-     */
     public function update()
     {
         $session = session();
@@ -203,7 +156,6 @@ class TestableProfileAdmin extends RealProfileAdmin
             $newName = $file->getRandomName();
             $file->move('uploads/profile', $newName);
 
-            // Tidak ada file_exists/unlink supaya tetap murni unit-test
             $dataUpdate['foto'] = $newName;
             $session->set('foto', $newName);
         }
@@ -221,9 +173,6 @@ class TestableProfileAdmin extends RealProfileAdmin
     }
 }
 
-/**
- * Test murni unit untuk ProfileAdmin (tanpa DB, tanpa view, tanpa filesystem).
- */
 class ProfilAdminTest extends CIUnitTestCase
 {
     private ProfileAdminFakeUserRepo $userRepo;
@@ -235,11 +184,9 @@ class ProfilAdminTest extends CIUnitTestCase
 
         helper('session');
 
-        // Reset session tiap test
         $_SESSION = [];
         session()->destroy();
 
-        // Seed user dummy
         $this->userRepo = new ProfileAdminFakeUserRepo([
             [
                 'id_user'  => 1,
@@ -260,8 +207,6 @@ class ProfilAdminTest extends CIUnitTestCase
         session()->destroy();
         parent::tearDown();
     }
-
-    /** ---------------------- INDEX ---------------------- */
 
     public function testIndexWithoutSession(): void
     {
@@ -289,8 +234,6 @@ class ProfilAdminTest extends CIUnitTestCase
         $this->assertSame('admin', $data['user']['role']);
     }
 
-    /** ---------------------- EDIT ---------------------- */
-
     public function testEditWithoutSession(): void
     {
         session()->remove('id_user');
@@ -315,8 +258,6 @@ class ProfilAdminTest extends CIUnitTestCase
         $this->assertSame('admin', $data['user']['username']);
         $this->assertSame('admin', $data['user']['role']);
     }
-
-    /** ---------------------- UPDATE ---------------------- */
 
     public function testUpdateWithoutSessionDoesNotCallRepoAndRedirectsToLogin(): void
     {
@@ -355,7 +296,6 @@ class ProfilAdminTest extends CIUnitTestCase
         $this->assertTrue($result['success']);
         $this->assertSame('/profileadmin', $result['redirect']);
 
-        // Pastikan update dipanggil 1x dengan id=1
         $this->assertCount(1, $this->userRepo->updateCalls);
         [$id, $data] = $this->userRepo->updateCalls[0];
 
@@ -364,16 +304,14 @@ class ProfilAdminTest extends CIUnitTestCase
         $this->assertSame('Admin Nama Baru', $data['nama']);
         $this->assertSame('admin.new@test.com', $data['email']);
         $this->assertSame('08123456789', $data['no_hp']);
-        $this->assertArrayNotHasKey('foto', $data, 'Foto tidak boleh diubah jika tidak ada upload.');
+        $this->assertArrayNotHasKey('foto', $data);
 
-        // Data user setelah update
         $user = $this->userRepo->find(1);
         $this->assertSame('AdminBaru', $user['username']);
         $this->assertSame('Admin Nama Baru', $user['nama']);
         $this->assertSame('admin.new@test.com', $user['email']);
         $this->assertSame('08123456789', $user['no_hp']);
 
-        // Flash message
         $this->assertSame(
             'Profil Admin berhasil diperbarui.',
             session()->getFlashdata('success')
@@ -399,21 +337,17 @@ class ProfilAdminTest extends CIUnitTestCase
         $this->assertTrue($result['success']);
         $this->assertSame('/profileadmin', $result['redirect']);
 
-        // Pastikan file "dipindah"
         $this->assertTrue($fakeFile->hasMoved());
         $this->assertSame('uploads/profile/foto_baru.png', $fakeFile->movedTo);
 
-        // Pastikan field foto ikut diupdate
         $this->assertCount(1, $this->userRepo->updateCalls);
         [$id, $data] = $this->userRepo->updateCalls[0];
 
         $this->assertSame(1, $id);
         $this->assertSame('foto_baru.png', $data['foto']);
 
-        // Session foto seharusnya berisi nama file baru
         $this->assertSame('foto_baru.png', session()->get('foto'));
 
-        // User setelah update
         $userAfter = $this->userRepo->find(1);
         $this->assertSame('foto_baru.png', $userAfter['foto']);
         $this->assertSame('AdminFoto', $userAfter['username']);

@@ -7,7 +7,6 @@ use Config\Database;
 
 class Payments extends BaseController
 {
-    /* ------------ Midtrans bootstrap ------------ */
     private function midtransInit(): void
     {
         \Midtrans\Config::$isProduction = env('MIDTRANS_IS_PRODUCTION') === 'true';
@@ -16,7 +15,6 @@ class Payments extends BaseController
         \Midtrans\Config::$is3ds        = true;
     }
 
-    /* ------------ 1) Create transaksi baru ------------ */
     public function create()
     {
         $idUser = session()->get('id_user');
@@ -24,7 +22,6 @@ class Payments extends BaseController
             return $this->response->setStatusCode(401)->setJSON(['success'=>false,'message'=>'Unauthorized']);
         }
 
-        // Payload: { id_alamat, items:[{id_produk, qty}, ...] }
         $payload  = $this->request->getJSON(true);
         $idAlamat = (int)($payload['id_alamat'] ?? 0);
         $itemsIn  = $payload['items'] ?? [];
@@ -63,7 +60,6 @@ class Payments extends BaseController
 
         $db->transStart();
 
-        // (A) pembayaran
         $db->table('pembayaran')->insert([
             'gateway'            => 'midtrans',
             'order_id'           => null,
@@ -77,7 +73,6 @@ class Payments extends BaseController
         ]);
         $idPembayaran = $db->insertID();
 
-        // (B) pemesanan
         $db->table('pemesanan')->insert([
             'id_user'          => $idUser,
             'id_alamat'        => $idAlamat,
@@ -89,7 +84,6 @@ class Payments extends BaseController
         ]);
         $idPemesanan = $db->insertID();
 
-        // (C1) detail_pemesanan
         foreach ($detailRows as $d) {
             $db->table('detail_pemesanan')->insert([
                 'id_pemesanan'  => $idPemesanan,
@@ -101,7 +95,6 @@ class Payments extends BaseController
             ]);
         }
 
-        // (C2) kurangi stok (guarded)
         foreach ($detailRows as $d) {
             $db->query(
                 "UPDATE produk SET stok = stok - ? WHERE id_produk = ? AND stok >= ?",
@@ -116,7 +109,6 @@ class Payments extends BaseController
             }
         }
 
-        // (D) order_id unik
         $orderId = 'ORD-' . $idPemesanan . '-' . time();
         $db->table('pembayaran')->where('id_pembayaran', $idPembayaran)->update([
             'order_id'   => $orderId,
@@ -128,13 +120,11 @@ class Payments extends BaseController
             return $this->response->setJSON(['success'=>false,'message'=>'Gagal membuat transaksi.']);
         }
 
-        // bersihkan keranjang
         $session  = session();
         $cartKey  = 'cart_u_' . $idUser;
         $countKey = 'cart_count_u_' . $idUser;
         $session->remove([$cartKey, $countKey, 'checkout_all', 'checkout_data_multi', 'checkout_data']);
 
-        // (E) Snap
         $this->midtransInit();
         $snapItems = array_map(static function($d){
             return [
@@ -153,7 +143,6 @@ class Payments extends BaseController
             'item_details'      => $snapItems,
             'customer_details'  => ['first_name' => 'User-' . $idUser],
             'callbacks'         => [
-                // Midtrans akan menambahkan order_id, transaction_status, dll sebagai query string
                 'finish'   => base_url('payments/finish'),
                 'unfinish' => base_url('payments/unfinish'),
                 'error'    => base_url('payments/error'),
@@ -176,12 +165,10 @@ class Payments extends BaseController
             'redirect_url' => $redirectUrl,
             'order_id'     => $orderId,
             'id_pemesanan' => (int)$idPemesanan,
-            // tetap arahkan ke Belum Bayar & auto-open popup
             'redirect'     => base_url('pesananbelumbayar?order='.$orderId.'&autopay=1'),
         ]);
     }
 
-    /* ------------ 2a) Resume by ORDER ID ------------ */
     public function resume(string $orderId)
     {
         $db = Database::connect();
@@ -203,7 +190,6 @@ class Payments extends BaseController
         return $this->response->setJSON(['success'=>true,'snapToken'=>$retry['snapToken'],'order_id'=>$retry['order_id']]);
     }
 
-    /* ------------ 2b) Kompat by id_pemesanan ------------ */
     public function tokenByOrder(int $idPemesanan)
     {
         $db = Database::connect();
@@ -223,7 +209,6 @@ class Payments extends BaseController
         return $this->response->setJSON(['success'=>true,'snapToken'=>$new['snapToken']]);
     }
 
-    /* ------------ util regenerate token ------------ */
     private function regenerateToken(int $idPemesanan, ?string $baseOrderId = null): array
     {
         $db = Database::connect();
@@ -286,13 +271,11 @@ class Payments extends BaseController
         return ['success'=>true,'snapToken'=>$snapToken,'order_id'=>$newOrderId];
     }
 
-    /* ------------ 3) Webhook Midtrans ------------ */
     public function webhook()
     {
         $raw   = $this->request->getBody();
         $notif = json_decode($raw, true);
 
-        // (opsional) validasi signature dilonggarkan di sandbox
         $serverKey   = env('MIDTRANS_SERVER_KEY');
         $orderId     = $notif['order_id']     ?? '';
         $statusCode  = $notif['status_code']  ?? '';
@@ -305,7 +288,7 @@ class Payments extends BaseController
             log_message('warning', '[MIDTRANS] Signature mismatch', compact('orderId','statusCode','grossAmount'));
         }
 
-        $statusMid   = $notif['transaction_status'] ?? 'pending'; // settlement|capture|pending|deny|cancel|expire|refund
+        $statusMid   = $notif['transaction_status'] ?? 'pending'; 
         $paymentType = $notif['payment_type']       ?? null;
         $fraud      =  $notif['fraud_status']       ?? null;
         $va         =  $notif['va_numbers'][0]['va_number'] ?? ($notif['permata_va_number'] ?? null);

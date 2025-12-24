@@ -5,38 +5,18 @@ namespace Tests\Unit;
 use App\Models\ProdukModel;
 use CodeIgniter\Test\CIUnitTestCase;
 
-/**
- * Fake subclass ProdukModel yang:
- * - TIDAK memanggil parent::__construct() → tidak konek DB.
- * - Override method-method query builder supaya hanya mencatat log & mengembalikan data dummy.
- */
 class TestableProdukModel extends ProdukModel
 {
-    /** Log urutan pemanggilan method (untuk assert di test) */
     public array $log = [];
-
-    /** Nilai yang dikembalikan countAllResults() */
     public int $countAllResultsReturn = 0;
-
-    /** Nilai yang dikembalikan find() */
     public $findReturn = null;
-
-    /** Nilai yang dikembalikan first() */
     public $firstReturn = null;
-
-    /** Nilai yang dikembalikan findColumn('kategori') */
     public array $kategoriColumn = [];
-
-    /** Baris-baris yang dikembalikan oleh builder palsu (searchProduk) */
     public array $rows = [];
 
     public function __construct()
     {
-        // JANGAN panggil parent::__construct() supaya tidak konek DB
-        // parent::__construct();
     }
-
-    // ==== Override method yang menyentuh DB ====
 
     public function countAllResults(bool $reset = true, bool $test = false)
     {
@@ -65,7 +45,6 @@ class TestableProdukModel extends ProdukModel
     public function find($id = null)
     {
         $this->log[] = ['find', $id];
-        // Kalau findReturn diset, pakai itu; kalau tidak, pakai rows
         return $this->findReturn ?? $this->rows;
     }
 
@@ -93,10 +72,6 @@ class TestableProdukModel extends ProdukModel
         return $this->kategoriColumn;
     }
 
-    /**
-     * Override table() untuk mengembalikan builder palsu yang punya
-     * like(), orLike(), findAll().
-     */
     public function table($tableName)
     {
         $this->log[] = ['table', $tableName];
@@ -126,7 +101,6 @@ class TestableProdukModel extends ProdukModel
 
             public function findAll()
             {
-                // Khusus builder kita bedakan log-nya
                 $this->outer->log[] = ['findAll(builder)'];
                 return $this->outer->rows;
             }
@@ -144,12 +118,10 @@ class ProdukModelTest extends CIUnitTestCase
         $this->model = new TestableProdukModel();
     }
 
-    /** 🧪 Metadata dasar produk model */
     public function testMetadataProdukModelTerkonfigurasiBenar(): void
     {
         $ref = new \ReflectionClass(ProdukModel::class);
 
-        // $table
         $this->assertTrue($ref->hasProperty('table'));
         $propTable = $ref->getProperty('table');
         $propTable->setAccessible(true);
@@ -158,13 +130,11 @@ class ProdukModelTest extends CIUnitTestCase
         };
         $this->assertSame('produk', $propTable->getValue($instanceForMeta));
 
-        // $primaryKey
         $this->assertTrue($ref->hasProperty('primaryKey'));
         $propPK = $ref->getProperty('primaryKey');
         $propPK->setAccessible(true);
         $this->assertSame('id_produk', $propPK->getValue($instanceForMeta));
 
-        // $allowedFields
         $this->assertTrue($ref->hasProperty('allowedFields'));
         $propAF = $ref->getProperty('allowedFields');
         $propAF->setAccessible(true);
@@ -177,7 +147,6 @@ class ProdukModelTest extends CIUnitTestCase
         $this->assertContains('kategori', $allowed);
     }
 
-    /** 🧪 getTotalProduk() → panggil countAllResults() */
     public function testGetTotalProdukMemanggilCountAllResults(): void
     {
         $this->model->countAllResultsReturn = 10;
@@ -188,7 +157,6 @@ class ProdukModelTest extends CIUnitTestCase
         $this->assertSame(['countAllResults', true, false], $this->model->log[0]);
     }
 
-    /** 🧪 getStokRendah() default limit = 10 */
     public function testGetStokRendahDefaultMemakaiWhereDanCountAllResults(): void
     {
         $this->model->countAllResultsReturn = 3;
@@ -200,7 +168,6 @@ class ProdukModelTest extends CIUnitTestCase
         $this->assertSame('countAllResults', $this->model->log[1][0]);
     }
 
-    /** 🧪 getStokRendah() dengan limit custom */
     public function testGetStokRendahDenganLimitCustom(): void
     {
         $this->model->countAllResultsReturn = 1;
@@ -211,7 +178,6 @@ class ProdukModelTest extends CIUnitTestCase
         $this->assertSame(['where', 'stok <', 5], $this->model->log[0]);
     }
 
-    /** 🧪 getProdukRekomendasi() → orderBy + limit + find() */
     public function testGetProdukRekomendasiMenyusunQueryDenganBenar(): void
     {
         $rows = [
@@ -228,7 +194,6 @@ class ProdukModelTest extends CIUnitTestCase
         $this->assertSame(['find', null], $this->model->log[2]);
     }
 
-    /** 🧪 getProdukById() → where('id_produk', $id) + first() */
     public function testGetProdukByIdMemakaiWhereDanFirst(): void
     {
         $row = [
@@ -244,7 +209,6 @@ class ProdukModelTest extends CIUnitTestCase
         $this->assertSame(['first'], $this->model->log[1]);
     }
 
-    /** 🧪 searchProduk() → table('produk')->like()->orLike()->findAll() */
     public function testSearchProdukMenyusunLikeOrLikeDanFindAll(): void
     {
         $this->model->rows = [
@@ -253,25 +217,20 @@ class ProdukModelTest extends CIUnitTestCase
 
         $result = $this->model->searchProduk('Test_Coklat');
 
-        // hasil sama dengan rows fake
         $this->assertSame($this->model->rows, $result);
 
-        // cek urutan chaining ke builder palsu
         $this->assertSame(['table', 'produk'], $this->model->log[0]);
         $this->assertSame(['like', 'nama_produk', 'Test_Coklat'], $this->model->log[1]);
         $this->assertSame(['orLike', 'deskripsi', 'Test_Coklat'], $this->model->log[2]);
         $this->assertSame(['findAll(builder)'], $this->model->log[3]);
     }
 
-    /** 🧪 getKategoriList() → enum + data dari DB, tanpa duplikat */
     public function testGetKategoriListMenggabungkanEnumDanDataTanpaDuplikasi(): void
     {
-        // Data dari DB berisi 'Snack' dan 'Makanan' (Makanan sudah ada di enum)
         $this->model->kategoriColumn = ['Snack', 'Makanan'];
 
         $result = $this->model->getKategoriList();
 
-        // Enum: ['Makanan','Minuman','Lainnya'] + 'Snack' → unik
         $this->assertSame(['Makanan', 'Minuman', 'Lainnya', 'Snack'], $result);
 
         $this->assertSame(['select', 'kategori'], $this->model->log[0]);
@@ -279,7 +238,6 @@ class ProdukModelTest extends CIUnitTestCase
         $this->assertSame(['findColumn', 'kategori'], $this->model->log[2]);
     }
 
-    /** 🧪 getKategoriList() tanpa tambahan data → hanya enum default */
     public function testGetKategoriListTanpaDataTambahanMengembalikanEnumDefault(): void
     {
         $this->model->kategoriColumn = [];

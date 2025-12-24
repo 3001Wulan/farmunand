@@ -3,33 +3,24 @@
 describe('Payments Controller', () => {
     const userEmail = 'user01@farmunand.local';
     const userPassword = '111111';
-    let orderId;      // Akan diisi setelah create payment
-    let idPemesanan;  // Akan diisi setelah create payment
+    let orderId;      
+    let idPemesanan;  
 
-    // -----------------------------
-    // LOGIN SEBELUM TEST
-    // -----------------------------
     beforeEach(() => {
       cy.visit('/login');
 
       cy.get('input[name="email"]').clear().type(userEmail);
       cy.get('input[name="password"]').clear().type(userPassword);
       cy.get('button[type="submit"]').click();
-
-      // pastikan login berhasil
-      cy.url().should('include', '/dashboarduser'); // URL setelah login
+      cy.url().should('include', '/dashboarduser'); 
     });
 
-    // -----------------------------
-    // 1) TEST CREATE PAYMENT
-    // -----------------------------
     it('should create a new payment and return snap token', () => {
-        // Pastikan id_alamat & id_produk ini valid di DB temanmu
         const payload = {
-          id_alamat: 1, // ganti sesuai data temanmu
+          id_alamat: 1, 
           items: [
-            { id_produk: 1, qty: 1 }, // ganti sesuai data temanmu
-            { id_produk: 2, qty: 1 }  // ganti sesuai data temanmu
+            { id_produk: 1, qty: 1 },
+            { id_produk: 2, qty: 1 }  
           ]
         };
     
@@ -37,7 +28,7 @@ describe('Payments Controller', () => {
           method: 'POST',
           url: '/payments/create',
           body: payload,
-          failOnStatusCode: false // biar kita bisa cek status code manual
+          failOnStatusCode: false 
         }).then((res) => {
           if (res.status === 500) {
             cy.log('Backend gagal memproses pembayaran, kemungkinan Midtrans key teman belum benar');
@@ -55,9 +46,7 @@ describe('Payments Controller', () => {
           }
         });
       });
-    // -----------------------------
-    // 2) TEST RESUME PAYMENT
-    // -----------------------------
+  
     it('should resume an existing payment by order_id', () => {
       cy.request({
         method: 'GET',
@@ -74,9 +63,6 @@ describe('Payments Controller', () => {
       });
     });
 
-    // -----------------------------
-    // 3) CANCEL PAYMENT BY USER
-    // -----------------------------
     it('should cancel a payment by user', () => {
       cy.request({
         method: 'POST',
@@ -94,9 +80,6 @@ describe('Payments Controller', () => {
       });
     });
 
-    // -----------------------------
-    // 4) CANCEL PAYMENT BY USER KEEP RECORD
-    // -----------------------------
     it('should cancel a payment but keep record', () => {
       cy.request({
         method: 'POST',
@@ -114,21 +97,13 @@ describe('Payments Controller', () => {
       });
     });
 
-    // -----------------------------
-    // 5) TEST MIDTRANS CALLBACK FINISH
-    // -----------------------------
     it('should visit finish page after payment', () => {
-      // pastikan orderId dari create payment dipakai
       cy.visit(`/payments/finish?order_id=${orderId}`);
-
-      // cek orderId muncul di halaman
       cy.get('body').should('contain.text', orderId);
 
-      // cek nama user muncul di halaman
-      const username = 'user01'; // ganti sesuai username di DB
+      const username = 'user01'; 
       cy.get('body').should('contain.text', username);
 
-      // opsional: cek tombol Dashboard atau teks lain muncul
       cy.get('body').should('contain.text', 'Dashboard');
     });
 });

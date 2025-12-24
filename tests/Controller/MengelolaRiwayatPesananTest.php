@@ -7,74 +7,42 @@ use App\Models\PesananModel;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\Test\CIUnitTestCase;
 
-/**
- * MengelolaRiwayatPesananTest
- *
- * Fokus unit test:
- * - Logika filter & sort riwayat pesanan (tanpa DB).
- * - Perilaku dasar updateStatus terhadap model (dipanggil / tidak dipanggil) dan redirect.
- *
- * Catatan penting:
- * - Di sini kita pakai controller turunan khusus test yang:
- *   - Tidak menyentuh database (riwayat pakai array dummy).
- *   - Tidak memakai Request asli (diganti fakeGet & fakePost).
- *   - PesananModel dimock dan di-inject dari luar.
- *
- * Artinya: ini benar-benar unit test level logika, bukan feature/blackbox test.
- */
 class MengelolaRiwayatPesananTest extends CIUnitTestCase
 {
-    /** @var object controller turunan yang test-safe */
     private $controller;
-
-    /** @var PesananModel|\PHPUnit\Framework\MockObject\MockObject */
     private $pesananModelMock;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Mock PesananModel: di sini kita hanya peduli apakah update() dipanggil atau tidak.
         $this->pesananModelMock = $this->getMockBuilder(PesananModel::class)
-            ->disableOriginalConstructor()   // ⟵ cegah koneksi DB
-            ->onlyMethods(['update'])        // ⟵ kita hanya overriding method update()
+            ->disableOriginalConstructor()
+            ->onlyMethods(['update'])
             ->getMock();
 
-        // Controller turunan khusus test:
-        // - Mengganti sumber data (riwayat, GET, POST) dengan variabel yang bisa di-set dari test.
-        // - Method index() & updateStatus() dibuat versi test-safe (tanpa DB & Request asli).
         $this->controller = new class($this->pesananModelMock) extends MengelolaRiwayatPesanan {
-            /** @var PesananModel */
             protected $pesananModel;
-
-            /** @var array dummy data riwayat pesanan */
             protected array $dummyRiwayat = [];
-
-            /** @var array representasi fake $_GET */
             protected array $fakeGet = [];
-
-            /** @var array representasi fake $_POST */
             protected array $fakePost = [];
 
             public function __construct($pesananModel)
             {
-                parent::__construct(); // memastikan BaseController dsb. ter-setup
+                parent::__construct();
 
                 $this->pesananModel = $pesananModel;
 
-                // Default "query string"
                 $this->fakeGet = [
                     'status'  => '',
                     'keyword' => '',
                     'sort'    => 'DESC',
                 ];
 
-                // Default "body"
                 $this->fakePost = [
                     'status_pemesanan' => 'Dikemas',
                 ];
 
-                // Dummy data riwayat pesanan (3 baris, status & tanggal berbeda)
                 $this->dummyRiwayat = [
                     [
                         'id_pemesanan'     => 1,
@@ -109,11 +77,8 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
                 ];
             }
 
-            // ===== Setter untuk mengontrol "lingkungan" dari test =====
-
             public function setFakeGet(array $get): void
             {
-                // Merge supaya default masih ada, tapi bisa dioverride
                 $this->fakeGet = array_merge($this->fakeGet, $get);
             }
 
@@ -127,15 +92,6 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
                 $this->dummyRiwayat = $rows;
             }
 
-            // ===== Implementasi index() versi test-safe =====
-
-            /**
-             * index() versi test:
-             * - Mengambil filter dari $fakeGet (status, keyword, sort).
-             * - Menerapkan filter status & keyword pada array dummyRiwayat.
-             * - Menerapkan sorting ASC/DESC berdasarkan created_at.
-             * - Mengembalikan string ringkas, 1 baris per pesanan: "User X Produk Y (Status)".
-             */
             public function index()
             {
                 $statusRaw  = $this->fakeGet['status']  ?? '';
@@ -147,7 +103,6 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
 
                 $rows = $this->dummyRiwayat;
 
-                // Filter by status (exact match)
                 if ($status !== '') {
                     $rows = array_values(array_filter(
                         $rows,
@@ -155,7 +110,6 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
                     ));
                 }
 
-                // Filter by keyword (di nama_user atau nama_produk, case-insensitive)
                 if ($keyword !== '') {
                     $kw = mb_strtolower($keyword);
                     $rows = array_values(array_filter(
@@ -169,14 +123,12 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
                     ));
                 }
 
-                // Sorting by created_at
                 $sortUpper = strtoupper($sort);
                 usort($rows, function ($a, $b) use ($sortUpper) {
                     $cmp = strcmp($a['created_at'], $b['created_at']);
                     return $sortUpper === 'ASC' ? $cmp : -$cmp;
                 });
 
-                // Kembalikan 1 baris string per pesanan
                 $lines = array_map(function ($row) {
                     return sprintf(
                         '%s %s (%s)',
@@ -189,18 +141,6 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
                 return implode("\n", $lines);
             }
 
-            // ===== Implementasi updateStatus() versi test-safe =====
-
-            /**
-             * updateStatus() versi test:
-             * - Baca status dari $fakePost['status_pemesanan'].
-             * - Kalau kosong → tidak panggil model->update(), tetap redirect.
-             * - Kalau ada   → panggil model->update($id, ['status_pemesanan' => status]) lalu redirect.
-             *
-             * Catatan:
-             * - Versi ini hanya menguji "ada status atau tidak", belum menguji state machine penuh
-             *   seperti di controller asli.
-             */
             public function updateStatus($id)
             {
                 $status = $this->fakePost['status_pemesanan'] ?? null;
@@ -210,7 +150,6 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
                 $response->setHeader('Location', '/MengelolaRiwayatPesanan');
 
                 if (! $status) {
-                    // Tidak ada status → tidak update, tapi tetap redirect
                     return $response;
                 }
 
@@ -222,9 +161,6 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
             }
         };
 
-        // Default environment untuk setiap test:
-        // - Tanpa filter (status & keyword kosong, sort DESC)
-        // - Status update default = Dikemas
         $this->controller->setFakeGet([
             'status'  => '',
             'keyword' => '',
@@ -235,13 +171,6 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
         ]);
     }
 
-    /* ===========================================================
-     *  SKENARIO 1:
-     *  Index tanpa filter:
-     *  - status & keyword kosong
-     *  - sort default DESC
-     *  - urutan: tanggal terbaru dulu (User B, User A, User C)
-     * =========================================================*/
     public function testIndexTanpaFilterMengambilRiwayatDanSortingDESC()
     {
         $output = $this->controller->index();
@@ -249,21 +178,13 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
         $this->assertIsString($output);
 
         $lines = explode("\n", trim($output));
-        $this->assertCount(3, $lines, 'Harusnya ada 3 baris pesanan.');
+        $this->assertCount(3, $lines);
 
-        // Urutan paling atas harus User B (tanggal paling baru)
         $this->assertSame('User B Produk B (Selesai)', $lines[0]);
         $this->assertSame('User A Produk A (Dikirim)', $lines[1]);
         $this->assertSame('User C Produk C (Dibatalkan)', $lines[2]);
     }
 
-    /* ===========================================================
-     *  SKENARIO 1b (tambahan):
-     *  Index dengan sort ASC:
-     *  - status & keyword kosong
-     *  - sort = ASC
-     *  - urutan: tanggal paling lama dulu (User C, User A, User B)
-     * =========================================================*/
     public function testIndexDenganSortASCMengurutkanDariTerlama()
     {
         $this->controller->setFakeGet([
@@ -273,19 +194,13 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
         $output = $this->controller->index();
         $lines  = explode("\n", trim($output));
 
-        $this->assertCount(3, $lines, 'Harusnya tetap 3 baris pesanan.');
+        $this->assertCount(3, $lines);
 
         $this->assertSame('User C Produk C (Dibatalkan)', $lines[0]);
         $this->assertSame('User A Produk A (Dikirim)', $lines[1]);
         $this->assertSame('User B Produk B (Selesai)', $lines[2]);
     }
 
-    /* ===========================================================
-     *  SKENARIO 2:
-     *  Index dengan filter status:
-     *  - status = 'Dikirim'
-     *  - Hanya pesanan dengan status Dikirim yang muncul
-     * =========================================================*/
     public function testIndexDenganFilterStatusMemfilterStatusDenganBenar()
     {
         $this->controller->setFakeGet([
@@ -298,25 +213,17 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
 
         $lines = array_filter(explode("\n", trim($output)));
 
-        $this->assertNotEmpty($lines, 'Minimal ada 1 pesanan dengan status Dikirim.');
-        $this->assertCount(1, $lines, 'Filter status Dikirim harus menyisakan 1 pesanan.');
+        $this->assertNotEmpty($lines);
+        $this->assertCount(1, $lines);
 
-        // Semua baris yang tersisa harus (Dikirim)
         foreach ($lines as $line) {
             $this->assertStringContainsString('(Dikirim)', $line);
         }
 
-        // Pastikan status lain tidak ikut
         $this->assertStringNotContainsString('(Selesai)', $output);
         $this->assertStringNotContainsString('(Dibatalkan)', $output);
     }
 
-    /* ===========================================================
-     *  SKENARIO 3:
-     *  Index dengan keyword:
-     *  - keyword = 'Produk B'
-     *  - Hanya pesanan yang nama_produk / nama_user mengandung keyword
-     * =========================================================*/
     public function testIndexDenganKeywordMemfilterDenganBenar()
     {
         $this->controller->setFakeGet([
@@ -329,20 +236,14 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
 
         $lines = array_filter(explode("\n", trim($output)));
 
-        $this->assertNotEmpty($lines, 'Minimal ada 1 pesanan yang match keyword.');
-        $this->assertCount(1, $lines, 'Keyword Produk B harus menyisakan 1 pesanan.');
+        $this->assertNotEmpty($lines);
+        $this->assertCount(1, $lines);
 
         $this->assertStringContainsString('Produk B', $output);
         $this->assertStringNotContainsString('Produk A', $output);
         $this->assertStringNotContainsString('Produk C', $output);
     }
 
-    /* ===========================================================
-     *  SKENARIO 4:
-     *  Index ketika tidak ada data:
-     *  - dummyRiwayat dikosongkan
-     *  - Tidak error, output string kosong
-     * =========================================================*/
     public function testIndexTanpaDataTidakError()
     {
         $this->controller->setDummyRiwayat([]);
@@ -350,16 +251,9 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
         $output = $this->controller->index();
 
         $this->assertIsString($output);
-        $this->assertSame('', trim($output), 'Jika tidak ada riwayat, output boleh kosong.');
+        $this->assertSame('', trim($output));
     }
 
-    /* ===========================================================
-     *  SKENARIO 5:
-     *  updateStatus dengan status valid (ada isinya):
-     *  - fakePost['status_pemesanan'] = 'Dikemas'
-     *  - PesananModel::update(1, ['status_pemesanan' => 'Dikemas']) dipanggil sekali
-     *  - Redirect ke /MengelolaRiwayatPesanan dengan status 302
-     * =========================================================*/
     public function testUpdateStatusValidMemanggilModelUpdateDanRedirect()
     {
         $this->controller->setFakePost([
@@ -374,24 +268,16 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
         $response = $this->controller->updateStatus(1);
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
-        $this->assertSame(302, $response->getStatusCode(), 'Harus redirect 302.');
+        $this->assertSame(302, $response->getStatusCode());
 
         $location = $response->getHeaderLine('Location');
-        $this->assertNotSame('', $location, 'Header Location tidak boleh kosong.');
+        $this->assertNotSame('', $location);
         $this->assertStringContainsString(
             'MengelolaRiwayatPesanan',
-            $location,
-            'Setelah updateStatus harus redirect ke halaman MengelolaRiwayatPesanan.'
+            $location
         );
     }
 
-    /* ===========================================================
-     *  SKENARIO 6:
-     *  updateStatus tanpa status (null / kosong):
-     *  - fakePost['status_pemesanan'] = null
-     *  - PesananModel::update() TIDAK boleh dipanggil
-     *  - Tetap redirect ke /MengelolaRiwayatPesanan dengan status 302
-     * =========================================================*/
     public function testUpdateStatusTanpaStatusTidakMemanggilModelUpdate()
     {
         $this->controller->setFakePost([
@@ -404,7 +290,7 @@ class MengelolaRiwayatPesananTest extends CIUnitTestCase
         $response = $this->controller->updateStatus(1);
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
-        $this->assertSame(302, $response->getStatusCode(), 'Tanpa status tetap redirect 302.');
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString(
             'MengelolaRiwayatPesanan',
             $response->getHeaderLine('Location')

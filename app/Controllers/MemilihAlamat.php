@@ -19,7 +19,6 @@ class MemilihAlamat extends BaseController
         $this->produkModel = new ProdukModel();
     }
 
-    // === Halaman memilih alamat
     public function index()
     {
         $idUser = session()->get('id_user');
@@ -37,7 +36,6 @@ class MemilihAlamat extends BaseController
         ]);
     }
 
-    // === Tambah alamat baru
     public function tambah()
     {
         if ($this->request->getMethod() === 'POST') {
@@ -56,7 +54,6 @@ class MemilihAlamat extends BaseController
                 return redirect()->to('/memilihalamat')->with('error', 'Semua field harus diisi.');
             }
 
-            // nonaktifkan semua alamat lama
             $this->alamatModel->where('id_user', $idUser)->set(['aktif' => 0])->update();
 
             $this->alamatModel->save([
@@ -76,7 +73,6 @@ class MemilihAlamat extends BaseController
         return redirect()->to('/memilihalamat');
     }
 
-    // === Pilih alamat aktif
     public function pilih($id_alamat)
     {
         $idUser = session()->get('id_user');
@@ -89,14 +85,12 @@ class MemilihAlamat extends BaseController
         $this->alamatModel->where('id_user', $idUser)->set(['aktif' => 0])->update();
         $this->alamatModel->update($id_alamat, ['aktif' => 1]);
 
-        // simpan alamat aktif di session
         session()->set('alamat_aktif', $alamat);
 
         return $this->response->setJSON(['success' => true]);
     }
 
 
-    // === Ubah alamat via AJAX
     public function ubah($id_alamat)
     {
         $alamat = $this->alamatModel->find($id_alamat);

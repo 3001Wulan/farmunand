@@ -3,13 +3,10 @@ describe('Sheet Pesanan User - FarmUnand', () => {
     const userPassword = '111111';
 
     beforeEach(() => {
-        // Login
         cy.visit('/login');
         cy.get('input[name="email"]').clear().type(userEmail);
         cy.get('input[name="password"]').clear().type(userPassword);
         cy.contains(/login/i).click();
-
-        // Pastikan redirect ke dashboard
         cy.url().should('include', '/dashboarduser');
     });
 
@@ -28,8 +25,6 @@ describe('Sheet Pesanan User - FarmUnand', () => {
             cy.visit(page.url);
             cy.url().should('include', page.url);
             cy.get('h5').should('contain.text', page.header);
-
-            // Cek apakah ada order / card
             cy.get('body').then($body => {
                 if ($body.find('.order-card, .card').length > 0) {
                     cy.get('.order-card, .card').should('exist');

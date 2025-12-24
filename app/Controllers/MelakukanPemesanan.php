@@ -21,7 +21,6 @@ class MelakukanPemesanan extends BaseController
         $this->userModel   = new UserModel();
     }
 
-    // Halaman checkout
     public function index($idProdukFromSegment = null)
     {
         $session = session();
@@ -38,11 +37,10 @@ class MelakukanPemesanan extends BaseController
         $qty = (int)($this->request->getPost('qty') ?? $this->request->getGet('qty') ?? 1);
         if ($qty < 1) $qty = 1;
 
-        $checkout = null;          // single item
-        $checkoutMulti = null;     // multi items
+        $checkout = null;          
+        $checkoutMulti = null;     
 
         if ($idProduk) {
-            // === Single item (seperti sebelumnya) ===
             $produk = $this->produkModel->find($idProduk);
             if (!$produk) return redirect()->back()->with('error', 'Produk tidak ditemukan.');
 
@@ -62,7 +60,6 @@ class MelakukanPemesanan extends BaseController
             $session->set('checkout_data', $checkout);
 
         } else {
-            // === Multi item (hasil dari Keranjang::checkoutAll) ===
             $batch = $session->get('checkout_all');
 
             if (is_array($batch) && !empty($batch)) {
@@ -97,7 +94,6 @@ class MelakukanPemesanan extends BaseController
                 }
 
                 if (empty($items)) {
-                    // tidak ada item valid
                     $session->remove('checkout_all');
                     return redirect()->to('/keranjang')->with('error', 'Tidak ada item valid untuk checkout.');
                 }
@@ -111,14 +107,11 @@ class MelakukanPemesanan extends BaseController
                     'grandTotal' => $grandTotal,
                 ];
 
-                // persist supaya bisa dipakai step berikutnya (pembayaran)
                 $session->set('checkout_data_multi', $checkoutMulti);
 
             } else {
-                // fallback ke session single (mis. user balik dari pilih alamat)
                 $saved = $session->get('checkout_data');
                 if (is_array($saved) && !empty($saved['id_produk'])) {
-                    // refresh single seperti sebelumnya
                     $produk = $this->produkModel->find($saved['id_produk']);
                     if ($produk) {
                         $stok = (int)($produk['stok'] ?? 0);
@@ -141,13 +134,11 @@ class MelakukanPemesanan extends BaseController
                         return redirect()->to('/keranjang')->with('error', 'Produk tidak tersedia.');
                     }
                 } else {
-                    // tidak ada context apapun
                     return redirect()->to('/keranjang')->with('error', 'Data pesanan tidak ditemukan.');
                 }
             }
         }
 
-        // Ambil alamat user (aktif duluan)
         $alamat = $this->alamatModel
                         ->where('id_user', $idUser)
                         ->orderBy('aktif', 'DESC')
@@ -155,16 +146,14 @@ class MelakukanPemesanan extends BaseController
                         ->findAll();
 
         return view('pembeli/melakukanpemesanan', [
-            'checkout'       => $checkout,       // single (null kalau multi)
-            'checkout_multi' => $checkoutMulti,  // multi (null kalau single)
+            'checkout'       => $checkout,       
+            'checkout_multi' => $checkoutMulti,  
             'alamat'         => $alamat,
             'user'           => $this->userModel->find($idUser),
         ]);
     }
 
 
-
-    // 🧩 Simpan pesanan ke database
     public function simpan()
     {
         $session = session();
@@ -173,7 +162,6 @@ class MelakukanPemesanan extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'User belum login']);
         }
 
-        // Ambil input
         $idProduk = (int) $this->request->getPost('id_produk');
         $idAlamat = (int) $this->request->getPost('id_alamat');
         $qty      = max(1, (int) $this->request->getPost('qty'));
@@ -183,7 +171,6 @@ class MelakukanPemesanan extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Data pesanan tidak lengkap.']);
         }
 
-        // Ambil produk dari DB (jangan percaya harga dari client)
         $produk = $this->produkModel->find($idProduk);
         if (!$produk) {
             return $this->response->setJSON(['success' => false, 'message' => 'Produk tidak ditemukan.']);
@@ -196,7 +183,6 @@ class MelakukanPemesanan extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Stok produk habis.']);
         }
         if ($qty > $stok) {
-            // Boleh hard-fail, atau auto-sesuaikan. Di sini hard-fail biar jelas.
             return $this->response->setJSON(['success' => false, 'message' => 'Jumlah melebihi stok tersedia.']);
         }
 
@@ -209,11 +195,10 @@ class MelakukanPemesanan extends BaseController
 
         $db->transStart();
 
-        // 1) pembayaran (khusus non-COD)
         $idPembayaran = null;
         if (!$isCOD) {
             $db->table('pembayaran')->insert([
-                'metode'       => ucfirst($metode),   // mis. Transfer/Ewallet
+                'metode'       => ucfirst($metode),   
                 'status_bayar' => 'Belum Bayar',
                 'created_at'   => $now,
                 'updated_at'   => $now,
@@ -221,7 +206,6 @@ class MelakukanPemesanan extends BaseController
             $idPembayaran = $db->insertID();
         }
 
-        // 2) pemesanan (header)
         $db->table('pemesanan')->insert([
             'id_user'          => $idUser,
             'id_alamat'        => $idAlamat,
@@ -233,7 +217,6 @@ class MelakukanPemesanan extends BaseController
         ]);
         $idPemesanan = (int) $db->insertID();
 
-        // 3) detail_pemesanan
         $db->table('detail_pemesanan')->insert([
             'id_pemesanan'  => $idPemesanan,
             'id_produk'     => $idProduk,
@@ -243,13 +226,11 @@ class MelakukanPemesanan extends BaseController
             'updated_at'    => $now,
         ]);
 
-        // 4) pengurangan stok ATOMIK (guard race condition)
         $db->query(
             "UPDATE produk SET stok = stok - ? WHERE id_produk = ? AND stok >= ?",
             [$qty, $idProduk, $qty]
         );
         if ($db->affectedRows() === 0) {
-            // stok berubah sebelum commit
             $db->transRollback();
             return $this->response->setJSON([
                 'success' => false,
@@ -267,8 +248,6 @@ class MelakukanPemesanan extends BaseController
             ]);
         }
 
-        // === BERESKAN KERANJANG & CONTEXT CHECKOUT ===
-        // Hapus item ini dari keranjang user (jika ada)
         $cartKey  = 'cart_u_' . $idUser;
         $countKey = 'cart_count_u_' . $idUser;
         $cart     = $session->get($cartKey) ?? [];
@@ -276,7 +255,6 @@ class MelakukanPemesanan extends BaseController
         if (isset($cart[$idProduk])) {
             unset($cart[$idProduk]);
 
-            // Simpan kembali cart & hitung ulang badge count
             $session->set($cartKey, $cart);
             $count = 0;
             foreach ($cart as $row) {
@@ -284,13 +262,11 @@ class MelakukanPemesanan extends BaseController
             }
             $session->set($countKey, $count);
 
-            // Jika keranjang kosong, bersihkan key sekalian
             if ($count === 0) {
                 $session->remove([$cartKey, $countKey]);
             }
         }
 
-        // Bersihkan context checkout single
         $session->remove(['checkout_data']);
 
         return $this->response->setJSON([
@@ -298,8 +274,7 @@ class MelakukanPemesanan extends BaseController
             'status'       => $status,
             'id_pemesanan' => $idPemesanan,
             'total'        => $total,
-            // optional hint ke FE kalau perlu redirect ke halaman status
-            // 'redirect'   => $isCOD ? base_url('pesanandikemas') : base_url('pesananbelumbayar'),
+
         ]);
     }
 
@@ -312,7 +287,6 @@ class MelakukanPemesanan extends BaseController
                 ->setJSON(['success' => false, 'message' => 'Silakan login.']);
         }
 
-        // Payload JSON: { id_alamat, metode, items:[{id_produk, qty}, ...] }
         $payload  = $this->request->getJSON(true);
         $idAlamat = (int)($payload['id_alamat'] ?? 0);
         $metode   = strtolower(trim($payload['metode'] ?? 'cod'));
@@ -322,7 +296,6 @@ class MelakukanPemesanan extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Payload tidak valid.']);
         }
 
-        // Gabungkan qty per id_produk
         $wanted = [];
         foreach ($items as $it) {
             $pid = (int)($it['id_produk'] ?? 0);
@@ -337,17 +310,14 @@ class MelakukanPemesanan extends BaseController
 
         $db = Database::connect();
 
-        // Ambil produk yang dibutuhkan
         $produkList = $this->produkModel->whereIn('id_produk', array_keys($wanted))->findAll();
         if (!$produkList) {
             return $this->response->setJSON(['success' => false, 'message' => 'Produk tidak ditemukan.']);
         }
 
-        // Index by id
         $byId = [];
         foreach ($produkList as $p) $byId[(int)$p['id_produk']] = $p;
 
-        // Validasi stok + hitung total
         $detailRows = [];
         $grandTotal = 0;
         foreach ($wanted as $pid => $qty) {
@@ -377,19 +347,16 @@ class MelakukanPemesanan extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Tidak ada item valid untuk diproses.']);
         }
 
-        // Tentukan status sesuai metode
         $isCOD  = ($metode === 'cod');
         $status = $isCOD ? 'Dikemas' : 'Menunggu Pembayaran';
 
-        // Transaksi simpan
         $db->transStart();
         $now = date('Y-m-d H:i:s');
 
-        // 1) pembayaran — hanya untuk non-COD
         $idPembayaran = null;
         if (!$isCOD) {
             $db->table('pembayaran')->insert([
-                'metode'       => ucfirst($metode),   // Transfer / Ewallet / dsb
+                'metode'       => ucfirst($metode),   
                 'referensi'    => null,
                 'status_bayar' => 'Belum Bayar',
                 'created_at'   => $now,
@@ -398,19 +365,17 @@ class MelakukanPemesanan extends BaseController
             $idPembayaran = $db->insertID();
         }
 
-        // 2) pemesanan (header)
         $db->table('pemesanan')->insert([
             'id_user'          => $idUser,
             'id_alamat'        => $idAlamat,
             'id_pembayaran'    => $idPembayaran,
-            'status_pemesanan' => $status,     // <- DISESUAIKAN DGN simpan()
+            'status_pemesanan' => $status,     
             'total_harga'      => $grandTotal,
             'created_at'       => $now,
             'updated_at'       => $now,
         ]);
         $idPemesanan = $db->insertID();
 
-        // 3) detail_pemesanan + pengurangan stok atomik
         foreach ($detailRows as $d) {
             $db->table('detail_pemesanan')->insert([
                 'id_pemesanan'  => $idPemesanan,
@@ -421,7 +386,6 @@ class MelakukanPemesanan extends BaseController
                 'updated_at'    => $now,
             ]);
 
-            // guard stok
             $db->query(
                 "UPDATE produk SET stok = stok - ? WHERE id_produk = ? AND stok >= ?",
                 [$d['jumlah_produk'], $d['id_produk'], $d['jumlah_produk']]
@@ -445,14 +409,13 @@ class MelakukanPemesanan extends BaseController
             ]);
         }
 
-        // Bereskan keranjang & context batch
         $cartKey  = 'cart_u_' . $idUser;
         $countKey = 'cart_count_u_' . $idUser;
         $session->remove([$cartKey, $countKey, 'checkout_all', 'checkout_data_multi', 'checkout_data']);
 
         return $this->response->setJSON([
             'success'       => true,
-            'status'        => $status,       // <- balikan status konsisten
+            'status'        => $status,      
             'id_pemesanan'  => $idPemesanan,
             'total'         => $grandTotal
         ]);

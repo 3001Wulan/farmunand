@@ -1,8 +1,4 @@
-// cypress/e2e/08_penilaian_user.cy.js
-// Sheet 06 - Penilaian & Ulasan (User)
-
 describe('Sheet 06 - Penilaian & Ulasan (User)', () => {
-  // GANTI dengan user pembeli valid
   const userEmail = 'user01@farmunand.local';
   const userPassword = '111111';
 
@@ -11,8 +7,6 @@ describe('Sheet 06 - Penilaian & Ulasan (User)', () => {
     cy.get('input[name="email"]').clear().type(userEmail);
     cy.get('input[name="password"]').clear().type(userPassword);
     cy.contains('button', /login/i).click();
-
-    // Setelah login, jangan lagi di /login
     cy.url({ timeout: 10000 }).should('not.include', '/login');
   }
 
@@ -20,26 +14,17 @@ describe('Sheet 06 - Penilaian & Ulasan (User)', () => {
     loginUser();
   });
 
-  // 06A - Daftar & Form Penilaian
    it('PEN-001: Halaman daftar penilaian bisa dibuka', () => {
     cy.visit('/penilaian/daftar');
-
-    // ✅ Pastikan ini memang halaman penilaian (pakai beberapa kemungkinan teks)
     cy.contains(/Penilaian|Beri Penilaian|Ulasan/i).should('exist');
-
-    // Dua kemungkinan: ada daftar pesanan yang bisa dinilai, atau halaman kosong
     cy.get('body').then(($body) => {
       const hasTableRows = $body.find('table tbody tr').length > 0;
       const hasCards = $body.find('.penilaian-card').length > 0;
 
       if (hasTableRows || hasCards) {
-        // ✅ Kalau ada data, harus ada tombol/tautan untuk memberi penilaian
         cy.contains(/Beri Penilaian|Nilai Produk/i).should('exist');
       } else {
-        // ✅ Kalau tidak ada data sama sekali, anggap saja sebagai:
-        // "tidak ada pesanan yang bisa dinilai saat ini"
         cy.log('Tidak ada pesanan yang dapat dinilai saat ini (halaman kosong).');
-        // Tidak perlu assert teks tertentu, karena view-mu tidak menampilkan pesan khusus.
       }
     });
   });

@@ -1,4 +1,4 @@
-/// <reference types="cypress" />
+<reference types="cypress" />
 
 describe('Admin Produk - CRUD & Search', () => {
     const adminEmail = 'admin@farmunand.local';
@@ -15,18 +15,11 @@ describe('Admin Produk - CRUD & Search', () => {
         cy.url().should('include', '/dashboard');
     });
 
-    // -----------------------------
-    // 1. List Produk & Search/Filter
-    // -----------------------------
     it('PRD-001: List produk tampil & search/filter aman', () => {
         cy.visit('/admin/produk');
 
-        // Pastikan tabel ada
         cy.get('table tbody tr').should('exist');
 
-        // -------------------------
-        // Search Produk
-        // -------------------------
         cy.get('input[name="keyword"]').clear().type('Produk');
         cy.get('button[type="submit"]').contains(/filter/i).click();
 
@@ -40,9 +33,6 @@ describe('Admin Produk - CRUD & Search', () => {
             }
         });
 
-        // -------------------------
-        // Filter Kategori
-        // -------------------------
         const kategori = 'Minuman';
         cy.get('select[name="kategori"]').select(kategori);
         cy.get('button[type="submit"]').contains(/filter/i).click();
@@ -57,9 +47,6 @@ describe('Admin Produk - CRUD & Search', () => {
             }
         });
     });
-    // -----------------------------
-    // 2. Tambah Produk Baru
-    // -----------------------------
     it('PRD-002: Tambah produk baru berhasil', () => {
         cy.visit('/admin/produk/create');
 
@@ -71,7 +58,6 @@ describe('Admin Produk - CRUD & Search', () => {
         cy.get('input[name="stok"]').type('10');
         cy.get('select[name="kategori"]').select('Makanan');
 
-        // Upload foto
         cy.get('input[name="foto"]').selectFile('cypress/fixtures/sample.png');
 
         cy.get('button[type="submit"]').click();
@@ -81,9 +67,6 @@ describe('Admin Produk - CRUD & Search', () => {
         cy.contains(randomProductName).should('exist');
     });
 
-    // -----------------------------
-    // 3. Edit Produk
-    // -----------------------------
     it('PRD-003: Edit produk berhasil', () => {
         cy.visit('/admin/produk');
 
@@ -104,9 +87,6 @@ describe('Admin Produk - CRUD & Search', () => {
         randomProductName = updatedName;
     });
 
-    // -----------------------------
-    // 4. Hapus Produk via Modal
-    // -----------------------------
     it('PRD-004: Hapus produk berhasil', () => {
         cy.visit('/admin/produk');
 
@@ -114,11 +94,9 @@ describe('Admin Produk - CRUD & Search', () => {
             cy.get('.btn-delete-product').click();
         });
 
-        // Modal muncul
         cy.get('#deleteProductModal').should('be.visible');
         cy.get('#modalProductName').should('contain.text', randomProductName);
 
-        // Konfirmasi hapus
         cy.get('#form-delete-product').submit();
 
         cy.contains('Produk berhasil dihapus!').should('exist');

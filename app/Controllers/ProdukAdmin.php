@@ -16,7 +16,6 @@ class ProdukAdmin extends BaseController
         $this->userModel   = new UserModel();
     }
 
-    // === List Produk (dengan search)
     public function index()
     {
         $userId = session()->get('id_user');
@@ -26,7 +25,6 @@ class ProdukAdmin extends BaseController
         $kategori = $this->request->getVar('kategori');
 
         if ($keyword || $kategori) {
-            // gabungkan pencarian & filter tanpa mengubah method lama
             $builder = $this->produkModel->builder();
 
             if (!empty($keyword)) {
@@ -56,7 +54,6 @@ class ProdukAdmin extends BaseController
         return view('admin/produk/index', $data);
     }
 
-    // === Form Tambah Produk
     public function create()
     {
         $userId = session()->get('id_user');
@@ -68,7 +65,6 @@ class ProdukAdmin extends BaseController
         ]);
     }
 
-    // === Simpan Produk Baru
     public function store()
     {
         $file = $this->request->getFile('foto');
@@ -76,7 +72,7 @@ class ProdukAdmin extends BaseController
 
         if ($file && $file->isValid() && !$file->hasMoved()) {
 
-            $maxBytes = 10 * 1024 * 1024; // 10MB
+            $maxBytes = 10 * 1024 * 1024; 
             if ($file->getSize() > $maxBytes) {
                 return redirect()->back()
                     ->withInput()
@@ -119,7 +115,6 @@ class ProdukAdmin extends BaseController
         ]);
     }
 
-    // === Update Produk
     public function update($id_produk)
     {
         $produk = $this->produkModel->find($id_produk);
@@ -130,7 +125,7 @@ class ProdukAdmin extends BaseController
         $file = $this->request->getFile('foto');
         if ($file && $file->isValid() && !$file->hasMoved()) {
 
-            $maxBytes = 10 * 1024 * 1024; // 10MB
+            $maxBytes = 10 * 1024 * 1024; 
             if ($file->getSize() > $maxBytes) {
                 return redirect()->back()
                     ->withInput()
@@ -160,7 +155,6 @@ class ProdukAdmin extends BaseController
         return redirect()->to('/admin/produk')->with('success', 'Produk berhasil diperbarui!');
     }
 
-    // === Hapus Produk
     public function delete($id_produk)
     {
         $produk = $this->produkModel->find($id_produk);
