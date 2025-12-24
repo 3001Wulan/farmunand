@@ -18,6 +18,7 @@ class UserModel extends Model
     // Kolom yang boleh diisi (mass assignment)
     protected $allowedFields = [
         'username',
+        'nama',
         'email',
         'password',          // berisi password yang sudah di-hash
         'role',
@@ -27,6 +28,8 @@ class UserModel extends Model
         'failed_logins',
         'last_failed_login',
         'locked_until',
+        'no_hp',
+        'status',
     ];
 
     // Timestamps otomatis
