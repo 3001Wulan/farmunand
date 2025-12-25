@@ -136,29 +136,27 @@ describe('Sheet 10 - Manajemen Akun User (Admin)', () => {
 
    
     it('USRS-MGT-007: Hapus User berhasil', () => {
-    cy.visit('/manajemenakunuser');
+        cy.visit('/manajemenakunuser');
 
-  
-    cy.get('table tbody tr')
-        .first()
-        .within(() => {
-        cy.get('button.btn-delete-user, [data-bs-target="#deleteUserModal"]').click();
-        });
+        cy.get('tbody tr').filter(':not(:contains("admin@farmunand.local"))')
+          .first()
+          .within(() => {
+              cy.get('button.btn-delete-user, [data-bs-target="#deleteUserModal"]').click();
+          });
 
-    cy.get('#deleteUserModal').should('be.visible');
+        cy.get('#deleteUserModal').should('be.visible');
+        cy.get('#deleteUserModal')
+          .contains('button, a', /hapus|ya, hapus|delete/i)
+          .click();
 
-  
-    cy.get('#deleteUserModal')
-        .contains('button, a', /hapus|ya, hapus|delete/i)
-        .click();
+        cy.url().should('include', '/manajemenakunuser');
 
- 
-    cy.url().should('include', '/manajemenakunuser');
-
- 
-    cy.contains('.alert-success, .alert', /berhasil|dihapus/i).should('exist');
+        cy.get('.alert-success, .alert')
+          .should('be.visible')
+          .invoke('text')
+          .should('match', /berhasil|dihapus/i);
     });
-
+    
 
     it('USRS-MGT-008: Gagal hapus akun sendiri', () => {
  
