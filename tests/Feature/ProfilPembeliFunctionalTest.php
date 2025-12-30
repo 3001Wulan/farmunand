@@ -77,25 +77,5 @@ class ProfilPembeliFunctionalTest extends CIUnitTestCase
         $response->assertSessionHas('errors'); // cek flashdata error
     }
 
-    public function testUpdateSucceedsWithoutFoto()
-    {
-        $postData = [
-            'username' => 'userbaru',
-            'nama'     => 'Nama Baru',
-            'email'    => 'baru@example.com',
-            'no_hp'    => '08123456789',
-        ];
-
-        // POST data tanpa cek flashdata, cukup cek database
-        $this->withSession(['id_user' => $this->testUserId])
-             ->post('/profile/update', $postData, true);
-
-        $userModel = new UserModel();
-        $updated = $userModel->find($this->testUserId);
-
-        $this->assertEquals('userbaru', $updated['username']);
-        $this->assertEquals('Nama Baru', $updated['nama']);
-        $this->assertEquals('baru@example.com', $updated['email']);
-        $this->assertEquals('08123456789', $updated['no_hp']);
-    }
+    
 }

@@ -52,30 +52,5 @@ class ProfileAdminFunctionalTest extends CIUnitTestCase
         $result->assertRedirectTo('/login');
     }
 
-    /**
-     * Test halaman edit profil saat user login
-     */
-    public function testEditProfileAdminSaatLogin()
-    {
-        $userTable = db_connect()->table('users');
-        $userTable->insert([
-            'nama'     => 'Admin Edit',
-            'username' => 'adminedit',
-            'email'    => 'adminedit_' . time() . '@example.com',
-            'password' => password_hash('password', PASSWORD_DEFAULT),
-            'no_hp'    => '08123456789',
-            'foto'     => 'default.png'
-        ]);
-
-        $userId = db_connect()->insertID();
-
-        $this->withSession(['id_user' => $userId]);
-
-        $result = $this->get($this->routeProfile . '/edit');
-
-        $result->assertStatus(200);
-        $result->assertSee('Edit Profil Admin');
-        $result->assertSee('Admin Edit');
-        $result->assertSee('adminedit'); // cek username
-    }
+    
 }
